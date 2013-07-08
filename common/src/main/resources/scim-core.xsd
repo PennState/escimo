@@ -279,7 +279,7 @@
   	</xs:complexContent>
   </xs:complexType>
 
-  <xs:complexType name="multiValuedAttribute" abstract="true">
+  <xs:complexType name="multiValuedAttribute">
     <xs:sequence>
       <xs:element name="value" type="xs:anyType" minOccurs="0"/>
       <xs:element name="display" type="xs:string" minOccurs="0"/>
@@ -319,42 +319,42 @@
     </xs:sequence>
   </xs:complexType>
 
-   <xs:complexType name="SchemaAttribute">
-    <xs:complexContent>
-      <xs:extension base="tns:SchemaSubAttribute">
-        <xs:sequence>
-          <xs:element name="multiValued" type="xs:boolean" minOccurs="0"/>
-          <xs:element name="multiValuedAttributeChildName" type="xs:string" minOccurs="0"/>
-          <xs:element name="canonicalValues" type="xs:string" minOccurs="0"/>
-          <xs:element name="subAttributes" minOccurs="0">
-          <xs:complexType>
-            <xs:sequence>
-              <xs:element name="subAttribute"
-                          type="tns:SchemaSubAttribute"
-                          minOccurs="0"
-                          maxOccurs="unbounded"/>
-              </xs:sequence>
-            </xs:complexType>
-          </xs:element>
-        </xs:sequence>
-      </xs:extension>
-    </xs:complexContent>
-  </xs:complexType>
+  <xs:complexType name="SchemaAttribute">
+   <xs:sequence>
+     <xs:element name="name" type="xs:string" minOccurs="0"/>
+     <xs:element name="type" type="xs:string" minOccurs="0"/>
+     <xs:element name="multiValued" type="xs:boolean" minOccurs="0"/>
+     <xs:element name="multiValuedAttributeChildName" type="xs:string" minOccurs="0"/>
+     <xs:element name="description" type="xs:string" minOccurs="0"/>
+     <xs:element name="schema" type="xs:string" minOccurs="0"/>
+     <xs:element name="readOnly" type="xs:boolean" minOccurs="0"/>
+     <xs:element name="required" type="xs:boolean" minOccurs="0"/>
+     <xs:element name="caseExact" type="xs:boolean" minOccurs="0"/>
+     <xs:element name="subAttributes" minOccurs="0">
+       <xs:complexType>
+         <xs:sequence>
+           <xs:element name="subAttribute"
+                   type="tns:SchemaSubAttribute"
+                   minOccurs="0"
+                   maxOccurs="unbounded"/>
+         </xs:sequence>
+       </xs:complexType>
+     </xs:element>
+   </xs:sequence>
+ </xs:complexType>
 
   <xs:complexType name="SchemaSubAttribute">
-    <xs:complexContent>
-  	  <xs:extension base="tns:multiValuedAttribute">
-        <xs:sequence>
-          <xs:element name="name" type="xs:string" minOccurs="0"/>
-          <xs:element name="type" type="xs:string" minOccurs="0"/>
-          <xs:element name="description" type="xs:string" minOccurs="0"/>
-          <xs:element name="schema" type="xs:string" minOccurs="0"/>
-          <xs:element name="readOnly" type="xs:boolean" minOccurs="0"/>
-          <xs:element name="required" type="xs:boolean" minOccurs="0"/>
-          <xs:element name="caseExact" type="xs:boolean" minOccurs="0"/>
-        </xs:sequence>
-      </xs:extension>
-    </xs:complexContent>
+    <xs:sequence>
+      <xs:element name="name" type="xs:string" minOccurs="0"/>
+      <xs:element name="type" type="xs:string" minOccurs="0"/>
+      <xs:element name="description" type="xs:string" minOccurs="0"/>
+      <xs:element name="readOnly" type="xs:boolean" minOccurs="0"/>
+      <xs:element name="required" type="xs:boolean" minOccurs="0"/>
+      <xs:element name="caseExact" type="xs:boolean" minOccurs="0"/>
+      <xs:sequence>
+        <xs:element name="canonicalValues" type="xs:string" minOccurs="0" maxOccurs="unbounded"/>
+      </xs:sequence>
+    </xs:sequence>
   </xs:complexType>
 
   <xs:complexType name="Schema">
@@ -367,15 +367,15 @@
             minOccurs="0"/>
           <xs:element name="schema" type="xs:string"
             minOccurs="0"/>
-          <xs:element name="queryEndpoint" type="xs:string"
+          <xs:element name="endpoint" type="xs:string"
             minOccurs="0"/>
           <xs:element name="attributes" minOccurs="0">
           <xs:complexType>
             <xs:sequence>
               <xs:element name="attribute"
-                          type="tns:SchemaSubAttribute"
-                          minOccurs="0"
-                          maxOccurs="unbounded"/>
+                         type="tns:SchemaAttribute"
+                         minOccurs="0"
+                         maxOccurs="unbounded"/>
               </xs:sequence>
             </xs:complexType>
           </xs:element>
