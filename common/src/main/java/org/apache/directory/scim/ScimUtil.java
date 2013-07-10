@@ -18,8 +18,6 @@
  */
 package org.apache.directory.scim;
 
-import org.apache.directory.api.ldap.model.entry.Entry;
-
 /**
  * 
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
