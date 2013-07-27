@@ -36,7 +36,8 @@ public class UserService
 
     @GET
     @Produces( {MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
-    public User getUser( @PathParam("user") String userId )
+    @Path("{id}")
+    public User getUser( @PathParam("id") String userId )
     {
         return null;
     }
