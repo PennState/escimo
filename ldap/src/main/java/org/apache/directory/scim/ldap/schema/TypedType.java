@@ -75,6 +75,11 @@ public class TypedType extends BaseType
         return true;
     }
 
+    public String getName()
+    {
+        return name;
+    }
+
     /* (non-Javadoc)
      * @see java.lang.Object#toString()
      */

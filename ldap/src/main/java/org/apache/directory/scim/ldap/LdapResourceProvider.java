@@ -23,15 +23,21 @@ package org.apache.directory.scim.ldap;
 import static org.apache.directory.api.ldap.model.constants.SchemaConstants.ALL_ATTRIBUTES_ARRAY;
 import static org.apache.directory.api.ldap.model.message.SearchScope.SUBTREE;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
 
 import org.apache.directory.api.ldap.codec.standalone.StandaloneLdapApiService;
+import org.apache.directory.api.ldap.model.constants.SchemaConstants;
+import org.apache.directory.api.ldap.model.cursor.CursorException;
 import org.apache.directory.api.ldap.model.cursor.EntryCursor;
 import org.apache.directory.api.ldap.model.cursor.SearchCursor;
 import org.apache.directory.api.ldap.model.entry.Attribute;
 import org.apache.directory.api.ldap.model.entry.Entry;
+import org.apache.directory.api.ldap.model.entry.Value;
+import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.message.Response;
 import org.apache.directory.api.ldap.model.message.SearchRequest;
 import org.apache.directory.api.ldap.model.message.SearchRequestImpl;
@@ -41,14 +47,26 @@ import org.apache.directory.api.ldap.model.message.controls.EntryChange;
 import org.apache.directory.api.ldap.model.message.controls.PersistentSearch;
 import org.apache.directory.api.ldap.model.message.controls.PersistentSearchImpl;
 import org.apache.directory.api.ldap.model.name.Dn;
+import org.apache.directory.api.ldap.model.schema.LdapSyntax;
+import org.apache.directory.api.ldap.model.schema.SyntaxChecker;
+import org.apache.directory.api.ldap.model.schema.syntaxCheckers.IntegerSyntaxChecker;
+import org.apache.directory.api.ldap.model.schema.syntaxCheckers.JavaByteSyntaxChecker;
+import org.apache.directory.api.ldap.model.schema.syntaxCheckers.JavaIntegerSyntaxChecker;
+import org.apache.directory.api.ldap.model.schema.syntaxCheckers.JavaLongSyntaxChecker;
+import org.apache.directory.api.ldap.model.schema.syntaxCheckers.JavaShortSyntaxChecker;
 import org.apache.directory.api.util.Base64;
+import org.apache.directory.api.util.Strings;
 import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.ldap.client.api.LdapNetworkConnection;
+import org.apache.directory.scim.ComplexAttribute;
+import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.ResourceNotFoundException;
 import org.apache.directory.scim.SimpleAttribute;
+import org.apache.directory.scim.SimpleAttributeGroup;
 import org.apache.directory.scim.User;
 import org.apache.directory.scim.ldap.schema.BaseType;
 import org.apache.directory.scim.ldap.schema.ComplexType;
+import org.apache.directory.scim.ldap.schema.MultiValType;
 import org.apache.directory.scim.ldap.schema.SimpleType;
 import org.apache.directory.scim.ldap.schema.SimpleTypeGroup;
 import org.apache.directory.scim.ldap.schema.TypedType;
@@ -108,7 +126,14 @@ public class LdapResourceProvider
             throw new ResourceNotFoundException( "No User resource found with the ID " + id );
         }
 
-        return toUser( entry );
+        try
+        {
+            return toUser( entry );
+        }
+        catch ( Exception e )
+        {
+            throw new ResourceNotFoundException( e );
+        }
     }
 
 
@@ -123,46 +148,279 @@ public class LdapResourceProvider
             if ( bt instanceof SimpleType )
             {
                 SimpleType st = ( SimpleType ) bt;
-                
-                if(!st.isShow()) 
+
+                if ( !st.isShow() )
                 {
                     continue;
                 }
-                
-                String name = st.getName();
-                Attribute at = entry.get( st.getMappedTo() );
+
+                SimpleAttribute at = getValueInto( st, entry );
                 if ( at != null )
                 {
-                    String value = null;
-                    if( at.isHumanReadable() )
-                    {
-                        value = at.getString();
-                    }
-                    else
-                    {
-                        value = new String( Base64.encode( at.getBytes() ) );
-                    }
-                    
-                    user.addAttribute( bt.getUri(), new SimpleAttribute( name, value ) );
+                    user.addAttribute( bt.getUri(), at );
                 }
             }
             else if ( bt instanceof ComplexType )
             {
                 ComplexType ct = ( ComplexType ) bt;
-                
-                if(!ct.isShow()) 
+
+                if ( !ct.isShow() )
                 {
                     continue;
                 }
-                
-                SimpleTypeGroup stg = ct.getStGroup();
-                List<SimpleType> lstTyps = stg.getLstSTypes();
-                
+
+                List<SimpleAttribute> lstAts = getValuesInto( ct.getAtGroup(), entry );
+
+                if ( !lstAts.isEmpty() )
+                {
+                    ComplexAttribute cAt = new ComplexAttribute( ct.getName(), lstAts );
+                    user.addAttribute( bt.getUri(), cAt );
+                }
+            }
+            else if ( bt instanceof MultiValType )
+            {
+                MultiValType mt = ( MultiValType ) bt;
+
+                if ( !mt.isShow() )
+                {
+                    continue;
+                }
+
+                List<TypedType> typedList = mt.getTypedList();
+                SimpleTypeGroup stg = mt.getStGroup();
+
+                if ( typedList != null )
+                {
+                    MultiValAttribute mv = new MultiValAttribute( mt.getName() );
+
+                    for ( TypedType tt : typedList )
+                    {
+                        SimpleTypeGroup typeStg = tt.getAtGroup();
+                        List<SimpleAttribute> lstAts = getValuesInto( typeStg, entry );
+                        lstAts.add( new SimpleAttribute( "type", tt.getName() ) );
+                        if ( tt.isPrimary() )
+                        {
+                            lstAts.add( new SimpleAttribute( "primary", true ) );
+                        }
+
+                        if ( !lstAts.isEmpty() )
+                        {
+                            mv.addAtGroup( new SimpleAttributeGroup( lstAts ) );
+                        }
+                    }
+
+                    if ( mv.getAtGroupList() != null )
+                    {
+                        user.addAttribute( bt.getUri(), mv );
+                    }
+                }
+                else if ( stg != null )
+                {
+                    List<SimpleAttributeGroup> atGroupList = null;
+
+                    if ( !Strings.isEmpty( mt.getFilter() ) )
+                    {
+                        atGroupList = getDynamicMultiValAtFrom( stg, mt.getFilter(), mt.getBaseDn(), entry );
+                    }
+                    else
+                    {
+                        atGroupList = getValuesFor( stg, entry );
+                    }
+
+                    MultiValAttribute mv = new MultiValAttribute( mt.getName(), atGroupList );
+
+                }
             }
         }
 
-        Iterator<Attribute> itr = entry.iterator();
+        return user;
+    }
+
+
+    private List<SimpleAttributeGroup> getDynamicMultiValAtFrom( SimpleTypeGroup stg, String filter, String baseDn,
+        Entry entry )
+        throws LdapException, IOException, CursorException
+    {
+        if ( Strings.isEmpty( baseDn ) )
+        {
+            baseDn = ""; // RootDSE
+        }
+
+        /* if( filter.contains( "$" ))
+         {
+             StringBuilder sb = new StringBuilder();
+             int len = filter.length();
+             int pos = 0;
+             while( pos < len-1 )
+             {
+                 int equalPos = filter.indexOf( "=", pos );
+                 sb.append( filter.subSequence( pos, equalPos+1 ) );
+                 
+                 int dollarPos = filter.indexOf( "$", equalPos );
+                 if( dollarPos != -1 )
+                 {
+                     int rightParenPos = filter.indexOf( ")", dollarPos );
+                     while( filter.charAt( rightParenPos - 1 ) == '\\' )
+                     {
+                         rightParenPos = filter.indexOf( ")", rightParenPos );
+                     }
+                     
+                 }
+                 
+             }
+         }*/
+
+        List<SimpleAttributeGroup> lst = new ArrayList<SimpleAttributeGroup>();
+
+        EntryCursor cursor = connection.search( baseDn, filter, SearchScope.SUBTREE,
+            SchemaConstants.ALL_ATTRIBUTES_ARRAY );
+        while ( cursor.next() )
+        {
+            Entry mvEntry = cursor.get();
+            List<SimpleAttributeGroup> tmp = getValuesFor( stg, mvEntry );
+            if ( tmp != null )
+            {
+                lst.add( tmp.get( 0 ) );
+            }
+        }
+
+        cursor.close();
+
+        if ( lst.isEmpty() )
+        {
+            return null;
+        }
+
+        return lst;
+    }
+
+
+    private List<SimpleAttributeGroup> getValuesFor( SimpleTypeGroup stg, Entry entry ) throws LdapException
+    {
+        if ( stg == null )
+        {
+            return null;
+        }
+
+        SimpleType valType = stg.getValueType();
+
+        if ( valType == null )
+        {
+            return null;
+        }
+
+        List<SimpleType> types = new ArrayList<SimpleType>( stg.getLstSTypes() );
+        types.remove( valType );
+
+        Attribute ldapAt = entry.get( valType.getMappedTo() );
+
+        if ( ldapAt == null )
+        {
+            return null;
+        }
+
+        List<SimpleAttributeGroup> lst = new ArrayList<SimpleAttributeGroup>();
+
+        Iterator<Value<?>> itr = ldapAt.iterator();
+
+        while ( itr.hasNext() )
+        {
+            Value<?> val = itr.next();
+
+            Object scimVal = getScimValFrom( val );
+            SimpleAttributeGroup sg = new SimpleAttributeGroup();
+            sg.addAttribute( new SimpleAttribute( valType.getName(), scimVal ) );
+
+            for ( SimpleType type : types )
+            {
+                SimpleAttribute st = getValueInto( type, entry );
+
+                if ( st != null )
+                {
+                    sg.addAttribute( st );
+                }
+            }
+
+            lst.add( sg );
+        }
+
+        if ( lst.isEmpty() )
+        {
+            return null;
+        }
+
+        return lst;
+    }
+
+
+    public SimpleAttribute getValueInto( SimpleType st, Entry entry ) throws LdapException
+    {
+        String name = st.getName();
+        Attribute at = entry.get( st.getMappedTo() );
+        if ( at != null )
+        {
+
+            Object value = getScimValFrom( at );
+            return new SimpleAttribute( name, value );
+        }
+
         return null;
+    }
+
+
+    private Object getScimValFrom( Attribute at ) throws LdapException
+    {
+        return getScimValFrom( at.get() );
+    }
+
+
+    private Object getScimValFrom( Value<?> ldapValue ) throws LdapException
+    {
+        if ( !ldapValue.isHumanReadable() )
+        {
+            return new String( Base64.encode( ldapValue.getBytes() ) );
+        }
+
+        LdapSyntax syntax = ldapValue.getAttributeType().getSyntax();
+        if ( syntax != null )
+        {
+            SyntaxChecker sc = syntax.getSyntaxChecker();
+            if ( sc instanceof IntegerSyntaxChecker ||
+                sc instanceof JavaByteSyntaxChecker ||
+                sc instanceof JavaIntegerSyntaxChecker ||
+                sc instanceof JavaLongSyntaxChecker ||
+                sc instanceof JavaShortSyntaxChecker )
+            {
+                return Long.parseLong( ldapValue.getString() );
+            }
+        }
+
+        return ldapValue.getString();
+
+    }
+
+
+    //    public List<SimpleAttribute> getValuesInto( List<SimpleType> lstTyps, Entry entry ) throws LdapException
+    //    {
+    //    }
+
+    public List<SimpleAttribute> getValuesInto( SimpleTypeGroup stg, Entry entry ) throws LdapException
+    {
+        List<SimpleAttribute> lstAts = new ArrayList<SimpleAttribute>();
+
+        for ( SimpleType st : stg.getLstSTypes() )
+        {
+            SimpleAttribute at = getValueInto( st, entry );
+            if ( at != null )
+            {
+                lstAts.add( at );
+            }
+
+            //TODO handle the format
+        }
+
+        return lstAts;
+
     }
 
 

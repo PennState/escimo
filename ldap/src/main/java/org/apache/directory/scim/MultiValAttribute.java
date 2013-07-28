@@ -20,6 +20,7 @@
 package org.apache.directory.scim;
 
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -28,14 +29,33 @@ import java.util.List;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class ComplexAttribute extends AbstractAttribute
+public class MultiValAttribute extends AbstractAttribute
 {
-    private List<SimpleAttribute> atList;
+    private List<SimpleAttributeGroup> atGroupList;
 
-    public ComplexAttribute( String name, List<SimpleAttribute> atList )
+    public MultiValAttribute( String name, List<SimpleAttributeGroup> atGroupList )
     {
         super( name );
-        this.atList = atList;
+        this.atGroupList = atGroupList;
     }
 
+    public MultiValAttribute( String name )
+    {
+        super( name );
+    }
+
+    public List<SimpleAttributeGroup> getAtGroupList()
+    {
+        return atGroupList;
+    }
+
+    public void addAtGroup( SimpleAttributeGroup atGroup )
+    {
+        if( atGroupList == null )
+        {
+            atGroupList = new ArrayList<SimpleAttributeGroup>();
+        }
+        
+        atGroupList.add( atGroup );
+    }
 }

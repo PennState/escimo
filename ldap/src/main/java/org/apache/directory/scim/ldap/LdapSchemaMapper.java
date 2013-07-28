@@ -36,6 +36,7 @@ import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.scim.SchemaMapper;
 import org.apache.directory.scim.ldap.schema.BaseType;
 import org.apache.directory.scim.ldap.schema.ComplexType;
+import org.apache.directory.scim.ldap.schema.MultiValType;
 import org.apache.directory.scim.ldap.schema.ResourceSchema;
 import org.apache.directory.scim.ldap.schema.SimpleType;
 import org.apache.directory.scim.ldap.schema.SimpleTypeGroup;
@@ -221,6 +222,32 @@ public class LdapSchemaMapper implements SchemaMapper
                     + elmComplex.asXML() );
             }
 
+
+            List<SimpleType> stList = new ArrayList<SimpleType>();
+            
+            Element atGrpElm = elmComplex.element( "at-group" );
+            SimpleTypeGroup stg = parseAtGroup( atGrpElm, uri );
+            if( stg != null )
+            {
+                ComplexType ct = new ComplexType( name, uri, stg );
+                resourceSchema.addAttributeType( name, ct );
+            }
+
+        }
+        
+        // load multival-attributes
+        List<Element> multivalAtElmList = schemaRoot.elements( "multival-attribute" );
+
+        for ( Element elmComplex : multivalAtElmList )
+        {
+            String name = elmComplex.attributeValue( "name" );
+
+            if ( Strings.isEmpty( name ) )
+            {
+                throw new IllegalStateException( "name is missing in the multival-attribute configuration element "
+                    + elmComplex.asXML() );
+            }
+
             String baseDn = elmComplex.attributeValue( "baseDn" );
             String filter = elmComplex.attributeValue( "filter" );
             
@@ -230,7 +257,7 @@ public class LdapSchemaMapper implements SchemaMapper
                 SimpleTypeGroup stg = parseAtGroup( elmAtGroup, uri );
                 if ( stg != null )
                 {
-                    ComplexType ct = new ComplexType( name, uri, stg, baseDn, filter );
+                    MultiValType ct = new MultiValType( name, uri, stg, baseDn, filter );
                     resourceSchema.addAttributeType( name, ct );
                 }
 
@@ -271,7 +298,7 @@ public class LdapSchemaMapper implements SchemaMapper
                     lstTypes.add( tt );
                 }
 
-                ComplexType ct = new ComplexType( name, uri, lstTypes, baseDn, filter );
+                MultiValType ct = new MultiValType( name, uri, lstTypes, baseDn, filter );
                 resourceSchema.addAttributeType( name, ct );
             }
         }

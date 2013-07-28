@@ -35,15 +35,15 @@ public class User
     
     private List<ComplexAttribute> complexList;
     
-    private Map<String,List<ScimAttribute>> uriAtMap = new HashMap<String, List<ScimAttribute>>();
+    private Map<String,List<AbstractAttribute>> uriAtMap = new HashMap<String, List<AbstractAttribute>>();
     
-    public void addAttribute( String uri, ScimAttribute at )
+    public void addAttribute( String uri, AbstractAttribute at )
     {
-        List<ScimAttribute> atList = uriAtMap.get( uri );
+        List<AbstractAttribute> atList = uriAtMap.get( uri );
         
         if( atList == null )
         {
-            atList = new ArrayList<ScimAttribute>();
+            atList = new ArrayList<AbstractAttribute>();
             uriAtMap.put( uri, atList );
         }
         

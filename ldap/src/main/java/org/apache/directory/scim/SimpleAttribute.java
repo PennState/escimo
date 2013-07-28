@@ -25,9 +25,9 @@ package org.apache.directory.scim;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class SimpleAttribute extends ScimAttribute
+public class SimpleAttribute extends AbstractAttribute
 {
-    private String value;
+    private Object value;
 
 
     public SimpleAttribute( String name )
@@ -36,20 +36,20 @@ public class SimpleAttribute extends ScimAttribute
     }
 
 
-    public SimpleAttribute( String name, String value )
+    public SimpleAttribute( String name, Object value )
     {
         super( name );
         this.value = value;
     }
 
 
-    public String getValue()
+    public Object getValue()
     {
         return value;
     }
 
 
-    public void setValue( String value )
+    public void setValue( Object value )
     {
         this.value = value;
     }

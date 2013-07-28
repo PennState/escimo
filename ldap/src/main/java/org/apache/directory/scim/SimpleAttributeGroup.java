@@ -28,14 +28,34 @@ import java.util.List;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class ComplexAttribute extends AbstractAttribute
+public class SimpleAttributeGroup
 {
     private List<SimpleAttribute> atList;
 
-    public ComplexAttribute( String name, List<SimpleAttribute> atList )
+
+    public SimpleAttributeGroup()
     {
-        super( name );
+    }
+
+
+    public SimpleAttributeGroup( List<SimpleAttribute> atList )
+    {
         this.atList = atList;
+    }
+
+
+    public void addAttribute( SimpleAttribute at )
+    {
+        if ( atList == null )
+        {
+            atList.add( at );
+        }
+    }
+
+
+    public List<SimpleAttribute> getAtList()
+    {
+        return atList;
     }
 
 }

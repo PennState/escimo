@@ -33,6 +33,7 @@ public class SimpleTypeGroup
 {
     private List<SimpleType> lstSTypes;
 
+    /** used for setting the value of "formatted" attribute */
     private String format;
 
     public SimpleTypeGroup( List<SimpleType> lstSTypes, String format )
@@ -58,6 +59,19 @@ public class SimpleTypeGroup
         return Collections.unmodifiableList( lstSTypes );
     }
 
+    
+    public SimpleType getValueType()
+    {
+        for( SimpleType st : lstSTypes )
+        {
+            if( "value".equals( st.getName() ))
+            {
+                return st;
+            }
+        }
+        
+        return null;
+    }
 
     /* (non-Javadoc)
      * @see java.lang.Object#toString()

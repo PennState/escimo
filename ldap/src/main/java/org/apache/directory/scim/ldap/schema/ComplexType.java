@@ -32,55 +32,16 @@ public class ComplexType extends BaseType
 {
     private String name;
 
-    private SimpleTypeGroup stGroup;
-
-    private List<TypedType> typedList;
+    private SimpleTypeGroup atGroup;
 
     private boolean show = true;
 
-    private String baseDn;
-    
-    private String filter;
-
-    /** used for setting the value of "formatted" attribute */
-    private String format;
-
-    public ComplexType( String name, String uri, SimpleTypeGroup stGroup, String baseDn, String filter )
+    public ComplexType( String name, String uri, SimpleTypeGroup atGroup )
     {
         super(uri);
         this.name = name;
-        this.stGroup = stGroup;
-        this.baseDn = baseDn;
-        this.filter = filter;
+        this.atGroup = atGroup;
     }
-
-
-    public ComplexType( String name, String uri, List<TypedType> typedList, String baseDn, String filter )
-    {
-        super(uri);
-        this.name = name;
-        this.typedList = typedList;
-        this.baseDn = baseDn;
-        this.filter = filter;
-    }
-
-    /**
-     * @return the typedList
-     */
-    public List<TypedType> getTypedList()
-    {
-        return typedList;
-    }
-
-
-    /**
-     * @return the stGroup
-     */
-    public SimpleTypeGroup getStGroup()
-    {
-        return stGroup;
-    }
-
 
     /**
      * @return the show
@@ -88,33 +49,6 @@ public class ComplexType extends BaseType
     public boolean isShow()
     {
         return show;
-    }
-
-
-    /**
-     * @return the baseDn
-     */
-    public String getBaseDn()
-    {
-        return baseDn;
-    }
-
-
-    /**
-     * @return the filter
-     */
-    public String getFilter()
-    {
-        return filter;
-    }
-
-
-    /**
-     * @return the format
-     */
-    public String getFormat()
-    {
-        return format;
     }
 
 
@@ -127,21 +61,15 @@ public class ComplexType extends BaseType
     }
 
 
+    public SimpleTypeGroup getAtGroup()
+    {
+        return atGroup;
+    }
+
     @Override
     public boolean isComplex()
     {
         return true;
-    }
-
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#toString()
-     */
-    @Override
-    public String toString()
-    {
-        return "ComplexType [name=" + name + ", stGroup=" + stGroup + ", typedList="
-            + typedList + ", show=" + show + ", format=" + format + "]";
     }
 
 }
