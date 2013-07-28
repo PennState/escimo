@@ -21,16 +21,16 @@ package org.apache.directory.scim;
 
 
 /**
- * TODO ScimAttribute.
+ * TODO AbstractAttribute.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class ScimAttribute
+public class AbstractAttribute
 {
     private String name;
 
 
-    public ScimAttribute( String name )
+    public AbstractAttribute( String name )
     {
         this.name = name;
     }
