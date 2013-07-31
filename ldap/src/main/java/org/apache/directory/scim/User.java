@@ -49,4 +49,12 @@ public class User
         
         atList.add( at );
     }
+
+    @Override
+    public String toString()
+    {
+        return "User [simpleList=" + simpleList + ", complexList=" + complexList + ", uriAtMap=" + uriAtMap + "]";
+    }
+    
+    
 }

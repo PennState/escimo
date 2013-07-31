@@ -58,4 +58,11 @@ public class MultiValAttribute extends AbstractAttribute
         
         atGroupList.add( atGroup );
     }
+
+    @Override
+    public String toString()
+    {
+        return "MultiValAttribute [atGroupList=" + atGroupList + "]";
+    }
+    
 }

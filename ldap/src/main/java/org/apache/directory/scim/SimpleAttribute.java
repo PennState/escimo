@@ -54,4 +54,11 @@ public class SimpleAttribute extends AbstractAttribute
         this.value = value;
     }
 
+
+    @Override
+    public String toString()
+    {
+        return "SimpleAttribute [name=" + getName() + ", value=" + value + "]";
+    }
+
 }

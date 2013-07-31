@@ -96,7 +96,6 @@ public class LdapSchemaMapper implements SchemaMapper
     {
         InputStream in = this.getClass().getClassLoader().getResourceAsStream( "escimo-ldap-mapping.xml" );
         loadMappings( in );
-        System.out.println( groupSchema );
     }
 
 
@@ -136,7 +135,7 @@ public class LdapSchemaMapper implements SchemaMapper
 
             userSchema = new UserSchema( baseDn, filter );
             
-            List<Element> lstSchema = elmUser.elements( "schema" );
+            List<Element> lstSchema = root.elements( "schema" );
             List<Element> lstRef = elmUser.elements( "schemaRef" );
             parseResourceSchema( lstRef, lstSchema, userSchema );
             
@@ -270,7 +269,7 @@ public class LdapSchemaMapper implements SchemaMapper
 
                 for ( Element elmType : lstElmTypes )
                 {
-                    Element elmTypeAtGroup = elmComplex.element( "at-group" );
+                    Element elmTypeAtGroup = elmType.element( "at-group" );
                     SimpleTypeGroup stg = parseAtGroup( elmTypeAtGroup, uri );
 
                     String show = elmType.attributeValue( "show" );

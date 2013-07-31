@@ -58,4 +58,11 @@ public class SimpleAttributeGroup
         return atList;
     }
 
+
+    @Override
+    public String toString()
+    {
+        return "SimpleAttributeGroup [atList=" + atList + "]";
+    }
+
 }

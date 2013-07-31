@@ -54,6 +54,7 @@ import org.apache.directory.api.ldap.model.schema.syntaxCheckers.JavaByteSyntaxC
 import org.apache.directory.api.ldap.model.schema.syntaxCheckers.JavaIntegerSyntaxChecker;
 import org.apache.directory.api.ldap.model.schema.syntaxCheckers.JavaLongSyntaxChecker;
 import org.apache.directory.api.ldap.model.schema.syntaxCheckers.JavaShortSyntaxChecker;
+import org.apache.directory.api.ldap.schemaloader.JarLdifSchemaLoader;
 import org.apache.directory.api.util.Base64;
 import org.apache.directory.api.util.Strings;
 import org.apache.directory.ldap.client.api.LdapConnection;
@@ -436,27 +437,34 @@ public class LdapResourceProvider
 
         LdapNetworkConnection c = new LdapNetworkConnection( "localhost", 10389 );
         c.setTimeOut( Long.MAX_VALUE );
-        c.loadSchema();
         c.bind( "uid=admin,ou=system", "secret" );
+        c.loadSchema(new JarLdifSchemaLoader());
 
-        PersistentSearch ps = new PersistentSearchImpl();
-        ps.setChangesOnly( false );
-        ps.setReturnECs( true );
+//        PersistentSearch ps = new PersistentSearchImpl();
+//        ps.setChangesOnly( false );
+//        ps.setReturnECs( true );
 
         SearchRequest searchRequest = new SearchRequestImpl().setBase( new Dn(
-            "ou=system" ) ).setFilter( "(objectclass=*)" ).setScope(
-            SearchScope.SUBTREE ).addControl( ps );
+            "uid=admin,ou=system" ) ).setFilter( "(objectclass=*)" ).setScope(
+            SearchScope.OBJECT );
         searchRequest.addAttributes( "uid" );
 
         SearchCursor cursor = c.search( searchRequest );
 
+        Entry entry = null;
         while ( cursor.next() )
         {
             Response response = cursor.get();
             SearchResultEntry se = ( SearchResultEntry ) response;
-            System.out.println( se.getEntry() );
-            System.out.println( se.getControl( EntryChange.OID ) );
+            entry = se.getEntry();
         }
+        
         cursor.close();
+        
+        LdapResourceProvider lr = new LdapResourceProvider( c );
+        User user = lr.toUser( entry );
+        System.out.println( user );
+        
+        c.close();
     }
 }
