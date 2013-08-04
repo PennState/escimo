@@ -29,6 +29,11 @@
     <name>eSCIMo common API</name>
 
    <dependencies>
+    <dependency>
+      <groupId>com.google.code.gson</groupId>
+      <artifactId>gson</artifactId>
+      <version>2.2.4</version>
+    </dependency>
    </dependencies>
 
     <build>
