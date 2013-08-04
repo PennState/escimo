@@ -20,6 +20,7 @@
 package org.apache.directory.scim;
 
 
+import java.util.ArrayList;
 import java.util.List;
 
 
@@ -48,8 +49,10 @@ public class SimpleAttributeGroup
     {
         if ( atList == null )
         {
-            atList.add( at );
+            atList = new ArrayList<SimpleAttribute>();
         }
+        
+        atList.add( at );
     }
 
 

@@ -50,6 +50,11 @@ public class User
         atList.add( at );
     }
 
+    public Map<String,List<AbstractAttribute>> getAttributes()
+    {
+        return uriAtMap;
+    }
+    
     @Override
     public String toString()
     {

@@ -63,10 +63,12 @@ public class LdapSchemaMapper implements SchemaMapper
     private Map<String, BaseType> groupSchema = new HashMap<String, BaseType>();
 
     private UserSchema userSchema;
-    
+
+
     public LdapSchemaMapper()
     {
     }
+
 
     public LdapSchemaMapper( LdapConnection connection )
     {
@@ -91,6 +93,7 @@ public class LdapSchemaMapper implements SchemaMapper
     {
         return userSchema;
     }
+
 
     public void loadMappings()
     {
@@ -127,18 +130,18 @@ public class LdapSchemaMapper implements SchemaMapper
             {
                 throw new IllegalStateException( "Invalid schema mapping file" );
             }
-            
+
             Element elmUser = root.element( "userType" );
-            
+
             String baseDn = elmUser.attributeValue( "baseDn" );
             String filter = elmUser.attributeValue( "filter" );
 
             userSchema = new UserSchema( baseDn, filter );
-            
+
             List<Element> lstSchema = root.elements( "schema" );
             List<Element> lstRef = elmUser.elements( "schemaRef" );
             parseResourceSchema( lstRef, lstSchema, userSchema );
-            
+
             /*
             Element elmGroup = root.element( "groupType" );
             
@@ -172,15 +175,16 @@ public class LdapSchemaMapper implements SchemaMapper
         }
     }
 
+
     private void parseResourceSchema( List<Element> lstRef, List<Element> lstSchema, ResourceSchema resourceSchema )
     {
-        for( Element ref : lstRef )
+        for ( Element ref : lstRef )
         {
             String refId = ref.attributeValue( "id" );
-            for( Element elmSchema : lstSchema )
+            for ( Element elmSchema : lstSchema )
             {
                 String schemaId = elmSchema.attributeValue( "id" );
-                if(refId.equals( schemaId ))
+                if ( refId.equals( schemaId ) )
                 {
                     parseSchema( elmSchema, resourceSchema );
                     break;
@@ -189,14 +193,14 @@ public class LdapSchemaMapper implements SchemaMapper
         }
 
     }
-    
+
 
     private void parseSchema( Element schemaRoot, ResourceSchema resourceSchema )
     {
         String uri = schemaRoot.attributeValue( "uri" );
-        
+
         resourceSchema.addUri( uri );
-        
+
         List<Element> simpleAtElmList = schemaRoot.elements( "attribute" );
 
         for ( Element el : simpleAtElmList )
@@ -221,19 +225,18 @@ public class LdapSchemaMapper implements SchemaMapper
                     + elmComplex.asXML() );
             }
 
-
             List<SimpleType> stList = new ArrayList<SimpleType>();
-            
+
             Element atGrpElm = elmComplex.element( "at-group" );
             SimpleTypeGroup stg = parseAtGroup( atGrpElm, uri );
-            if( stg != null )
+            if ( stg != null )
             {
                 ComplexType ct = new ComplexType( name, uri, stg );
                 resourceSchema.addAttributeType( name, ct );
             }
 
         }
-        
+
         // load multival-attributes
         List<Element> multivalAtElmList = schemaRoot.elements( "multival-attribute" );
 
@@ -249,7 +252,7 @@ public class LdapSchemaMapper implements SchemaMapper
 
             String baseDn = elmComplex.attributeValue( "baseDn" );
             String filter = elmComplex.attributeValue( "filter" );
-            
+
             Element elmAtGroup = elmComplex.element( "at-group" );
             if ( elmAtGroup != null )
             {
@@ -293,7 +296,8 @@ public class LdapSchemaMapper implements SchemaMapper
                         throw new IllegalArgumentException( "name is missing in the type element " + elmType.asXML() );
                     }
 
-                    TypedType tt = new TypedType( typeName, stg, Boolean.parseBoolean( show ), Boolean.parseBoolean( primary ), uri );
+                    TypedType tt = new TypedType( typeName, stg, Boolean.parseBoolean( show ),
+                        Boolean.parseBoolean( primary ), uri );
                     lstTypes.add( tt );
                 }
 
@@ -359,14 +363,14 @@ public class LdapSchemaMapper implements SchemaMapper
             return null;
         }
 
-        boolean show = Boolean.parseBoolean( el.attributeValue( "show" ) );
+        boolean show = true;
+
+        String showVal = el.attributeValue( "show" );
+        if ( !Strings.isEmpty( showVal ) )
+        {
+            show = Boolean.parseBoolean( showVal );
+        }
 
         return new SimpleType( name, mappedTo, uri, show );
-    }
-    
-    public static void main( String[] args )
-    {
-        LdapSchemaMapper lsm = new LdapSchemaMapper();
-        lsm.loadMappings();
     }
 }

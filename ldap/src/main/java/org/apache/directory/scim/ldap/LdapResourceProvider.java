@@ -43,12 +43,10 @@ import org.apache.directory.api.ldap.model.message.SearchRequest;
 import org.apache.directory.api.ldap.model.message.SearchRequestImpl;
 import org.apache.directory.api.ldap.model.message.SearchResultEntry;
 import org.apache.directory.api.ldap.model.message.SearchScope;
-import org.apache.directory.api.ldap.model.message.controls.EntryChange;
-import org.apache.directory.api.ldap.model.message.controls.PersistentSearch;
-import org.apache.directory.api.ldap.model.message.controls.PersistentSearchImpl;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.schema.LdapSyntax;
 import org.apache.directory.api.ldap.model.schema.SyntaxChecker;
+import org.apache.directory.api.ldap.model.schema.syntaxCheckers.GeneralizedTimeSyntaxChecker;
 import org.apache.directory.api.ldap.model.schema.syntaxCheckers.IntegerSyntaxChecker;
 import org.apache.directory.api.ldap.model.schema.syntaxCheckers.JavaByteSyntaxChecker;
 import org.apache.directory.api.ldap.model.schema.syntaxCheckers.JavaIntegerSyntaxChecker;
@@ -65,6 +63,7 @@ import org.apache.directory.scim.ResourceNotFoundException;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
 import org.apache.directory.scim.User;
+import org.apache.directory.scim.json.JsonSerializer;
 import org.apache.directory.scim.ldap.schema.BaseType;
 import org.apache.directory.scim.ldap.schema.ComplexType;
 import org.apache.directory.scim.ldap.schema.MultiValType;
@@ -72,6 +71,8 @@ import org.apache.directory.scim.ldap.schema.SimpleType;
 import org.apache.directory.scim.ldap.schema.SimpleTypeGroup;
 import org.apache.directory.scim.ldap.schema.TypedType;
 import org.apache.directory.scim.ldap.schema.UserSchema;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 
 /**
@@ -87,7 +88,8 @@ public class LdapResourceProvider
 
     private UserSchema userSchema;
 
-
+    private static final Logger LOG = LoggerFactory.getLogger( LdapResourceProvider.class );
+    
     public LdapResourceProvider( LdapConnection connection )
     {
         schema = new LdapSchemaMapper();
@@ -198,14 +200,14 @@ public class LdapResourceProvider
                     {
                         SimpleTypeGroup typeStg = tt.getAtGroup();
                         List<SimpleAttribute> lstAts = getValuesInto( typeStg, entry );
-                        lstAts.add( new SimpleAttribute( "type", tt.getName() ) );
-                        if ( tt.isPrimary() )
-                        {
-                            lstAts.add( new SimpleAttribute( "primary", true ) );
-                        }
 
                         if ( !lstAts.isEmpty() )
                         {
+                            lstAts.add( new SimpleAttribute( "type", tt.getName() ) );
+                            if ( tt.isPrimary() )
+                            {
+                                lstAts.add( new SimpleAttribute( "primary", true ) );
+                            }
                             mv.addAtGroup( new SimpleAttributeGroup( lstAts ) );
                         }
                     }
@@ -228,8 +230,11 @@ public class LdapResourceProvider
                         atGroupList = getValuesFor( stg, entry );
                     }
 
-                    MultiValAttribute mv = new MultiValAttribute( mt.getName(), atGroupList );
-
+                    if( atGroupList != null )
+                    {
+                        MultiValAttribute mv = new MultiValAttribute( mt.getName(), atGroupList );
+                        user.addAttribute( bt.getUri(), mv );
+                    }
                 }
             }
         }
@@ -360,7 +365,7 @@ public class LdapResourceProvider
         Attribute at = entry.get( st.getMappedTo() );
         if ( at != null )
         {
-
+            LOG.debug( "processing attribute {}", name );
             Object value = getScimValFrom( at );
             return new SimpleAttribute( name, value );
         }
@@ -394,12 +399,54 @@ public class LdapResourceProvider
             {
                 return Long.parseLong( ldapValue.getString() );
             }
+            else if ( sc instanceof GeneralizedTimeSyntaxChecker )
+            {
+                return formatDate( ldapValue.getString() );
+            }
         }
 
         return ldapValue.getString();
-
     }
 
+    public String formatDate( String zTime )
+    {
+        //parse a value like 20120302164134Z to 2012-03-02T16:41:34Z 
+        StringBuilder sb = new StringBuilder();
+        int start = 0;
+        int end = 4;
+        sb.append( zTime.substring( start, end ) )
+          .append("-");
+        
+        start = end;
+        end += 2;
+        sb.append( zTime.substring( start, end ) )
+        .append("-");
+        
+        start = end;
+        end += 2;
+        sb.append( zTime.substring( start, end ) )
+        .append("-");
+        
+        sb.append( "T" );
+        
+        start = end;
+        end += 2;
+        sb.append( zTime.substring( start, end ) )
+        .append(":");
+        
+        start = end;
+        end += 2;
+        sb.append( zTime.substring( start, end ) )
+        .append(":");
+
+        start = end;
+        end += 2;
+        sb.append( zTime.substring( start, end ) );
+
+        sb.append( "Z" );
+        
+        return sb.toString();
+    }
 
     //    public List<SimpleAttribute> getValuesInto( List<SimpleType> lstTyps, Entry entry ) throws LdapException
     //    {
@@ -445,9 +492,9 @@ public class LdapResourceProvider
 //        ps.setReturnECs( true );
 
         SearchRequest searchRequest = new SearchRequestImpl().setBase( new Dn(
-            "uid=admin,ou=system" ) ).setFilter( "(objectclass=*)" ).setScope(
+            "uid=kirana,ou=users,dc=signon,dc=mirth,dc=com" ) ).setFilter( "(objectclass=*)" ).setScope(
             SearchScope.OBJECT );
-        searchRequest.addAttributes( "uid" );
+        searchRequest.addAttributes( SchemaConstants.ALL_ATTRIBUTES_ARRAY );
 
         SearchCursor cursor = c.search( searchRequest );
 
@@ -461,10 +508,11 @@ public class LdapResourceProvider
         
         cursor.close();
         
+        System.out.println( entry );
         LdapResourceProvider lr = new LdapResourceProvider( c );
         User user = lr.toUser( entry );
         System.out.println( user );
-        
+        System.out.println( JsonSerializer.serialize( user ) );
         c.close();
     }
 }

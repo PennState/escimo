@@ -38,4 +38,15 @@ public class ComplexAttribute extends AbstractAttribute
         this.atList = atList;
     }
 
+    public List<SimpleAttribute> getAtList()
+    {
+        return atList;
+    }
+
+    @Override
+    public String toString()
+    {
+        return "ComplexAttribute [atList=" + atList + "]";
+    }
+
 }
