@@ -72,7 +72,7 @@
 
         <multival-attribute name="groups">
             <at-group>
-                <attribute name="value" mappedTo="entryUUID" />
+                <attribute name="value" mappedTo="member" />
             </at-group>
         </multival-attribute>
 
