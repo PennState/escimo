@@ -37,11 +37,11 @@ import com.google.gson.JsonObject;
 
 
 /**
- * TODO JsonSerializer.
+ * TODO ResourceSerializer.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class JsonSerializer
+public class ResourceSerializer
 {
     private Gson gson = new Gson();
 
