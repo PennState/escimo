@@ -4,28 +4,28 @@
     "http://java.sun.com/dtd/web-app_2_3.dtd">
 
 <web-app>
-	<listener>
-		<listener-class></listener-class>
-	</listener>
-	<!-- Servlets -->
-	<servlet>
-		<servlet-name>scimService</servlet-name>
-		<servlet-class>
-			org.apache.wink.server.internal.servlet.RestServlet
-		</servlet-class>
-		<init-param>
-			<param-name>propertiesLocation</param-name>
-			<param-value>/WEB-INF/configuration.properties</param-value>
-		</init-param>
-		<!-- <init-param>
-			<param-name>winkApplicationConfigLocation</param-name>
-			<param-value>/WEB-INF/application</param-value>
-		</init-param>-->
-		<load-on-startup>0</load-on-startup>
-	</servlet>
-	
-	<servlet-mapping>
-		<servlet-name>scimService</servlet-name>
-		<url-pattern>/scim/*</url-pattern>
-	</servlet-mapping>
+    <listener>
+        <listener-class></listener-class>
+    </listener>
+    <!-- Servlets -->
+    <servlet>
+        <servlet-name>escimoService</servlet-name>
+        <servlet-class>
+            org.apache.wink.server.internal.servlet.RestServlet
+        </servlet-class>
+        <init-param>
+            <param-name>propertiesLocation</param-name>
+            <param-value>/WEB-INF/configuration.properties</param-value>
+        </init-param>
+        <init-param>
+            <param-name>javax.ws.rs.Application</param-name>
+            <param-value>org.apache.directory.scim.rest.EscimoApplication</param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+    </servlet>
+
+    <servlet-mapping>
+        <servlet-name>escimoService</servlet-name>
+        <url-pattern>/v2/*</url-pattern>
+    </servlet-mapping>
 </web-app>

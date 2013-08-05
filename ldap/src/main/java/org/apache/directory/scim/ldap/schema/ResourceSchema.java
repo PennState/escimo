@@ -23,6 +23,7 @@ package org.apache.directory.scim.ldap.schema;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -40,8 +41,8 @@ public abstract class ResourceSchema
 
     private List<String> uris = new ArrayList<String>();
 
-    private Map<String, BaseType> coreTypes = new HashMap<String, BaseType>();
-    private Map<String, BaseType> extendedTypes = new HashMap<String, BaseType>();
+    private Map<String, BaseType> coreTypes = new LinkedHashMap<String, BaseType>();
+    private Map<String, BaseType> extendedTypes = new LinkedHashMap<String, BaseType>();
 
 
     public ResourceSchema( String baseDn, String filter )

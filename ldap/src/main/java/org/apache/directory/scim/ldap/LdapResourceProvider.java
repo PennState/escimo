@@ -24,10 +24,12 @@ import static org.apache.directory.api.ldap.model.constants.SchemaConstants.ALL_
 import static org.apache.directory.api.ldap.model.message.SearchScope.SUBTREE;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Properties;
 
 import org.apache.directory.api.ldap.codec.standalone.StandaloneLdapApiService;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
@@ -56,14 +58,16 @@ import org.apache.directory.api.ldap.schemaloader.JarLdifSchemaLoader;
 import org.apache.directory.api.util.Base64;
 import org.apache.directory.api.util.Strings;
 import org.apache.directory.ldap.client.api.LdapConnection;
+import org.apache.directory.ldap.client.api.LdapConnectionConfig;
 import org.apache.directory.ldap.client.api.LdapNetworkConnection;
 import org.apache.directory.scim.ComplexAttribute;
 import org.apache.directory.scim.MultiValAttribute;
+import org.apache.directory.scim.ProviderService;
 import org.apache.directory.scim.ResourceNotFoundException;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
 import org.apache.directory.scim.User;
-import org.apache.directory.scim.json.JsonSerializer;
+import org.apache.directory.scim.json.ResourceSerializer;
 import org.apache.directory.scim.ldap.schema.BaseType;
 import org.apache.directory.scim.ldap.schema.ComplexType;
 import org.apache.directory.scim.ldap.schema.MultiValType;
@@ -80,7 +84,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class LdapResourceProvider
+public class LdapResourceProvider implements ProviderService
 {
     private LdapConnection connection;
 
@@ -89,12 +93,80 @@ public class LdapResourceProvider
     private UserSchema userSchema;
 
     private static final Logger LOG = LoggerFactory.getLogger( LdapResourceProvider.class );
-    
+
+
+    public LdapResourceProvider()
+    {
+    }
+
+
     public LdapResourceProvider( LdapConnection connection )
     {
+        this.connection = connection;
+    }
+
+
+    public void init() throws Exception
+    {
+        LOG.info( "Initializing LDAP resource provider" );
+        if ( connection == null )
+        {
+            createConnection();
+        }
+
+        if ( connection instanceof LdapNetworkConnection )
+        {
+            ( ( LdapNetworkConnection ) connection ).loadSchema( new JarLdifSchemaLoader() );
+        }
+
         schema = new LdapSchemaMapper();
         schema.loadMappings();
         userSchema = schema.getUserSchema();
+    }
+
+
+    public void stop()
+    {
+        LOG.info( "Closing the LDAP server connection" );
+        
+        if ( connection != null )
+        {
+            try
+            {
+                connection.close();
+            }
+            catch ( Exception e )
+            {
+                LOG.warn( "Failed to close the LDAP server connection", e );
+            }
+        }
+    }
+
+
+    private void createConnection() throws IOException, LdapException
+    {
+        LOG.info( "Creating LDAP server connection" );
+        
+        InputStream in = this.getClass().getClassLoader().getResourceAsStream( "ldap-server.properties" );
+        Properties prop = new Properties();
+        prop.load( in );
+
+        String host = prop.getProperty( "escimo.ldap.server.host" );
+        String portVal = prop.getProperty( "escimo.ldap.server.port" );
+        int port = Integer.parseInt( portVal );
+        String user = prop.getProperty( "escimo.ldap.server.user" );
+        String password = prop.getProperty( "escimo.ldap.server.password" );
+        String tlsVal = prop.getProperty( "escimo.ldap.server.useTls" );
+
+        LdapConnectionConfig config = new LdapConnectionConfig();
+        config.setLdapHost( host );
+        config.setLdapPort( port );
+        config.setUseTls( Boolean.parseBoolean( tlsVal ) );
+        config.setName( user );
+        config.setCredentials( password );
+
+        connection = new LdapNetworkConnection( config );
+        connection.bind();
     }
 
 
@@ -230,7 +302,7 @@ public class LdapResourceProvider
                         atGroupList = getValuesFor( stg, entry );
                     }
 
-                    if( atGroupList != null )
+                    if ( atGroupList != null )
                     {
                         MultiValAttribute mv = new MultiValAttribute( mt.getName(), atGroupList );
                         user.addAttribute( bt.getUri(), mv );
@@ -408,6 +480,7 @@ public class LdapResourceProvider
         return ldapValue.getString();
     }
 
+
     public String formatDate( String zTime )
     {
         //parse a value like 20120302164134Z to 2012-03-02T16:41:34Z 
@@ -415,38 +488,39 @@ public class LdapResourceProvider
         int start = 0;
         int end = 4;
         sb.append( zTime.substring( start, end ) )
-          .append("-");
-        
+            .append( "-" );
+
         start = end;
         end += 2;
         sb.append( zTime.substring( start, end ) )
-        .append("-");
-        
+            .append( "-" );
+
         start = end;
         end += 2;
         sb.append( zTime.substring( start, end ) )
-        .append("-");
-        
+            .append( "-" );
+
         sb.append( "T" );
-        
+
         start = end;
         end += 2;
         sb.append( zTime.substring( start, end ) )
-        .append(":");
-        
+            .append( ":" );
+
         start = end;
         end += 2;
         sb.append( zTime.substring( start, end ) )
-        .append(":");
+            .append( ":" );
 
         start = end;
         end += 2;
         sb.append( zTime.substring( start, end ) );
 
         sb.append( "Z" );
-        
+
         return sb.toString();
     }
+
 
     //    public List<SimpleAttribute> getValuesInto( List<SimpleType> lstTyps, Entry entry ) throws LdapException
     //    {
@@ -485,11 +559,11 @@ public class LdapResourceProvider
         LdapNetworkConnection c = new LdapNetworkConnection( "localhost", 10389 );
         c.setTimeOut( Long.MAX_VALUE );
         c.bind( "uid=admin,ou=system", "secret" );
-        c.loadSchema(new JarLdifSchemaLoader());
+        c.loadSchema( new JarLdifSchemaLoader() );
 
-//        PersistentSearch ps = new PersistentSearchImpl();
-//        ps.setChangesOnly( false );
-//        ps.setReturnECs( true );
+        //        PersistentSearch ps = new PersistentSearchImpl();
+        //        ps.setChangesOnly( false );
+        //        ps.setReturnECs( true );
 
         SearchRequest searchRequest = new SearchRequestImpl().setBase( new Dn(
             "uid=kirana,ou=users,dc=signon,dc=mirth,dc=com" ) ).setFilter( "(objectclass=*)" ).setScope(
@@ -505,14 +579,14 @@ public class LdapResourceProvider
             SearchResultEntry se = ( SearchResultEntry ) response;
             entry = se.getEntry();
         }
-        
+
         cursor.close();
-        
+
         System.out.println( entry );
         LdapResourceProvider lr = new LdapResourceProvider( c );
         User user = lr.toUser( entry );
         System.out.println( user );
-        System.out.println( JsonSerializer.serialize( user ) );
+        System.out.println( ResourceSerializer.serialize( user ) );
         c.close();
     }
 }

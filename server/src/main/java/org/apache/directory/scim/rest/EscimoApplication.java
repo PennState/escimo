@@ -17,44 +17,32 @@
  *   under the License.
  *
  */
-package org.apache.directory.scim;
+package org.apache.directory.scim.rest;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
+
+import javax.ws.rs.core.Application;
 
 /**
- * TODO User.
+ * TODO EscimoApplication.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class User
+public class EscimoApplication extends Application
 {
-    private Map<String,List<AbstractAttribute>> uriAtMap = new HashMap<String, List<AbstractAttribute>>();
+    private Set<Class<?>> resources = new HashSet<Class<?>>();
     
-    public void addAttribute( String uri, AbstractAttribute at )
+    
+    public EscimoApplication()
     {
-        List<AbstractAttribute> atList = uriAtMap.get( uri );
-        
-        if( atList == null )
-        {
-            atList = new ArrayList<AbstractAttribute>();
-            uriAtMap.put( uri, atList );
-        }
-        
-        atList.add( at );
+        resources.add( UserService.class );
     }
-
-    public Map<String,List<AbstractAttribute>> getAttributes()
-    {
-        return uriAtMap;
-    }
-
+    
     @Override
-    public String toString()
+    public Set<Class<?>> getClasses()
     {
-        return "User [uriAtMap=" + uriAtMap + "]";
+        return resources;
     }
-    
+
 }

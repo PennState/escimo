@@ -24,5 +24,7 @@ package org.apache.directory.scim;
  */
 public interface ProviderService 
 {
-
+    void init() throws Exception;
+    void stop();;
+    User getUser( String userId ) throws ResourceNotFoundException;
 }

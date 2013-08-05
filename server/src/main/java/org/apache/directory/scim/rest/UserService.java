@@ -16,15 +16,23 @@
  * specific language governing permissions and limitations
  * under the License.
  */
-package org.apache.directory.scim;
+package org.apache.directory.scim.rest;
 
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriInfo;
+import javax.ws.rs.core.Response.ResponseBuilder;
 
-import org.apache.directory.scim.common.User;
+import org.apache.directory.scim.ProviderService;
+import org.apache.directory.scim.ResourceNotFoundException;
+import org.apache.directory.scim.User;
+import org.apache.directory.scim.json.ResourceSerializer;
 
 /**
  * 
@@ -34,11 +42,29 @@ import org.apache.directory.scim.common.User;
 public class UserService
 {
 
+    @Context
+    UriInfo uriInfo;
+    
+    private ProviderService provider = ServerInitializer.getProvider();
+    
     @GET
-    @Produces( {MediaType.APPLICATION_XML, MediaType.APPLICATION_JSON})
+    @Produces({MediaType.APPLICATION_JSON})
     @Path("{id}")
-    public User getUser( @PathParam("id") String userId )
+    public Response getUser( @PathParam("id") String userId )
     {
-        return null;
+        ResponseBuilder rb = null;
+        
+        try
+        {
+            User user = provider.getUser( userId );
+            String json = ResourceSerializer.serialize( user );
+            rb = Response.ok( json, MediaType.APPLICATION_JSON );
+        }
+        catch( ResourceNotFoundException e )
+        {
+            rb = Response.status( Status.INTERNAL_SERVER_ERROR );
+        }
+        
+        return rb.build();
     }
 }
