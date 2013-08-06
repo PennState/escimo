@@ -20,7 +20,6 @@
 package org.apache.directory.scim.json;
 
 
-import java.util.Date;
 import java.util.List;
 import java.util.Map;
 
@@ -31,9 +30,12 @@ import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
 import org.apache.directory.scim.User;
 
+import sun.reflect.generics.tree.BaseType;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
+import com.google.gson.JsonPrimitive;
 
 
 /**
@@ -45,17 +47,33 @@ public class ResourceSerializer
 {
     private Gson gson = new Gson();
 
+    public static final String CORE_URI = "urn:scim:schemas:core:1.0";
+    
     public static String serialize( User user )
     {
-        JsonObject json = new JsonObject();
+        JsonObject root = new JsonObject();
 
         Map<String, List<AbstractAttribute>> attributes = user.getAttributes();
+        
+        JsonArray schemas = new JsonArray();
+        root.add( "schemas", schemas );
+        
         for ( String uri : attributes.keySet() )
         {
-            serialize( json, attributes.get( uri ) );
+            schemas.add( new JsonPrimitive( uri ) );
+            
+            JsonObject parent = root;
+            
+            if( !uri.equals( CORE_URI ) )
+            {
+                parent = new JsonObject();
+                root.add( uri, parent );
+            }
+            
+            serialize( parent, attributes.get( uri ) );
         }
         
-        return json.toString();
+        return root.toString();
     }
 
 

@@ -19,6 +19,8 @@
  */
 package org.apache.directory.scim.ldap.schema;
 
+import org.apache.directory.scim.json.ResourceSerializer;
+
 
 /**
  * TODO BaseType.
@@ -28,8 +30,6 @@ package org.apache.directory.scim.ldap.schema;
 public abstract class BaseType
 {
     private String uri;
-
-    public static final String CORE_URI = "urn:scim:schemas:core:1.0";
 
     public BaseType( String uri )
     {
@@ -56,7 +56,7 @@ public abstract class BaseType
 
     public boolean isCoreAttribute()
     {
-        return CORE_URI.equals( uri );
+        return ResourceSerializer.CORE_URI.equals( uri );
     }
 
     /**
