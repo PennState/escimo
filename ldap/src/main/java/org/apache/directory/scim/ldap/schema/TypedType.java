@@ -36,9 +36,9 @@ public class TypedType extends BaseType
     private boolean primary = false;
     
 
-    public TypedType( String name, SimpleTypeGroup atGroup, boolean show, boolean primary, String uri )
+    public TypedType( String uri, String name, boolean show, SimpleTypeGroup atGroup, boolean primary )
     {
-        super(uri);
+        super(uri, name, show);
         this.name = name;
         this.atGroup = atGroup;
         this.show = show;

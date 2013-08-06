@@ -31,9 +31,27 @@ public abstract class BaseType
 {
     private String uri;
 
-    public BaseType( String uri )
+    private String name;
+    
+    private boolean show = true;
+
+    public BaseType( String uri, String name, boolean show )
     {
         this.uri = uri;
+        this.name = name;
+        this.show = show;
+    }
+
+
+    public String getName()
+    {
+        return name;
+    }
+
+
+    public boolean isShow()
+    {
+        return show;
     }
 
 

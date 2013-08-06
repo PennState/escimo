@@ -30,39 +30,35 @@ import java.util.List;
  */
 public class MultiValType extends BaseType
 {
-    private String name;
-
     private SimpleTypeGroup stGroup;
 
     private List<TypedType> typedList;
 
-    private boolean show = true;
-
     private String baseDn;
-    
+
     private String filter;
 
     /** used for setting the value of "formatted" attribute */
     private String format;
 
-    public MultiValType( String name, String uri, SimpleTypeGroup stGroup, String baseDn, String filter )
+
+    public MultiValType( String uri, String name, boolean show, SimpleTypeGroup stGroup, String baseDn, String filter )
     {
-        super(uri);
-        this.name = name;
+        super( uri, name, show );
         this.stGroup = stGroup;
         this.baseDn = baseDn;
         this.filter = filter;
     }
 
 
-    public MultiValType( String name, String uri, List<TypedType> typedList, String baseDn, String filter )
+    public MultiValType( String uri, String name, boolean show, List<TypedType> typedList, String baseDn, String filter )
     {
-        super(uri);
-        this.name = name;
+        super( uri, name, show );
         this.typedList = typedList;
         this.baseDn = baseDn;
         this.filter = filter;
     }
+
 
     /**
      * @return the typedList
@@ -79,15 +75,6 @@ public class MultiValType extends BaseType
     public SimpleTypeGroup getStGroup()
     {
         return stGroup;
-    }
-
-
-    /**
-     * @return the show
-     */
-    public boolean isShow()
-    {
-        return show;
     }
 
 
@@ -118,30 +105,10 @@ public class MultiValType extends BaseType
     }
 
 
-    /**
-     * @return the name
-     */
-    public String getName()
-    {
-        return name;
-    }
-
-
     @Override
     public boolean isComplex()
     {
         return true;
-    }
-
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#toString()
-     */
-    @Override
-    public String toString()
-    {
-        return "ComplexType [name=" + name + ", stGroup=" + stGroup + ", typedList="
-            + typedList + ", show=" + show + ", format=" + format + "]";
     }
 
 }

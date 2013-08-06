@@ -27,28 +27,13 @@ package org.apache.directory.scim.ldap.schema;
  */
 public class SimpleType extends BaseType
 {
-    private String name;
-
     private String mappedTo;
 
-    private boolean show = true;
 
-
-    public SimpleType( String name, String mappedTo, String uri, boolean show )
+    public SimpleType( String uri, String name, boolean show, String mappedTo )
     {
-        super(uri);
-        this.name = name;
+        super( uri, name, show );
         this.mappedTo = mappedTo;
-        this.show = show;
-    }
-
-
-    /**
-     * @return the name
-     */
-    public String getName()
-    {
-        return name;
     }
 
 
@@ -61,29 +46,10 @@ public class SimpleType extends BaseType
     }
 
 
-    /**
-     * @return the show
-     */
-    public boolean isShow()
-    {
-        return show;
-    }
-
-
     @Override
     public boolean isSimple()
     {
         return true;
-    }
-
-
-    /* (non-Javadoc)
-     * @see java.lang.Object#toString()
-     */
-    @Override
-    public String toString()
-    {
-        return "SimpleType [name=" + name + ", mappedTo=" + mappedTo + ", show=" + show + "]";
     }
 
 }

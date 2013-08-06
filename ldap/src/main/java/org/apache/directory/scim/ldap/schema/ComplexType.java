@@ -30,36 +30,13 @@ import java.util.List;
  */
 public class ComplexType extends BaseType
 {
-    private String name;
-
     private SimpleTypeGroup atGroup;
 
-    private boolean show = true;
-
-    public ComplexType( String name, String uri, SimpleTypeGroup atGroup )
+    public ComplexType( String uri, String name, boolean show, SimpleTypeGroup atGroup )
     {
-        super(uri);
-        this.name = name;
+        super(uri, name, show);
         this.atGroup = atGroup;
     }
-
-    /**
-     * @return the show
-     */
-    public boolean isShow()
-    {
-        return show;
-    }
-
-
-    /**
-     * @return the name
-     */
-    public String getName()
-    {
-        return name;
-    }
-
 
     public SimpleTypeGroup getAtGroup()
     {

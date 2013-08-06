@@ -225,13 +225,15 @@ public class LdapSchemaMapper implements SchemaMapper
                     + elmComplex.asXML() );
             }
 
+            boolean show = getShowVal( elmComplex );
+            
             List<SimpleType> stList = new ArrayList<SimpleType>();
 
             Element atGrpElm = elmComplex.element( "at-group" );
             SimpleTypeGroup stg = parseAtGroup( atGrpElm, uri );
             if ( stg != null )
             {
-                ComplexType ct = new ComplexType( name, uri, stg );
+                ComplexType ct = new ComplexType( uri, name, show, stg );
                 resourceSchema.addAttributeType( name, ct );
             }
 
@@ -240,33 +242,35 @@ public class LdapSchemaMapper implements SchemaMapper
         // load multival-attributes
         List<Element> multivalAtElmList = schemaRoot.elements( "multival-attribute" );
 
-        for ( Element elmComplex : multivalAtElmList )
+        for ( Element elmMultiVal : multivalAtElmList )
         {
-            String name = elmComplex.attributeValue( "name" );
+            String name = elmMultiVal.attributeValue( "name" );
 
             if ( Strings.isEmpty( name ) )
             {
                 throw new IllegalStateException( "name is missing in the multival-attribute configuration element "
-                    + elmComplex.asXML() );
+                    + elmMultiVal.asXML() );
             }
 
-            String baseDn = elmComplex.attributeValue( "baseDn" );
-            String filter = elmComplex.attributeValue( "filter" );
+            String baseDn = elmMultiVal.attributeValue( "baseDn" );
+            String filter = elmMultiVal.attributeValue( "filter" );
 
-            Element elmAtGroup = elmComplex.element( "at-group" );
+            boolean showMultiVal = getShowVal( elmMultiVal );
+            
+            Element elmAtGroup = elmMultiVal.element( "at-group" );
             if ( elmAtGroup != null )
             {
                 SimpleTypeGroup stg = parseAtGroup( elmAtGroup, uri );
                 if ( stg != null )
                 {
-                    MultiValType ct = new MultiValType( name, uri, stg, baseDn, filter );
+                    MultiValType ct = new MultiValType( uri, name, showMultiVal, stg, baseDn, filter );
                     resourceSchema.addAttributeType( name, ct );
                 }
 
             }
             else
             {
-                List<Element> lstElmTypes = elmComplex.elements( "type" );
+                List<Element> lstElmTypes = elmMultiVal.elements( "type" );
 
                 List<TypedType> lstTypes = new ArrayList<TypedType>();
 
@@ -275,12 +279,7 @@ public class LdapSchemaMapper implements SchemaMapper
                     Element elmTypeAtGroup = elmType.element( "at-group" );
                     SimpleTypeGroup stg = parseAtGroup( elmTypeAtGroup, uri );
 
-                    String show = elmType.attributeValue( "show" );
-
-                    if ( Strings.isEmpty( show ) )
-                    {
-                        show = "true";
-                    }
+                    boolean show = getShowVal( elmType );
 
                     String primary = elmType.attributeValue( "primary" );
 
@@ -296,12 +295,12 @@ public class LdapSchemaMapper implements SchemaMapper
                         throw new IllegalArgumentException( "name is missing in the type element " + elmType.asXML() );
                     }
 
-                    TypedType tt = new TypedType( typeName, stg, Boolean.parseBoolean( show ),
-                        Boolean.parseBoolean( primary ), uri );
+                    TypedType tt = new TypedType( uri, typeName, show, stg, 
+                        Boolean.parseBoolean( primary ) );
                     lstTypes.add( tt );
                 }
 
-                MultiValType ct = new MultiValType( name, uri, lstTypes, baseDn, filter );
+                MultiValType ct = new MultiValType( uri, name, showMultiVal, lstTypes, baseDn, filter );
                 resourceSchema.addAttributeType( name, ct );
             }
         }
@@ -371,6 +370,18 @@ public class LdapSchemaMapper implements SchemaMapper
             show = Boolean.parseBoolean( showVal );
         }
 
-        return new SimpleType( name, mappedTo, uri, show );
+        return new SimpleType( uri, name, show, mappedTo );
+    }
+    
+    private boolean getShowVal(Element el)
+    {
+        String showVal = el.attributeValue( "show" );
+
+        if ( Strings.isEmpty( showVal ) )
+        {
+            showVal = "true";
+        }
+        
+        return Boolean.parseBoolean( showVal );
     }
 }

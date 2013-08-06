@@ -29,15 +29,13 @@ public class DynamicType extends BaseType
 {
     private SimpleTypeGroup atGroup;
     
-    private boolean show = true;
-    
     private String baseDn;
     
     private String filter;
     
-    public DynamicType(String baseDn, String filter, SimpleTypeGroup atGroup, String uri )
+    public DynamicType(String uri, String name, boolean show, String baseDn, String filter, SimpleTypeGroup atGroup )
     {
-        super(uri);
+        super(uri, name, show);
         this.baseDn = baseDn;
         this.filter = filter;
         this.atGroup = atGroup;
