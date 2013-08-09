@@ -19,13 +19,15 @@
  */
 package org.apache.directory.scim.ldap.schema;
 
+import org.apache.directory.scim.schema.BaseType;
+
 
 /**
- * TODO DynamicType.
+ * TODO DerivedType.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class DynamicType extends BaseType
+public class DerivedType extends BaseType
 {
     private SimpleTypeGroup atGroup;
     
@@ -33,7 +35,7 @@ public class DynamicType extends BaseType
     
     private String filter;
     
-    public DynamicType(String uri, String name, boolean show, String baseDn, String filter, SimpleTypeGroup atGroup )
+    public DerivedType(String uri, String name, boolean show, String baseDn, String filter, SimpleTypeGroup atGroup )
     {
         super(uri, name, show);
         this.baseDn = baseDn;
