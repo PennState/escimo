@@ -136,5 +136,9 @@ public class ResourceSerializer
         {
             parent.addProperty( at.getName(), ( Number ) obj );
         }
+        if ( obj instanceof Boolean )
+        {
+            parent.addProperty( at.getName(), ( Boolean ) obj );
+        }
     }
 }

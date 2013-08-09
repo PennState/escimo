@@ -27,6 +27,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.directory.scim.AttributeHandler;
+import org.apache.directory.scim.schema.BaseType;
+
 
 /**
  * 
@@ -43,6 +46,8 @@ public abstract class ResourceSchema
 
     private Map<String, BaseType> coreTypes = new LinkedHashMap<String, BaseType>();
     private Map<String, BaseType> extendedTypes = new LinkedHashMap<String, BaseType>();
+
+    private Map<String, AttributeHandler> atHandlers = new HashMap<String, AttributeHandler>();
 
 
     public ResourceSchema( String baseDn, String filter )
@@ -80,6 +85,18 @@ public abstract class ResourceSchema
     }
 
 
+    public void addAttributeHandler( String name, AttributeHandler handler )
+    {
+        atHandlers.put( name, handler );
+    }
+
+
+    public AttributeHandler getHandler( String name )
+    {
+        return atHandlers.get( name );
+    }
+
+
     public Collection<BaseType> getCoreAttributes()
     {
         return coreTypes.values();
@@ -89,6 +106,12 @@ public abstract class ResourceSchema
     public void addUri( String uri )
     {
         uris.add( uri );
+    }
+
+
+    public void setAtHandlers( Map<String, AttributeHandler> atHandlers )
+    {
+        this.atHandlers = atHandlers;
     }
 
 

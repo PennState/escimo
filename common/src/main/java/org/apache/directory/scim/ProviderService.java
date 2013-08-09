@@ -26,5 +26,5 @@ public interface ProviderService
 {
     void init() throws Exception;
     void stop();;
-    User getUser( String userId ) throws ResourceNotFoundException;
+    User getUser( RequestContext ctx, String userId ) throws ResourceNotFoundException;
 }

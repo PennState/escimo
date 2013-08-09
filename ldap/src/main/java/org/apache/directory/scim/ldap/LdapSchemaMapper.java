@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,8 +34,8 @@ import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.api.util.Strings;
 import org.apache.directory.ldap.client.api.LdapConnection;
+import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.SchemaMapper;
-import org.apache.directory.scim.ldap.schema.BaseType;
 import org.apache.directory.scim.ldap.schema.ComplexType;
 import org.apache.directory.scim.ldap.schema.MultiValType;
 import org.apache.directory.scim.ldap.schema.ResourceSchema;
@@ -42,6 +43,7 @@ import org.apache.directory.scim.ldap.schema.SimpleType;
 import org.apache.directory.scim.ldap.schema.SimpleTypeGroup;
 import org.apache.directory.scim.ldap.schema.TypedType;
 import org.apache.directory.scim.ldap.schema.UserSchema;
+import org.apache.directory.scim.schema.BaseType;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
@@ -136,7 +138,10 @@ public class LdapSchemaMapper implements SchemaMapper
             String baseDn = elmUser.attributeValue( "baseDn" );
             String filter = elmUser.attributeValue( "filter" );
 
+            Map<String, AttributeHandler> atHandlersMap = loadAtHandlers( root.element( "atHandlers" ) );
+            
             userSchema = new UserSchema( baseDn, filter );
+            userSchema.setAtHandlers( atHandlersMap );
 
             List<Element> lstSchema = root.elements( "schema" );
             List<Element> lstRef = elmUser.elements( "schemaRef" );
@@ -227,16 +232,32 @@ public class LdapSchemaMapper implements SchemaMapper
 
             boolean show = getShowVal( elmComplex );
             
-            List<SimpleType> stList = new ArrayList<SimpleType>();
-
             Element atGrpElm = elmComplex.element( "at-group" );
             SimpleTypeGroup stg = parseAtGroup( atGrpElm, uri );
+            ComplexType ct = null;
             if ( stg != null )
             {
-                ComplexType ct = new ComplexType( uri, name, show, stg );
+                ct = new ComplexType( uri, name, show, stg );
+            }
+            
+            String handlerRef = elmComplex.attributeValue( "handlerRef" );
+            
+            if( Strings.isEmpty( handlerRef ) ) 
+            {
+                handlerRef = null;
+            }
+            
+            // if attribute handler is present then create the type
+            if( ( ct == null ) && ( handlerRef != null ) )
+            {
+                ct = new ComplexType( uri, name, show, null );
+            }
+            
+            if( ct != null )
+            {
+                ct.setAtHandlerName( handlerRef );
                 resourceSchema.addAttributeType( name, ct );
             }
-
         }
 
         // load multival-attributes
@@ -257,14 +278,15 @@ public class LdapSchemaMapper implements SchemaMapper
 
             boolean showMultiVal = getShowVal( elmMultiVal );
             
+            MultiValType ct = null;
+            
             Element elmAtGroup = elmMultiVal.element( "at-group" );
             if ( elmAtGroup != null )
             {
                 SimpleTypeGroup stg = parseAtGroup( elmAtGroup, uri );
                 if ( stg != null )
                 {
-                    MultiValType ct = new MultiValType( uri, name, showMultiVal, stg, baseDn, filter );
-                    resourceSchema.addAttributeType( name, ct );
+                    ct = new MultiValType( uri, name, showMultiVal, stg, baseDn, filter );
                 }
 
             }
@@ -300,7 +322,24 @@ public class LdapSchemaMapper implements SchemaMapper
                     lstTypes.add( tt );
                 }
 
-                MultiValType ct = new MultiValType( uri, name, showMultiVal, lstTypes, baseDn, filter );
+                ct = new MultiValType( uri, name, showMultiVal, lstTypes, baseDn, filter );
+            }
+            
+            String handlerRef = elmMultiVal.attributeValue( "handlerRef" );
+            
+            if( Strings.isEmpty( handlerRef ) ) 
+            {
+                handlerRef = null;
+            }
+
+            if( ( ct == null ) && ( handlerRef != null ) )
+            {
+                ct = new MultiValType( uri, name, showMultiVal, ( SimpleTypeGroup ) null, baseDn, filter );
+            }
+            
+            if( ct != null )
+            {
+                ct.setAtHandlerName( handlerRef );
                 resourceSchema.addAttributeType( name, ct );
             }
         }
@@ -355,22 +394,20 @@ public class LdapSchemaMapper implements SchemaMapper
         }
 
         String mappedTo = el.attributeValue( "mappedTo" );
+        String handlerRef = el.attributeValue( "handlerRef" );
 
-        if ( Strings.isEmpty( mappedTo ) )
+        if ( Strings.isEmpty( mappedTo ) && Strings.isEmpty( handlerRef ) )
         {
-            LOG.debug( "No LDAP attribute was mapped to the SCIM attribute {}, skipping", name );
+            LOG.debug( "Neither LDAP attribute or a attribute handler was mapped to the SCIM attribute {}, skipping", name );
             return null;
         }
 
-        boolean show = true;
+        boolean show = getShowVal( el );
 
-        String showVal = el.attributeValue( "show" );
-        if ( !Strings.isEmpty( showVal ) )
-        {
-            show = Boolean.parseBoolean( showVal );
-        }
-
-        return new SimpleType( uri, name, show, mappedTo );
+        SimpleType st = new SimpleType( uri, name, show, mappedTo );
+        st.setAtHandlerName( handlerRef );
+        
+        return st;
     }
     
     private boolean getShowVal(Element el)
@@ -384,4 +421,41 @@ public class LdapSchemaMapper implements SchemaMapper
         
         return Boolean.parseBoolean( showVal );
     }
+    
+    
+    private Map<String, AttributeHandler> loadAtHandlers(Element atHndlrRoot)
+    {
+        if( atHndlrRoot == null )
+        {
+            return Collections.EMPTY_MAP;
+        }
+        
+        Map<String, AttributeHandler> mapHandlers = new HashMap<String, AttributeHandler>();
+        
+        List<Element> elmHandlerList = atHndlrRoot.elements( "handler" );
+        
+        for( Element el : elmHandlerList )
+        {
+            String fqcn = el.attributeValue( "class" );
+            String name = el.attributeValue( "name" );
+            
+            if( Strings.isEmpty( name ) )
+            {
+                throw new IllegalStateException( "Name is missing in the handler element " + el.asXML() );
+            }
+            
+            try
+            {
+                AttributeHandler handler = (AttributeHandler ) Class.forName( fqcn ).newInstance();
+                mapHandlers.put( name, handler );
+            }
+            catch( Exception e )
+            {
+                throw new RuntimeException( "Failed to load the attribute handler " + fqcn, e );
+            }
+        }
+        
+        return mapHandlers;
+    }
+    
 }

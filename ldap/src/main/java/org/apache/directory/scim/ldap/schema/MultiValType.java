@@ -22,6 +22,8 @@ package org.apache.directory.scim.ldap.schema;
 
 import java.util.List;
 
+import org.apache.directory.scim.schema.BaseType;
+
 
 /**
  * TODO SimpleType.

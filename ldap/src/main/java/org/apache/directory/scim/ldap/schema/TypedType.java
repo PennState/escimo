@@ -19,6 +19,8 @@
  */
 package org.apache.directory.scim.ldap.schema;
 
+import org.apache.directory.scim.schema.BaseType;
+
 
 /**
  * TODO SimpleType.

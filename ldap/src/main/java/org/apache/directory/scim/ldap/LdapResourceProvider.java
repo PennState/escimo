@@ -60,7 +60,9 @@ import org.apache.directory.api.util.Strings;
 import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.ldap.client.api.LdapConnectionConfig;
 import org.apache.directory.ldap.client.api.LdapNetworkConnection;
+import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.ComplexAttribute;
+import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.ProviderService;
 import org.apache.directory.scim.ResourceNotFoundException;
@@ -68,13 +70,13 @@ import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
 import org.apache.directory.scim.User;
 import org.apache.directory.scim.json.ResourceSerializer;
-import org.apache.directory.scim.ldap.schema.BaseType;
 import org.apache.directory.scim.ldap.schema.ComplexType;
 import org.apache.directory.scim.ldap.schema.MultiValType;
 import org.apache.directory.scim.ldap.schema.SimpleType;
 import org.apache.directory.scim.ldap.schema.SimpleTypeGroup;
 import org.apache.directory.scim.ldap.schema.TypedType;
 import org.apache.directory.scim.ldap.schema.UserSchema;
+import org.apache.directory.scim.schema.BaseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -170,7 +172,7 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    public User getUser( String id ) throws ResourceNotFoundException
+    public User getUser( RequestContext ctx, String id ) throws ResourceNotFoundException
     {
         SimpleType st = ( SimpleType ) userSchema.getCoreAttribute( "id" );
         String userIdName = st.getMappedTo();
@@ -203,7 +205,7 @@ public class LdapResourceProvider implements ProviderService
 
         try
         {
-            return toUser( entry );
+            return toUser( ctx, entry );
         }
         catch ( Exception e )
         {
@@ -212,12 +214,14 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    public User toUser( Entry entry ) throws Exception
+    public User toUser( RequestContext ctx, Entry entry ) throws Exception
     {
         Collection<BaseType> coreTypes = userSchema.getCoreAttributes();
 
         User user = new User();
 
+        ctx.setUser( user );
+        
         for ( BaseType bt : coreTypes )
         {
             if ( bt instanceof SimpleType )
@@ -229,7 +233,7 @@ public class LdapResourceProvider implements ProviderService
                     continue;
                 }
 
-                SimpleAttribute at = getValueInto( st, entry );
+                SimpleAttribute at = getValueForSimpleType( st, entry, ctx );
                 if ( at != null )
                 {
                     user.addAttribute( bt.getUri(), at );
@@ -241,6 +245,15 @@ public class LdapResourceProvider implements ProviderService
 
                 if ( !ct.isShow() )
                 {
+                    continue;
+                }
+
+                String atHandler = ct.getAtHandlerName();
+                
+                if( atHandler != null )
+                {
+                    AttributeHandler handler = userSchema.getHandler( atHandler );
+                    handler.handle( ct, entry, ctx );
                     continue;
                 }
 
@@ -258,6 +271,15 @@ public class LdapResourceProvider implements ProviderService
 
                 if ( !mt.isShow() )
                 {
+                    continue;
+                }
+
+                String atHandler = bt.getAtHandlerName();
+                
+                if( atHandler != null )
+                {
+                    AttributeHandler handler = userSchema.getHandler( atHandler );
+                    handler.handle( bt, entry, ctx );
                     continue;
                 }
 
@@ -411,7 +433,7 @@ public class LdapResourceProvider implements ProviderService
 
             for ( SimpleType type : types )
             {
-                SimpleAttribute st = getValueInto( type, entry );
+                SimpleAttribute st = getValueForSimpleType( type, entry );
 
                 if ( st != null )
                 {
@@ -431,7 +453,23 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    public SimpleAttribute getValueInto( SimpleType st, Entry entry ) throws LdapException
+    public SimpleAttribute getValueForSimpleType( SimpleType st, Entry entry, RequestContext ctx ) throws LdapException
+    {
+        String atHandler = st.getAtHandlerName();
+        
+        if( atHandler != null )
+        {
+            AttributeHandler handler = userSchema.getHandler( atHandler );
+            handler.handle( st, entry, ctx );
+            return null;
+        }
+        else
+        {
+            return getValueForSimpleType( st, entry );
+        }
+    }
+    
+    public SimpleAttribute getValueForSimpleType( SimpleType st, Entry entry ) throws LdapException
     {
         String name = st.getName();
         Attribute at = entry.get( st.getMappedTo() );
@@ -522,17 +560,18 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    //    public List<SimpleAttribute> getValuesInto( List<SimpleType> lstTyps, Entry entry ) throws LdapException
-    //    {
-    //    }
-
+//    public List<SimpleAttribute> getValuesInto( SimpleTypeGroup stg, RequestContext ctx ) throws LdapException
+//    {
+//        
+//    }
+    
     public List<SimpleAttribute> getValuesInto( SimpleTypeGroup stg, Entry entry ) throws LdapException
     {
         List<SimpleAttribute> lstAts = new ArrayList<SimpleAttribute>();
 
         for ( SimpleType st : stg.getLstSTypes() )
         {
-            SimpleAttribute at = getValueInto( st, entry );
+            SimpleAttribute at = getValueForSimpleType( st, entry );
             if ( at != null )
             {
                 lstAts.add( at );
@@ -584,7 +623,7 @@ public class LdapResourceProvider implements ProviderService
 
         System.out.println( entry );
         LdapResourceProvider lr = new LdapResourceProvider( c );
-        User user = lr.toUser( entry );
+        User user = lr.toUser( new RequestContext(), entry );
         System.out.println( user );
         System.out.println( ResourceSerializer.serialize( user ) );
         c.close();

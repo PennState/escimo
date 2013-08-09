@@ -29,6 +29,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.core.Response.ResponseBuilder;
 
+import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.ProviderService;
 import org.apache.directory.scim.ResourceNotFoundException;
 import org.apache.directory.scim.User;
@@ -42,21 +43,20 @@ import org.apache.directory.scim.json.ResourceSerializer;
 public class UserService
 {
 
-    @Context
-    UriInfo uriInfo;
-    
     private ProviderService provider = ServerInitializer.getProvider();
     
     @GET
     @Produces({MediaType.APPLICATION_JSON})
     @Path("{id}")
-    public Response getUser( @PathParam("id") String userId )
+    public Response getUser( @PathParam("id") String userId, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = null;
         
         try
         {
-            User user = provider.getUser( userId );
+            RequestContext ctx = new RequestContext();
+            
+            User user = provider.getUser( ctx, userId );
             String json = ResourceSerializer.serialize( user );
             rb = Response.ok( json, MediaType.APPLICATION_JSON );
         }

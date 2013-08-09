@@ -11,7 +11,7 @@
         <attribute name="preferredLanguage" mappedTo="preferredLanguage" />
         <attribute name="locale" mappedTo="" />
         <attribute name="timezone" mappedTo="" />
-        <attribute name="active" mappedTo="" />
+        <attribute name="active" handlerRef="activeHandler" />
         <attribute name="password" show="false" mappedTo="userPassword" />
 
         <complex-attribute name="name">
@@ -108,4 +108,9 @@
     <groupType basedDn="ou=system" filter="(objectClass = inetOrgPerson)">
         <schemaRef id="group" />
     </groupType>
+ 
+    <atHandlers>
+        <handler name="activeHandler"
+            class="org.apache.directory.scim.ldap.handlers.ActiveAttributeHandler" />
+    </atHandlers>
 </entities>

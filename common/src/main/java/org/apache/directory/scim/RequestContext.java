@@ -17,41 +17,38 @@
  *   under the License.
  *
  */
-package org.apache.directory.scim.ldap.schema;
-
-import org.apache.directory.scim.schema.BaseType;
-
+package org.apache.directory.scim;
 
 /**
- * TODO SimpleType.
+ * TODO RequestContext.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class SimpleType extends BaseType
+public class RequestContext
 {
-    private String mappedTo;
+    private Object resourceConnection;
+    //private Uri
+    
+    private User user;
 
-
-    public SimpleType( String uri, String name, boolean show, String mappedTo )
+    public Object getResourceConnection()
     {
-        super( uri, name, show );
-        this.mappedTo = mappedTo;
+        return resourceConnection;
     }
 
-
-    /**
-     * @return the mappedTo
-     */
-    public String getMappedTo()
+    public void setResourceConnection( Object resourceConnection )
     {
-        return mappedTo;
+        this.resourceConnection = resourceConnection;
     }
 
-
-    @Override
-    public boolean isSimple()
+    public User getUser()
     {
-        return true;
+        return user;
     }
 
+    public void setUser( User user )
+    {
+        this.user = user;
+    }
+    
 }

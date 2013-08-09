@@ -17,41 +17,18 @@
  *   under the License.
  *
  */
-package org.apache.directory.scim.ldap.schema;
+
+package org.apache.directory.scim;
 
 import org.apache.directory.scim.schema.BaseType;
 
 
 /**
- * TODO SimpleType.
+ * TODO AttributeHandler.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class SimpleType extends BaseType
+public interface AttributeHandler
 {
-    private String mappedTo;
-
-
-    public SimpleType( String uri, String name, boolean show, String mappedTo )
-    {
-        super( uri, name, show );
-        this.mappedTo = mappedTo;
-    }
-
-
-    /**
-     * @return the mappedTo
-     */
-    public String getMappedTo()
-    {
-        return mappedTo;
-    }
-
-
-    @Override
-    public boolean isSimple()
-    {
-        return true;
-    }
-
+    void handle( BaseType bt, Object srcResource, RequestContext ctx );
 }
