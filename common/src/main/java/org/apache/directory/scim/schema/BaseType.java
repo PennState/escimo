@@ -17,7 +17,7 @@
  *   under the License.
  *
  */
-package org.apache.directory.scim.ldap.schema;
+package org.apache.directory.scim.schema;
 
 import org.apache.directory.scim.json.ResourceSerializer;
 
@@ -35,6 +35,8 @@ public abstract class BaseType
     
     private boolean show = true;
 
+    private String atHandlerName;
+    
     public BaseType( String uri, String name, boolean show )
     {
         this.uri = uri;
@@ -85,6 +87,24 @@ public abstract class BaseType
         return uri;
     }
 
+
+    public void setAtHandlerName( String atHandlerName )
+    {
+        this.atHandlerName = atHandlerName;
+    }
+
+
+    public String getAtHandlerName()
+    {
+        return atHandlerName;
+    }
+
+    
+    public boolean hasHandler()
+    {
+        return (atHandlerName != null);
+    }
+    
 
     public boolean isDynamic()
     {
