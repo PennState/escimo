@@ -7,10 +7,8 @@ import java.io.FilenameFilter;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.webapp.WebAppContext;
 
-
 /**
- * Hello world!
- *
+ * Class for starting Jetty server with the escimo-server war
  */
 public class JettyServer
 {
