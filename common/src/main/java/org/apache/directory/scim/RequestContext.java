@@ -19,6 +19,8 @@
  */
 package org.apache.directory.scim;
 
+import javax.ws.rs.core.UriInfo;
+
 /**
  * TODO RequestContext.
  *
@@ -27,7 +29,7 @@ package org.apache.directory.scim;
 public class RequestContext
 {
     private Object resourceConnection;
-    //private Uri
+    private UriInfo uriInfo;
     
     private User user;
 
@@ -49,6 +51,16 @@ public class RequestContext
     public void setUser( User user )
     {
         this.user = user;
+    }
+
+    public UriInfo getUriInfo()
+    {
+        return uriInfo;
+    }
+
+    public void setUriInfo( UriInfo uriInfo )
+    {
+        this.uriInfo = uriInfo;
     }
     
 }

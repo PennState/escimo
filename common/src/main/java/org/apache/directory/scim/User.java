@@ -33,6 +33,8 @@ public class User
 {
     private Map<String,List<AbstractAttribute>> uriAtMap = new HashMap<String, List<AbstractAttribute>>();
     
+    private String id;
+    
     public void addAttribute( String uri, AbstractAttribute at )
     {
         List<AbstractAttribute> atList = uriAtMap.get( uri );
@@ -49,6 +51,16 @@ public class User
     public Map<String,List<AbstractAttribute>> getAttributes()
     {
         return uriAtMap;
+    }
+
+    public void setId( String id )
+    {
+        this.id = id;
+    }
+
+    public String getId()
+    {
+        return id;
     }
 
     @Override

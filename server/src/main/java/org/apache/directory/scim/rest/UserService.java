@@ -55,6 +55,7 @@ public class UserService
         try
         {
             RequestContext ctx = new RequestContext();
+            ctx.setUriInfo( uriInfo );
             
             User user = provider.getUser( ctx, userId );
             String json = ResourceSerializer.serialize( user );

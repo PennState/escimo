@@ -76,12 +76,7 @@
             </at-group>
         </multival-attribute>
 
-        <complex-attribute name="meta">
-            <at-group>
-                <attribute name="created" mappedTo="createTimestamp" />
-                <attribute name="lastModified" mappedTo="lastModifiedTimestamp" />
-            </at-group>
-        </complex-attribute>
+        <complex-attribute name="meta" handlerRef="metaHandler" />
 
     </schema>
 
@@ -112,5 +107,7 @@
     <atHandlers>
         <handler name="activeHandler"
             class="org.apache.directory.scim.ldap.handlers.ActiveAttributeHandler" />
+        <handler name="metaHandler"
+            class="org.apache.directory.scim.ldap.handlers.MetaAttributeHandler" />
     </atHandlers>
 </entities>

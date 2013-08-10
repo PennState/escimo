@@ -62,9 +62,9 @@ import org.apache.directory.ldap.client.api.LdapConnectionConfig;
 import org.apache.directory.ldap.client.api.LdapNetworkConnection;
 import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.ComplexAttribute;
-import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.ProviderService;
+import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.ResourceNotFoundException;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
@@ -77,6 +77,7 @@ import org.apache.directory.scim.ldap.schema.SimpleTypeGroup;
 import org.apache.directory.scim.ldap.schema.TypedType;
 import org.apache.directory.scim.ldap.schema.UserSchema;
 import org.apache.directory.scim.schema.BaseType;
+import org.apache.directory.scim.util.ResourceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -222,6 +223,13 @@ public class LdapResourceProvider implements ProviderService
 
         ctx.setUser( user );
         
+        // first fill in the id, we need this for deriving location
+        SimpleType idType = ( SimpleType ) userSchema.getCoreAttribute( "id" );
+        SimpleAttribute idAttribute = getValueForSimpleType( idType, entry, ctx );
+        user.addAttribute( idType.getUri(), idAttribute );
+        
+        user.setId( ( String ) idAttribute.getValue() );
+        
         for ( BaseType bt : coreTypes )
         {
             if ( bt instanceof SimpleType )
@@ -233,6 +241,12 @@ public class LdapResourceProvider implements ProviderService
                     continue;
                 }
 
+                // skip id attribute, it was already added above
+                if( st == idType )
+                {
+                    continue;
+                }
+                
                 SimpleAttribute at = getValueForSimpleType( st, entry, ctx );
                 if ( at != null )
                 {
@@ -511,53 +525,13 @@ public class LdapResourceProvider implements ProviderService
             }
             else if ( sc instanceof GeneralizedTimeSyntaxChecker )
             {
-                return formatDate( ldapValue.getString() );
+                return ResourceUtil.formatDate( ldapValue.getString() );
             }
         }
 
         return ldapValue.getString();
     }
 
-
-    public String formatDate( String zTime )
-    {
-        //parse a value like 20120302164134Z to 2012-03-02T16:41:34Z 
-        StringBuilder sb = new StringBuilder();
-        int start = 0;
-        int end = 4;
-        sb.append( zTime.substring( start, end ) )
-            .append( "-" );
-
-        start = end;
-        end += 2;
-        sb.append( zTime.substring( start, end ) )
-            .append( "-" );
-
-        start = end;
-        end += 2;
-        sb.append( zTime.substring( start, end ) )
-            .append( "-" );
-
-        sb.append( "T" );
-
-        start = end;
-        end += 2;
-        sb.append( zTime.substring( start, end ) )
-            .append( ":" );
-
-        start = end;
-        end += 2;
-        sb.append( zTime.substring( start, end ) )
-            .append( ":" );
-
-        start = end;
-        end += 2;
-        sb.append( zTime.substring( start, end ) );
-
-        sb.append( "Z" );
-
-        return sb.toString();
-    }
 
 
 //    public List<SimpleAttribute> getValuesInto( SimpleTypeGroup stg, RequestContext ctx ) throws LdapException
