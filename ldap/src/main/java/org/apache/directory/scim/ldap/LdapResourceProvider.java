@@ -543,17 +543,32 @@ public class LdapResourceProvider implements ProviderService
     {
         List<SimpleAttribute> lstAts = new ArrayList<SimpleAttribute>();
 
+        // format="$givenName $familyName"
+        boolean hasFormat = !Strings.isEmpty( stg.getFormat() );
+        
+        String format = stg.getFormat();
+        
         for ( SimpleType st : stg.getLstSTypes() )
         {
             SimpleAttribute at = getValueForSimpleType( st, entry );
             if ( at != null )
             {
                 lstAts.add( at );
+                
+                if( hasFormat )
+                {
+                    format = format.replaceAll( "\\$" + st.getName(), String.valueOf( at.getValue() ) );
+                }
             }
 
-            //TODO handle the format
         }
 
+        if( hasFormat )
+        {
+            SimpleAttribute atFormat = new SimpleAttribute( "formatted", format );
+            lstAts.add( atFormat );
+        }
+        
         return lstAts;
 
     }

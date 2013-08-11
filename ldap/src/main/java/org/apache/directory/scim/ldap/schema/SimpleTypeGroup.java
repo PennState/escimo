@@ -39,6 +39,7 @@ public class SimpleTypeGroup
     public SimpleTypeGroup( List<SimpleType> lstSTypes, String format )
     {
         this.lstSTypes = lstSTypes;
+        this.format = format;
     }
 
 
