@@ -88,14 +88,10 @@ public class MetaAttributeHandler implements AttributeHandler
             User user = ctx.getUser();
             
             SimpleAttribute location = new SimpleAttribute( "location" );
-            String locationVal = ctx.getUriInfo().getAbsolutePath().toString();
-            List<PathSegment> pathSegLst = ctx.getUriInfo().getPathSegments();
-            if( !pathSegLst.isEmpty() )
-            {
-                locationVal = locationVal.replace( pathSegLst.get( pathSegLst.size() -1  ).getPath(), "" );
-            }
+            String locationVal = ctx.getUriInfo().getBaseUri().toString();
+            locationVal = locationVal + "Users/" + user.getId();
             
-            location.setValue( locationVal + user.getId() );
+            location.setValue( locationVal );
             atList.add( location );
             
             ComplexAttribute ct = new ComplexAttribute( bt.getName(), atList );
