@@ -12,7 +12,7 @@
   <name>eSCIMo LDAP Backend</name>
   
   <properties>
-    <ldap.api.version>1.0.0-M19</ldap.api.version>
+    <ldap.api.version>1.0.0-M20-SNAPSHOT</ldap.api.version>
     <dom4j.version>1.6.1</dom4j.version>
   </properties>
   

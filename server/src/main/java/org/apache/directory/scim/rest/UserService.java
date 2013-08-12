@@ -54,7 +54,7 @@ public class UserService
         
         try
         {
-            RequestContext ctx = new RequestContext();
+            RequestContext ctx = new RequestContext( provider );
             ctx.setUriInfo( uriInfo );
             
             User user = provider.getUser( ctx, userId );

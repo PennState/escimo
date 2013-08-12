@@ -327,16 +327,7 @@ public class LdapResourceProvider implements ProviderService
                 }
                 else if ( stg != null )
                 {
-                    List<SimpleAttributeGroup> atGroupList = null;
-
-                    if ( !Strings.isEmpty( mt.getFilter() ) )
-                    {
-                        atGroupList = getDynamicMultiValAtFrom( stg, mt.getFilter(), mt.getBaseDn(), entry );
-                    }
-                    else
-                    {
-                        atGroupList = getValuesFor( stg, entry );
-                    }
+                    List<SimpleAttributeGroup> atGroupList = getValuesFor( stg, entry );
 
                     if ( atGroupList != null )
                     {
@@ -348,64 +339,6 @@ public class LdapResourceProvider implements ProviderService
         }
 
         return user;
-    }
-
-
-    private List<SimpleAttributeGroup> getDynamicMultiValAtFrom( SimpleTypeGroup stg, String filter, String baseDn,
-        Entry entry )
-        throws LdapException, IOException, CursorException
-    {
-        if ( Strings.isEmpty( baseDn ) )
-        {
-            baseDn = ""; // RootDSE
-        }
-
-        /* if( filter.contains( "$" ))
-         {
-             StringBuilder sb = new StringBuilder();
-             int len = filter.length();
-             int pos = 0;
-             while( pos < len-1 )
-             {
-                 int equalPos = filter.indexOf( "=", pos );
-                 sb.append( filter.subSequence( pos, equalPos+1 ) );
-                 
-                 int dollarPos = filter.indexOf( "$", equalPos );
-                 if( dollarPos != -1 )
-                 {
-                     int rightParenPos = filter.indexOf( ")", dollarPos );
-                     while( filter.charAt( rightParenPos - 1 ) == '\\' )
-                     {
-                         rightParenPos = filter.indexOf( ")", rightParenPos );
-                     }
-                     
-                 }
-                 
-             }
-         }*/
-
-        List<SimpleAttributeGroup> lst = new ArrayList<SimpleAttributeGroup>();
-
-        EntryCursor cursor = connection.search( baseDn, filter, SearchScope.SUBTREE,
-            SchemaConstants.ALL_ATTRIBUTES_ARRAY );
-        while ( cursor.next() )
-        {
-            Entry mvEntry = cursor.get();
-            List<SimpleAttributeGroup> tmp = getValuesFor( stg, mvEntry );
-            if ( tmp != null )
-            {
-                lst.add( tmp.get( 0 ) );
-            }
-        }
-
-        cursor.close();
-
-        if ( lst.isEmpty() )
-        {
-            return null;
-        }
-
-        return lst;
     }
 
 
@@ -574,9 +507,29 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
+    public LdapConnection getConnection()
+    {
+        return connection;
+    }
+
+
+    public Entry fetchEntry( String dn )
+    {
+        try
+        {
+            return connection.lookup( dn, ALL_ATTRIBUTES_ARRAY );
+        }
+        catch( LdapException e )
+        {
+            LOG.debug( "Couldn't find the entry with dn {}", dn, e );
+        }
+        
+        return null;
+    }
+    
     public static void main( String[] args ) throws Exception
     {
-        System.setProperty( StandaloneLdapApiService.DEFAULT_CONTROLS_LIST,
+        System.setProperty( StandaloneLdapApiService.CONTROLS_LIST,
             "org.apache.directory.api.ldap.codec.controls.cascade.CascadeFactory," +
                 "org.apache.directory.api.ldap.codec.controls.manageDsaIT.ManageDsaITFactory," +
                 "org.apache.directory.api.ldap.codec.controls.search.entryChange.EntryChangeFactory," +
@@ -612,7 +565,7 @@ public class LdapResourceProvider implements ProviderService
 
         System.out.println( entry );
         LdapResourceProvider lr = new LdapResourceProvider( c );
-        User user = lr.toUser( new RequestContext(), entry );
+        User user = lr.toUser( new RequestContext( lr ), entry );
         System.out.println( user );
         System.out.println( ResourceSerializer.serialize( user ) );
         c.close();

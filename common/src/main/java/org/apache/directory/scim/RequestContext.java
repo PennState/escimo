@@ -19,7 +19,9 @@
  */
 package org.apache.directory.scim;
 
+
 import javax.ws.rs.core.UriInfo;
+
 
 /**
  * TODO RequestContext.
@@ -28,39 +30,46 @@ import javax.ws.rs.core.UriInfo;
  */
 public class RequestContext
 {
-    private Object resourceConnection;
+    private ProviderService providerService;
+
     private UriInfo uriInfo;
-    
+
     private User user;
 
-    public Object getResourceConnection()
+
+    public RequestContext( ProviderService providerService )
     {
-        return resourceConnection;
+        this.providerService = providerService;
     }
 
-    public void setResourceConnection( Object resourceConnection )
-    {
-        this.resourceConnection = resourceConnection;
-    }
 
     public User getUser()
     {
         return user;
     }
 
+
     public void setUser( User user )
     {
         this.user = user;
     }
+
 
     public UriInfo getUriInfo()
     {
         return uriInfo;
     }
 
+
     public void setUriInfo( UriInfo uriInfo )
     {
         this.uriInfo = uriInfo;
     }
-    
+
+
+    public ProviderService getProviderService()
+    {
+        return providerService;
+    }
+
 }

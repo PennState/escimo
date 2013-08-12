@@ -12,8 +12,8 @@
   <name>eSCIMo Tests</name>
 
   <properties>
-    <ldap.api.version>1.0.0-M19</ldap.api.version>
-    <apacheds.version>2.0.0-M14</apacheds.version>
+    <ldap.api.version>1.0.0-M20-SNAPSHOT</ldap.api.version>
+    <apacheds.version>2.0.0-M15-SNAPSHOT</apacheds.version>
     <slf4j.api.version>1.7.5</slf4j.api.version>
     <slf4j.log4j12.version>1.7.5</slf4j.log4j12.version>
     <log4j.version>1.2.17</log4j.version>

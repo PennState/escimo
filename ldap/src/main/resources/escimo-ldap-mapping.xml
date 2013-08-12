@@ -70,11 +70,7 @@
             </type>
         </multival-attribute>
 
-        <multival-attribute name="groups">
-            <at-group>
-                <attribute name="value" mappedTo="member" />
-            </at-group>
-        </multival-attribute>
+        <multival-attribute name="groups" basedDn="ou=system" filter="(uniqueMember = $entryDn)" handlerRef="groupsHandler"/>
 
         <complex-attribute name="meta" handlerRef="metaHandler" />
 
@@ -109,5 +105,7 @@
             class="org.apache.directory.scim.ldap.handlers.ActiveAttributeHandler" />
         <handler name="metaHandler"
             class="org.apache.directory.scim.ldap.handlers.MetaAttributeHandler" />
+        <handler name="groupsHandler"
+            class="org.apache.directory.scim.ldap.handlers.GroupsAttributeHandler" />
     </atHandlers>
 </entities>
