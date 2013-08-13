@@ -49,7 +49,7 @@
         <multival-attribute name="ims">
         </multival-attribute>
 
-        <multival-attribute name="photos">
+        <multival-attribute name="photos" handlerRef="photosHandler">
             <type name="photo" primary="true">
                 <at-group>
                     <attribute name="value" mappedTo="jpegPhoto" />
@@ -107,5 +107,7 @@
             class="org.apache.directory.scim.ldap.handlers.MetaAttributeHandler" />
         <handler name="groupsHandler"
             class="org.apache.directory.scim.ldap.handlers.GroupsAttributeHandler" />
+        <handler name="photosHandler"
+            class="org.apache.directory.scim.ldap.handlers.PhotosAttributeHandler" />
     </atHandlers>
 </entities>
