@@ -21,17 +21,11 @@ package org.apache.directory.scim.ldap.handlers;
 
 
 import java.net.URLEncoder;
-import java.security.MessageDigest;
-import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 
-import org.apache.directory.api.ldap.model.constants.PasswordPolicySchemaConstants;
 import org.apache.directory.api.ldap.model.entry.Attribute;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.entry.Value;
-import org.apache.directory.api.ldap.model.exception.LdapException;
-import org.apache.directory.api.util.Base64;
 import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.RequestContext;
