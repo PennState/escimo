@@ -37,13 +37,13 @@ import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.SchemaMapper;
 import org.apache.directory.scim.ldap.schema.ComplexType;
+import org.apache.directory.scim.ldap.schema.GroupSchema;
 import org.apache.directory.scim.ldap.schema.MultiValType;
 import org.apache.directory.scim.ldap.schema.ResourceSchema;
 import org.apache.directory.scim.ldap.schema.SimpleType;
 import org.apache.directory.scim.ldap.schema.SimpleTypeGroup;
 import org.apache.directory.scim.ldap.schema.TypedType;
 import org.apache.directory.scim.ldap.schema.UserSchema;
-import org.apache.directory.scim.schema.BaseType;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
@@ -62,7 +62,7 @@ public class LdapSchemaMapper implements SchemaMapper
 
     private static final Logger LOG = LoggerFactory.getLogger( LdapSchemaMapper.class );
 
-    private Map<String, BaseType> groupSchema = new HashMap<String, BaseType>();
+    private GroupSchema groupSchema;
 
     private UserSchema userSchema;
 
@@ -94,6 +94,12 @@ public class LdapSchemaMapper implements SchemaMapper
     public UserSchema getUserSchema()
     {
         return userSchema;
+    }
+
+
+    public GroupSchema getGroupSchema()
+    {
+        return groupSchema;
     }
 
 
@@ -144,20 +150,17 @@ public class LdapSchemaMapper implements SchemaMapper
             userSchema.setAtHandlers( atHandlersMap );
 
             List<Element> lstSchema = root.elements( "schema" );
+            
             List<Element> lstRef = elmUser.elements( "schemaRef" );
             parseResourceSchema( lstRef, lstSchema, userSchema );
 
-            /*
             Element elmGroup = root.element( "groupType" );
-            
-            String baseDn = elmGroup.attributeValue( "baseDn" );
-            String filter = elmGroup.attributeValue( "filter" );
+            String groupBaseDn = elmGroup.attributeValue( "baseDn" );
+            String groupFilter = elmGroup.attributeValue( "filter" );
 
-            userSchema = new GroupSchema( baseDn, filter );
-            
-            List<Element> lstSchema = elmGroup.elements( "schema" );
-            List<Element> lstRef = elmGroup.elements( "schemaRef" );
-            */
+            groupSchema = new GroupSchema( baseDn, filter );
+            List<Element> lstGroupRef = elmGroup.elements( "schemaRef" );
+            parseResourceSchema( lstGroupRef, lstSchema, groupSchema );
         }
         catch ( Exception e )
         {

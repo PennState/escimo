@@ -108,17 +108,7 @@
     <schema id="group" uri="urn:scim:schemas:core:1.0">
         <attribute name="displayName" mappedTo="cn" />
         <attribute name="id" mappedTo="entryUUID" />
-        <complex-attribute name="members">
-            <at-group>
-                <attribute name="streetAddress" mappedTo="street" />
-                <attribute name="locality" mappedTo="l" />
-                <attribute name="region" mappedTo="region" />
-                <attribute name="postalCode" mappedTo="postalCode" />
-                <attribute name="country" mappedTo="" />
-                <formatted format="$streetAddress $locality" />
-            </at-group>
-        </complex-attribute>
-
+        <multival-attribute name="members" handlerRef="membersHandler"/>
     </schema>
 
     <userType basedDn="ou=system" filter="(objectClass = inetOrgPerson)">
@@ -139,5 +129,7 @@
             class="org.apache.directory.scim.ldap.handlers.GroupsAttributeHandler" />
         <handler name="photosHandler"
             class="org.apache.directory.scim.ldap.handlers.PhotosAttributeHandler" />
+        <handler name="membersHandler"
+            class="org.apache.directory.scim.ldap.handlers.MembersAttributeHandler" />
     </atHandlers>
 </entities>
