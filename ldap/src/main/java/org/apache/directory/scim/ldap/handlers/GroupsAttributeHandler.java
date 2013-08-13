@@ -136,7 +136,7 @@ public class GroupsAttributeHandler implements AttributeHandler
         while ( itr.hasNext() )
         {
             Value<?> dn = itr.next();
-            Entry entry = provider.fetchEntry( dn.getString() );
+            Entry entry = provider.fetchEntryByDn( dn.getString() );
             if ( entry != null )
             {
                 members.add( entry );

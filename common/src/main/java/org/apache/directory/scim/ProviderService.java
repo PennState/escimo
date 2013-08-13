@@ -18,6 +18,8 @@
  */
 package org.apache.directory.scim;
 
+import java.io.InputStream;
+
 /**
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
@@ -25,6 +27,10 @@ package org.apache.directory.scim;
 public interface ProviderService 
 {
     void init() throws Exception;
-    void stop();;
+    
+    void stop();
+    
     User getUser( RequestContext ctx, String userId ) throws ResourceNotFoundException;
+    
+    InputStream getUserPhoto( String id, String atName ) throws MissingParameterException;
 }

@@ -23,6 +23,7 @@ package org.apache.directory.scim.ldap;
 import static org.apache.directory.api.ldap.model.constants.SchemaConstants.ALL_ATTRIBUTES_ARRAY;
 import static org.apache.directory.api.ldap.model.message.SearchScope.SUBTREE;
 
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
@@ -62,6 +63,7 @@ import org.apache.directory.ldap.client.api.LdapConnectionConfig;
 import org.apache.directory.ldap.client.api.LdapNetworkConnection;
 import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.ComplexAttribute;
+import org.apache.directory.scim.MissingParameterException;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.ProviderService;
 import org.apache.directory.scim.RequestContext;
@@ -175,29 +177,7 @@ public class LdapResourceProvider implements ProviderService
 
     public User getUser( RequestContext ctx, String id ) throws ResourceNotFoundException
     {
-        SimpleType st = ( SimpleType ) userSchema.getCoreAttribute( "id" );
-        String userIdName = st.getMappedTo();
-
-        String filter = "(" + userIdName + "=" + id + ")";
-
-        Entry entry = null;
-
-        try
-        {
-            EntryCursor cursor = connection.search( userSchema.getBaseDn(), filter, SUBTREE, ALL_ATTRIBUTES_ARRAY );
-
-            if ( cursor.next() )
-            {
-                entry = cursor.get();
-            }
-
-            cursor.close();
-
-        }
-        catch ( Exception e )
-        {
-            throw new ResourceNotFoundException( e );
-        }
+        Entry entry = fetchEntryById( id );
 
         if ( entry == null )
         {
@@ -212,6 +192,39 @@ public class LdapResourceProvider implements ProviderService
         {
             throw new ResourceNotFoundException( e );
         }
+    }
+
+
+    @Override
+    public InputStream getUserPhoto( String id, String atName ) throws MissingParameterException
+    {
+        if( Strings.isEmpty( id ) )
+        {
+            throw new MissingParameterException( "id cannot be null or empty" );
+        }
+        
+        if( Strings.isEmpty( atName ) )
+        {
+            throw new MissingParameterException( "atName cannot be null or empty" );
+        }
+
+        Entry entry = fetchEntryById( id );
+        
+        if( entry == null )
+        {
+            return null;
+        }
+        
+        Attribute phtoAt = entry.get( atName );
+        
+        if( phtoAt == null )
+        {
+            return null;
+        }
+        
+        ByteArrayInputStream bin = new ByteArrayInputStream( phtoAt.get().getBytes() );
+        
+        return bin;
     }
 
 
@@ -513,7 +526,7 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    public Entry fetchEntry( String dn )
+    public Entry fetchEntryByDn( String dn )
     {
         try
         {
@@ -526,6 +539,39 @@ public class LdapResourceProvider implements ProviderService
         
         return null;
     }
+    
+    public Entry fetchEntryById( String id )
+    {
+        EntryCursor cursor = null;
+        
+        SimpleType st = ( SimpleType ) userSchema.getCoreAttribute( "id" );
+        String userIdName = st.getMappedTo();
+
+        String filter = "(" + userIdName + "=" + id + ")";
+
+        Entry entry = null;
+
+        try
+        {
+            cursor = connection.search( userSchema.getBaseDn(), filter, SUBTREE, ALL_ATTRIBUTES_ARRAY );
+
+            if ( cursor.next() )
+            {
+                entry = cursor.get();
+            }
+        }
+        catch ( Exception e )
+        {
+            LOG.debug( "Failed while fetching the entry by id {}", id, e );
+        }
+        finally
+        {
+            cursor.close();
+        }
+        
+        return entry;
+    }
+    
     
     public static void main( String[] args ) throws Exception
     {

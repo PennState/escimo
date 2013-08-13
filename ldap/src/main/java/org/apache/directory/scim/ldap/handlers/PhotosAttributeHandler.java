@@ -81,7 +81,7 @@ public class PhotosAttributeHandler implements AttributeHandler
         List<TypedType> ttList = mt.getTypedList();
 
         String photoUrlBase = ctx.getUriInfo().getBaseUri().toString();
-        photoUrlBase += "Users/photos?atName=%s&id=%s";
+        photoUrlBase += "Users/photo?atName=%s&id=%s";
 
         if ( stg != null )
         {
@@ -166,5 +166,12 @@ public class PhotosAttributeHandler implements AttributeHandler
             // if happens blow up 
             throw new RuntimeException( e );
         }
+    }
+    
+    public static void main( String[] args )
+    {
+        byte[] bytes = new byte[]{(byte)0xff, (byte)0xd8};
+        System.out.println(bytes[0] & 0xff);
+        System.out.println(bytes[1] & 0xff);
     }
 }

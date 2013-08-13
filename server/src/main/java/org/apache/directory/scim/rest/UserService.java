@@ -18,19 +18,27 @@
  */
 package org.apache.directory.scim.rest;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriInfo;
 import javax.ws.rs.core.Response.ResponseBuilder;
+import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.StreamingOutput;
+import javax.ws.rs.core.UriInfo;
 
-import org.apache.directory.scim.RequestContext;
+import org.apache.directory.scim.MissingParameterException;
 import org.apache.directory.scim.ProviderService;
+import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.ResourceNotFoundException;
 import org.apache.directory.scim.User;
 import org.apache.directory.scim.json.ResourceSerializer;
@@ -67,5 +75,66 @@ public class UserService
         }
         
         return rb.build();
+    }
+    
+    
+    @GET
+    @Produces({MediaType.APPLICATION_OCTET_STREAM})
+    @Path("photo")
+    public Response getPhoto( @QueryParam("atName") String atName, @QueryParam("id") String id )
+    {
+        final ResponseBuilder rb = Response.ok();
+        
+        try
+        {
+            final InputStream in = provider.getUserPhoto( id, atName );
+            if( in == null )
+            {
+                rb.status( Status.NOT_FOUND );
+            }
+            else
+            {
+                StreamingOutput streamOut = new StreamingOutput()
+                {
+                    
+                    @Override
+                    public void write( OutputStream output ) throws IOException, WebApplicationException
+                    {
+                        byte[] buf = new byte[1024];
+                        int read = -1;
+                        try
+                        {
+                            while( true )
+                            {
+                                read = in.read( buf );
+                                if( read <= 0 )
+                                {
+                                    break;
+                                }
+                                
+                                output.write( buf, 0, read );
+                            }
+                        }
+                        catch( IOException e )
+                        {
+                            rb.status( Status.INTERNAL_SERVER_ERROR );
+                        }
+                        finally
+                        {
+                            in.close();
+                        }
+                    }
+                };
+                
+                rb.entity( streamOut );
+            }
+        }
+        catch( MissingParameterException e )
+        {
+            rb.status( Status.BAD_REQUEST );
+        }
+        
+        return rb.build();
+
     }
 }
