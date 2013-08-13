@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
 <entities>
+    <!-- Core User resource schema -->
     <schema id="user-core" uri="urn:scim:schemas:core:1.0">
         <attribute name="id" mappedTo="entryUUID" />
         <attribute name="userName" mappedTo="uid" />
@@ -70,10 +71,38 @@
             </type>
         </multival-attribute>
 
-        <multival-attribute name="groups" basedDn="ou=system" filter="(uniqueMember = $entryDn)" handlerRef="groupsHandler"/>
+        <multival-attribute name="groups" basedDn="ou=system"
+            filter="(uniqueMember = $entryDn)" handlerRef="groupsHandler" />
+
+        <multival-attribute name="entitlements" />
+
+        <multival-attribute name="roles" />
+
+        <multival-attribute name="x509Certificates">
+            <at-group>
+                <attribute name="value" mappedTo="userCertificate" />
+            </at-group>
+        </multival-attribute>
 
         <complex-attribute name="meta" handlerRef="metaHandler" />
 
+    </schema>
+
+    <!-- Enterprise User resource schema -->
+    <schema id="enterprise-user" uri="urn:scim:schemas:extension:enterprise:1.0">
+        <attribute name="employeeNumber" mappedTo="" />
+        <attribute name="costCenter" mappedTo="" />
+        <attribute name="organization" mappedTo="" />
+        <attribute name="division" mappedTo="" />
+        <attribute name="department" mappedTo="" />
+
+        <complex-attribute name="manager">
+            <at-group>
+                <attribute name="managerId" mappedTo="" />
+                <attribute name="$ref" mappedTo="" />
+                <attribute name="displayName" mappedTo="" />
+            </at-group>
+        </complex-attribute>
     </schema>
 
     <schema id="group" uri="urn:scim:schemas:core:1.0">
@@ -94,12 +123,13 @@
 
     <userType basedDn="ou=system" filter="(objectClass = inetOrgPerson)">
         <schemaRef id="user-core" />
+        <schemaRef id="enterprise-user" />
     </userType>
 
     <groupType basedDn="ou=system" filter="(objectClass = inetOrgPerson)">
         <schemaRef id="group" />
     </groupType>
- 
+
     <atHandlers>
         <handler name="activeHandler"
             class="org.apache.directory.scim.ldap.handlers.ActiveAttributeHandler" />

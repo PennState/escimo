@@ -22,6 +22,7 @@ package org.apache.directory.scim.ldap.schema;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -97,9 +98,15 @@ public abstract class ResourceSchema
     }
 
 
-    public Collection<BaseType> getCoreAttributes()
+    public Collection<BaseType> getCoreTypes()
     {
-        return coreTypes.values();
+        return Collections.unmodifiableCollection( coreTypes.values() );
+    }
+
+
+    public Collection<BaseType> getExtendedTypes()
+    {
+        return Collections.unmodifiableCollection( extendedTypes.values() );
     }
 
 

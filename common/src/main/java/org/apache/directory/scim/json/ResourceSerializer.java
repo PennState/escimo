@@ -30,7 +30,6 @@ import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
 import org.apache.directory.scim.User;
 
-import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
@@ -43,8 +42,6 @@ import com.google.gson.JsonPrimitive;
  */
 public class ResourceSerializer
 {
-    private Gson gson = new Gson();
-
     public static final String CORE_URI = "urn:scim:schemas:core:1.0";
     
     public static String serialize( User user )

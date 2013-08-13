@@ -230,7 +230,6 @@ public class LdapResourceProvider implements ProviderService
 
     public User toUser( RequestContext ctx, Entry entry ) throws Exception
     {
-        Collection<BaseType> coreTypes = userSchema.getCoreAttributes();
 
         User user = new User();
 
@@ -243,7 +242,18 @@ public class LdapResourceProvider implements ProviderService
         
         user.setId( ( String ) idAttribute.getValue() );
         
-        for ( BaseType bt : coreTypes )
+        _loadAttributes( ctx, entry, userSchema.getCoreTypes(), idType );
+        _loadAttributes( ctx, entry, userSchema.getExtendedTypes(), idType );
+        
+        return user;
+    }
+    
+    
+    private User _loadAttributes( RequestContext ctx, Entry entry, Collection<BaseType> types, SimpleType idType ) throws Exception
+    {
+        User user = ctx.getUser();
+        
+        for ( BaseType bt : types )
         {
             if ( bt instanceof SimpleType )
             {
