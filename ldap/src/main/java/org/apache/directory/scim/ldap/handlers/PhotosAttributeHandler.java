@@ -167,11 +167,5 @@ public class PhotosAttributeHandler implements AttributeHandler
             throw new RuntimeException( e );
         }
     }
-    
-    public static void main( String[] args )
-    {
-        byte[] bytes = new byte[]{(byte)0xff, (byte)0xd8};
-        System.out.println(bytes[0] & 0xff);
-        System.out.println(bytes[1] & 0xff);
-    }
+
 }
