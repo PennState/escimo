@@ -123,7 +123,7 @@ public class GroupsAttributeHandler implements AttributeHandler
                 }
             }
 
-            ctx.getUser().addAttribute( bt.getUri(), mv );
+            ctx.getCoreResource().addAttribute( bt.getUri(), mv );
         }
     }
 

@@ -33,4 +33,6 @@ public interface ProviderService
     User getUser( RequestContext ctx, String userId ) throws ResourceNotFoundException;
     
     InputStream getUserPhoto( String id, String atName ) throws MissingParameterException;
+    
+    Group getGroup( RequestContext ctx, String groupId ) throws ResourceNotFoundException;
 }

@@ -71,7 +71,7 @@
             </type>
         </multival-attribute>
 
-        <multival-attribute name="groups" basedDn="ou=system"
+        <multival-attribute name="groups" baseDn="ou=system"
             filter="(uniqueMember = $entryDn)" handlerRef="groupsHandler" />
 
         <multival-attribute name="entitlements" />
@@ -111,12 +111,12 @@
         <multival-attribute name="members" handlerRef="membersHandler"/>
     </schema>
 
-    <userType basedDn="ou=system" filter="(objectClass = inetOrgPerson)">
+    <userType baseDn="" filter="(objectClass = inetOrgPerson)">
         <schemaRef id="user-core" />
         <schemaRef id="enterprise-user" />
     </userType>
 
-    <groupType basedDn="ou=system" filter="(objectClass = inetOrgPerson)">
+    <groupType baseDn="" filter="(objectClass = inetOrgPerson)">
         <schemaRef id="group" />
     </groupType>
 

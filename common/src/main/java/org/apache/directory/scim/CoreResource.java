@@ -19,57 +19,47 @@
  */
 package org.apache.directory.scim;
 
-
-import javax.ws.rs.core.UriInfo;
-
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
- * TODO RequestContext.
+ * TODO CoreResource.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class RequestContext
+public abstract class CoreResource
 {
-    private ProviderService providerService;
-
-    private UriInfo uriInfo;
-
-    private CoreResource resource;
-
-
-    public RequestContext( ProviderService providerService )
+    private Map<String,List<AbstractAttribute>> uriAtMap = new HashMap<String, List<AbstractAttribute>>();
+    
+    private String id;
+    
+    public void addAttribute( String uri, AbstractAttribute at )
     {
-        this.providerService = providerService;
+        List<AbstractAttribute> atList = uriAtMap.get( uri );
+        
+        if( atList == null )
+        {
+            atList = new ArrayList<AbstractAttribute>();
+            uriAtMap.put( uri, atList );
+        }
+        
+        atList.add( at );
     }
 
-
-    public CoreResource getCoreResource()
+    public Map<String,List<AbstractAttribute>> getAttributes()
     {
-        return resource;
+        return uriAtMap;
     }
 
-
-    public void setCoreResource( CoreResource resource )
+    public void setId( String id )
     {
-        this.resource = resource;
+        this.id = id;
     }
 
-
-    public UriInfo getUriInfo()
+    public String getId()
     {
-        return uriInfo;
+        return id;
     }
-
-
-    public void setUriInfo( UriInfo uriInfo )
-    {
-        this.uriInfo = uriInfo;
-    }
-
-
-    public ProviderService getProviderService()
-    {
-        return providerService;
-    }
-
 }

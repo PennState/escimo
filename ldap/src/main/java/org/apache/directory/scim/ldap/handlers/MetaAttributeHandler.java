@@ -30,6 +30,7 @@ import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.ComplexAttribute;
+import org.apache.directory.scim.CoreResource;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.User;
@@ -85,7 +86,7 @@ public class MetaAttributeHandler implements AttributeHandler
                 atList.add( lastModified );
             }
 
-            User user = ctx.getUser();
+            CoreResource user = ctx.getCoreResource();
             
             SimpleAttribute location = new SimpleAttribute( "location" );
             String locationVal = ctx.getUriInfo().getBaseUri().toString();

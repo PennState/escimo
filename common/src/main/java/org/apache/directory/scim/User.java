@@ -19,54 +19,18 @@
  */
 package org.apache.directory.scim;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * TODO User.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class User
+public class User extends CoreResource
 {
-    private Map<String,List<AbstractAttribute>> uriAtMap = new HashMap<String, List<AbstractAttribute>>();
-    
-    private String id;
-    
-    public void addAttribute( String uri, AbstractAttribute at )
-    {
-        List<AbstractAttribute> atList = uriAtMap.get( uri );
-        
-        if( atList == null )
-        {
-            atList = new ArrayList<AbstractAttribute>();
-            uriAtMap.put( uri, atList );
-        }
-        
-        atList.add( at );
-    }
-
-    public Map<String,List<AbstractAttribute>> getAttributes()
-    {
-        return uriAtMap;
-    }
-
-    public void setId( String id )
-    {
-        this.id = id;
-    }
-
-    public String getId()
-    {
-        return id;
-    }
-
     @Override
     public String toString()
     {
-        return "User [uriAtMap=" + uriAtMap + "]";
+        return "User [attributes=" + super.getAttributes() + "]";
     }
     
 }

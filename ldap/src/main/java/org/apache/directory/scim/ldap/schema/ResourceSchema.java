@@ -28,6 +28,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.directory.api.util.Strings;
 import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.schema.BaseType;
 
@@ -53,6 +54,11 @@ public abstract class ResourceSchema
 
     public ResourceSchema( String baseDn, String filter )
     {
+        if( Strings.isEmpty( baseDn ) )
+        {
+            baseDn = ""; // RootDSE
+        }
+        
         this.baseDn = baseDn;
         this.filter = filter;
     }

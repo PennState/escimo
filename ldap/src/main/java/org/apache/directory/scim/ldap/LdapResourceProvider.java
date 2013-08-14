@@ -34,7 +34,6 @@ import java.util.Properties;
 
 import org.apache.directory.api.ldap.codec.standalone.StandaloneLdapApiService;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
-import org.apache.directory.api.ldap.model.cursor.CursorException;
 import org.apache.directory.api.ldap.model.cursor.EntryCursor;
 import org.apache.directory.api.ldap.model.cursor.SearchCursor;
 import org.apache.directory.api.ldap.model.entry.Attribute;
@@ -63,6 +62,8 @@ import org.apache.directory.ldap.client.api.LdapConnectionConfig;
 import org.apache.directory.ldap.client.api.LdapNetworkConnection;
 import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.ComplexAttribute;
+import org.apache.directory.scim.CoreResource;
+import org.apache.directory.scim.Group;
 import org.apache.directory.scim.MissingParameterException;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.ProviderService;
@@ -73,7 +74,9 @@ import org.apache.directory.scim.SimpleAttributeGroup;
 import org.apache.directory.scim.User;
 import org.apache.directory.scim.json.ResourceSerializer;
 import org.apache.directory.scim.ldap.schema.ComplexType;
+import org.apache.directory.scim.ldap.schema.GroupSchema;
 import org.apache.directory.scim.ldap.schema.MultiValType;
+import org.apache.directory.scim.ldap.schema.ResourceSchema;
 import org.apache.directory.scim.ldap.schema.SimpleType;
 import org.apache.directory.scim.ldap.schema.SimpleTypeGroup;
 import org.apache.directory.scim.ldap.schema.TypedType;
@@ -93,9 +96,11 @@ public class LdapResourceProvider implements ProviderService
 {
     private LdapConnection connection;
 
-    private LdapSchemaMapper schema;
+    private LdapSchemaMapper schemaMapper;
 
     private UserSchema userSchema;
+
+    private GroupSchema groupSchema;
 
     private static final Logger LOG = LoggerFactory.getLogger( LdapResourceProvider.class );
 
@@ -124,16 +129,17 @@ public class LdapResourceProvider implements ProviderService
             ( ( LdapNetworkConnection ) connection ).loadSchema( new JarLdifSchemaLoader() );
         }
 
-        schema = new LdapSchemaMapper();
-        schema.loadMappings();
-        userSchema = schema.getUserSchema();
+        schemaMapper = new LdapSchemaMapper();
+        schemaMapper.loadMappings();
+        userSchema = schemaMapper.getUserSchema();
+        groupSchema = schemaMapper.getGroupSchema();
     }
 
 
     public void stop()
     {
         LOG.info( "Closing the LDAP server connection" );
-        
+
         if ( connection != null )
         {
             try
@@ -151,7 +157,7 @@ public class LdapResourceProvider implements ProviderService
     private void createConnection() throws IOException, LdapException
     {
         LOG.info( "Creating LDAP server connection" );
-        
+
         InputStream in = this.getClass().getClassLoader().getResourceAsStream( "ldap-server.properties" );
         Properties prop = new Properties();
         prop.load( in );
@@ -177,7 +183,7 @@ public class LdapResourceProvider implements ProviderService
 
     public User getUser( RequestContext ctx, String id ) throws ResourceNotFoundException
     {
-        Entry entry = fetchEntryById( id );
+        Entry entry = fetchEntryById( id, userSchema );
 
         if ( entry == null )
         {
@@ -198,61 +204,102 @@ public class LdapResourceProvider implements ProviderService
     @Override
     public InputStream getUserPhoto( String id, String atName ) throws MissingParameterException
     {
-        if( Strings.isEmpty( id ) )
+        if ( Strings.isEmpty( id ) )
         {
             throw new MissingParameterException( "id cannot be null or empty" );
         }
-        
-        if( Strings.isEmpty( atName ) )
+
+        if ( Strings.isEmpty( atName ) )
         {
             throw new MissingParameterException( "atName cannot be null or empty" );
         }
 
-        Entry entry = fetchEntryById( id );
-        
-        if( entry == null )
+        Entry entry = fetchEntryById( id, userSchema );
+
+        if ( entry == null )
         {
             return null;
         }
-        
+
         Attribute phtoAt = entry.get( atName );
-        
-        if( phtoAt == null )
+
+        if ( phtoAt == null )
         {
             return null;
         }
-        
+
         ByteArrayInputStream bin = new ByteArrayInputStream( phtoAt.get().getBytes() );
-        
+
         return bin;
+    }
+
+
+    @Override
+    public Group getGroup( RequestContext ctx, String groupId ) throws ResourceNotFoundException
+    {
+        Entry entry = fetchEntryById( groupId, groupSchema );
+
+        if ( entry == null )
+        {
+            throw new ResourceNotFoundException( "No Group resource found with the ID " + groupId );
+        }
+
+        try
+        {
+            return toGroup( ctx, entry );
+        }
+        catch ( Exception e )
+        {
+            throw new ResourceNotFoundException( e );
+        }
+
     }
 
 
     public User toUser( RequestContext ctx, Entry entry ) throws Exception
     {
-
         User user = new User();
 
-        ctx.setUser( user );
-        
-        // first fill in the id, we need this for deriving location
-        SimpleType idType = ( SimpleType ) userSchema.getCoreAttribute( "id" );
-        SimpleAttribute idAttribute = getValueForSimpleType( idType, entry, ctx );
-        user.addAttribute( idType.getUri(), idAttribute );
-        
-        user.setId( ( String ) idAttribute.getValue() );
-        
-        _loadAttributes( ctx, entry, userSchema.getCoreTypes(), idType );
-        _loadAttributes( ctx, entry, userSchema.getExtendedTypes(), idType );
-        
+        ctx.setCoreResource( user );
+
+        _loadCoreResource( ctx, entry, userSchema );
+
         return user;
     }
-    
-    
-    private User _loadAttributes( RequestContext ctx, Entry entry, Collection<BaseType> types, SimpleType idType ) throws Exception
+
+
+    public Group toGroup( RequestContext ctx, Entry entry ) throws Exception
     {
-        User user = ctx.getUser();
-        
+        Group group = new Group();
+        ctx.setCoreResource( group );
+
+        _loadCoreResource( ctx, entry, groupSchema );
+
+        return group;
+    }
+
+
+    private void _loadCoreResource( RequestContext ctx, Entry entry, ResourceSchema resourceSchema ) throws Exception
+    {
+        CoreResource resource = ctx.getCoreResource();
+
+        // first fill in the id, we need this for deriving location
+        SimpleType idType = ( SimpleType ) resourceSchema.getCoreAttribute( "id" );
+        SimpleAttribute idAttribute = getValueForSimpleType( idType, entry, ctx );
+        resource.addAttribute( idType.getUri(), idAttribute );
+
+        resource.setId( ( String ) idAttribute.getValue() );
+
+        _loadAttributes( ctx, entry, resourceSchema.getCoreTypes(), idType );
+        _loadAttributes( ctx, entry, resourceSchema.getExtendedTypes(), idType );
+    }
+
+
+    private void _loadAttributes( RequestContext ctx, Entry entry, Collection<BaseType> types, SimpleType idType )
+        throws Exception
+    {
+        CoreResource user = ctx.getCoreResource();
+
         for ( BaseType bt : types )
         {
             if ( bt instanceof SimpleType )
@@ -265,11 +312,11 @@ public class LdapResourceProvider implements ProviderService
                 }
 
                 // skip id attribute, it was already added above
-                if( st == idType )
+                if ( st == idType )
                 {
                     continue;
                 }
-                
+
                 SimpleAttribute at = getValueForSimpleType( st, entry, ctx );
                 if ( at != null )
                 {
@@ -286,8 +333,8 @@ public class LdapResourceProvider implements ProviderService
                 }
 
                 String atHandler = ct.getAtHandlerName();
-                
-                if( atHandler != null )
+
+                if ( atHandler != null )
                 {
                     AttributeHandler handler = userSchema.getHandler( atHandler );
                     handler.handle( ct, entry, ctx );
@@ -312,8 +359,8 @@ public class LdapResourceProvider implements ProviderService
                 }
 
                 String atHandler = bt.getAtHandlerName();
-                
-                if( atHandler != null )
+
+                if ( atHandler != null )
                 {
                     AttributeHandler handler = userSchema.getHandler( atHandler );
                     handler.handle( bt, entry, ctx );
@@ -360,8 +407,6 @@ public class LdapResourceProvider implements ProviderService
                 }
             }
         }
-
-        return user;
     }
 
 
@@ -426,8 +471,8 @@ public class LdapResourceProvider implements ProviderService
     public SimpleAttribute getValueForSimpleType( SimpleType st, Entry entry, RequestContext ctx ) throws LdapException
     {
         String atHandler = st.getAtHandlerName();
-        
-        if( atHandler != null )
+
+        if ( atHandler != null )
         {
             AttributeHandler handler = userSchema.getHandler( atHandler );
             handler.handle( st, entry, ctx );
@@ -438,7 +483,8 @@ public class LdapResourceProvider implements ProviderService
             return getValueForSimpleType( st, entry );
         }
     }
-    
+
+
     public SimpleAttribute getValueForSimpleType( SimpleType st, Entry entry ) throws LdapException
     {
         String name = st.getName();
@@ -489,29 +535,28 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
+    //    public List<SimpleAttribute> getValuesInto( SimpleTypeGroup stg, RequestContext ctx ) throws LdapException
+    //    {
+    //        
+    //    }
 
-//    public List<SimpleAttribute> getValuesInto( SimpleTypeGroup stg, RequestContext ctx ) throws LdapException
-//    {
-//        
-//    }
-    
     public List<SimpleAttribute> getValuesInto( SimpleTypeGroup stg, Entry entry ) throws LdapException
     {
         List<SimpleAttribute> lstAts = new ArrayList<SimpleAttribute>();
 
         // format="$givenName $familyName"
         boolean hasFormat = !Strings.isEmpty( stg.getFormat() );
-        
+
         String format = stg.getFormat();
-        
+
         for ( SimpleType st : stg.getLstSTypes() )
         {
             SimpleAttribute at = getValueForSimpleType( st, entry );
             if ( at != null )
             {
                 lstAts.add( at );
-                
-                if( hasFormat )
+
+                if ( hasFormat )
                 {
                     format = format.replaceAll( "\\$" + st.getName(), String.valueOf( at.getValue() ) );
                 }
@@ -519,12 +564,12 @@ public class LdapResourceProvider implements ProviderService
 
         }
 
-        if( hasFormat )
+        if ( hasFormat )
         {
             SimpleAttribute atFormat = new SimpleAttribute( "formatted", format );
             lstAts.add( atFormat );
         }
-        
+
         return lstAts;
 
     }
@@ -542,28 +587,29 @@ public class LdapResourceProvider implements ProviderService
         {
             return connection.lookup( dn, ALL_ATTRIBUTES_ARRAY );
         }
-        catch( LdapException e )
+        catch ( LdapException e )
         {
             LOG.debug( "Couldn't find the entry with dn {}", dn, e );
         }
-        
+
         return null;
     }
-    
-    public Entry fetchEntryById( String id )
+
+
+    public Entry fetchEntryById( String id, ResourceSchema resourceSchema )
     {
         EntryCursor cursor = null;
-        
-        SimpleType st = ( SimpleType ) userSchema.getCoreAttribute( "id" );
-        String userIdName = st.getMappedTo();
 
-        String filter = "(" + userIdName + "=" + id + ")";
+        SimpleType st = ( SimpleType ) resourceSchema.getCoreAttribute( "id" );
+        String resourceIdName = st.getMappedTo();
+
+        String filter = "(" + resourceIdName + "=" + id + ")";
 
         Entry entry = null;
 
         try
         {
-            cursor = connection.search( userSchema.getBaseDn(), filter, SUBTREE, ALL_ATTRIBUTES_ARRAY );
+            cursor = connection.search( resourceSchema.getBaseDn(), filter, SUBTREE, ALL_ATTRIBUTES_ARRAY );
 
             if ( cursor.next() )
             {
@@ -578,52 +624,40 @@ public class LdapResourceProvider implements ProviderService
         {
             cursor.close();
         }
-        
+
         return entry;
     }
-    
-    
+
+
     public static void main( String[] args ) throws Exception
     {
-        System.setProperty( StandaloneLdapApiService.CONTROLS_LIST,
-            "org.apache.directory.api.ldap.codec.controls.cascade.CascadeFactory," +
-                "org.apache.directory.api.ldap.codec.controls.manageDsaIT.ManageDsaITFactory," +
-                "org.apache.directory.api.ldap.codec.controls.search.entryChange.EntryChangeFactory," +
-                "org.apache.directory.api.ldap.codec.controls.search.pagedSearch.PagedResultsFactory," +
-                "org.apache.directory.api.ldap.codec.controls.search.persistentSearch.PersistentSearchFactory," +
-                "org.apache.directory.api.ldap.codec.controls.search.subentries.SubentriesFactory" );
+//        System.setProperty( StandaloneLdapApiService.CONTROLS_LIST,
+//            "org.apache.directory.api.ldap.codec.controls.cascade.CascadeFactory," +
+//                "org.apache.directory.api.ldap.codec.controls.manageDsaIT.ManageDsaITFactory," +
+//                "org.apache.directory.api.ldap.codec.controls.search.entryChange.EntryChangeFactory," +
+//                "org.apache.directory.api.ldap.codec.controls.search.pagedSearch.PagedResultsFactory," +
+//                "org.apache.directory.api.ldap.codec.controls.search.persistentSearch.PersistentSearchFactory," +
+//                "org.apache.directory.api.ldap.codec.controls.search.subentries.SubentriesFactory" );
 
         LdapNetworkConnection c = new LdapNetworkConnection( "localhost", 10389 );
         c.setTimeOut( Long.MAX_VALUE );
         c.bind( "uid=admin,ou=system", "secret" );
-        c.loadSchema( new JarLdifSchemaLoader() );
+        //c.loadSchema( new JarLdifSchemaLoader() );
 
         //        PersistentSearch ps = new PersistentSearchImpl();
         //        ps.setChangesOnly( false );
         //        ps.setReturnECs( true );
 
-        SearchRequest searchRequest = new SearchRequestImpl().setBase( new Dn(
-            "uid=kirana,ou=users,dc=signon,dc=mirth,dc=com" ) ).setFilter( "(objectclass=*)" ).setScope(
-            SearchScope.OBJECT );
-        searchRequest.addAttributes( SchemaConstants.ALL_ATTRIBUTES_ARRAY );
+        EntryCursor cursor = c.search( "", "(entryUUID=7ca31977-ba2d-4cdc-a86d-ba9fba06cd15)", SearchScope.SUBTREE, "*" );
+        System.out.println("searching");
 
-        SearchCursor cursor = c.search( searchRequest );
-
-        Entry entry = null;
         while ( cursor.next() )
         {
-            Response response = cursor.get();
-            SearchResultEntry se = ( SearchResultEntry ) response;
-            entry = se.getEntry();
+            Entry entry = cursor.get();
+            System.out.println( entry );
         }
 
         cursor.close();
-
-        System.out.println( entry );
-        LdapResourceProvider lr = new LdapResourceProvider( c );
-        User user = lr.toUser( new RequestContext( lr ), entry );
-        System.out.println( user );
-        System.out.println( ResourceSerializer.serialize( user ) );
         c.close();
     }
 }

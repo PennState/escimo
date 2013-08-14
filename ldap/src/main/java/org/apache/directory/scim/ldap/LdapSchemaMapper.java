@@ -158,7 +158,7 @@ public class LdapSchemaMapper implements SchemaMapper
             String groupBaseDn = elmGroup.attributeValue( "baseDn" );
             String groupFilter = elmGroup.attributeValue( "filter" );
 
-            groupSchema = new GroupSchema( baseDn, filter );
+            groupSchema = new GroupSchema( groupBaseDn, groupFilter );
             List<Element> lstGroupRef = elmGroup.elements( "schemaRef" );
             parseResourceSchema( lstGroupRef, lstSchema, groupSchema );
         }

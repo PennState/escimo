@@ -75,7 +75,7 @@ public class ActiveAttributeHandler implements AttributeHandler
             st = new SimpleAttribute( bt.getName(), Boolean.TRUE );
         }
         
-        ctx.getUser().addAttribute( bt.getUri(), st );
+        ctx.getCoreResource().addAttribute( bt.getUri(), st );
     }
 
     }

@@ -102,7 +102,7 @@ public class MembersAttributeHandler implements AttributeHandler
         if ( !lstAtGroup.isEmpty() )
         {
             MultiValAttribute mv = new MultiValAttribute( bt.getName(), lstAtGroup );
-            ctx.getUser().addAttribute( bt.getUri(), mv );
+            ctx.getCoreResource().addAttribute( bt.getUri(), mv );
         }
     }
 

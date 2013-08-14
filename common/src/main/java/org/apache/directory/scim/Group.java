@@ -20,56 +20,17 @@
 package org.apache.directory.scim;
 
 
-import javax.ws.rs.core.UriInfo;
-
-
 /**
- * TODO RequestContext.
+ * TODO Group.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class RequestContext
+public class Group extends CoreResource
 {
-    private ProviderService providerService;
-
-    private UriInfo uriInfo;
-
-    private CoreResource resource;
-
-
-    public RequestContext( ProviderService providerService )
+    @Override
+    public String toString()
     {
-        this.providerService = providerService;
+        return "Group [attributes=" + super.getAttributes() + "]";
     }
-
-
-    public CoreResource getCoreResource()
-    {
-        return resource;
-    }
-
-
-    public void setCoreResource( CoreResource resource )
-    {
-        this.resource = resource;
-    }
-
-
-    public UriInfo getUriInfo()
-    {
-        return uriInfo;
-    }
-
-
-    public void setUriInfo( UriInfo uriInfo )
-    {
-        this.uriInfo = uriInfo;
-    }
-
-
-    public ProviderService getProviderService()
-    {
-        return providerService;
-    }
-
+    
 }

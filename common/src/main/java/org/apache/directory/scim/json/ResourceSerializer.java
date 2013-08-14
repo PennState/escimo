@@ -25,6 +25,8 @@ import java.util.Map;
 
 import org.apache.directory.scim.AbstractAttribute;
 import org.apache.directory.scim.ComplexAttribute;
+import org.apache.directory.scim.CoreResource;
+import org.apache.directory.scim.Group;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
@@ -43,31 +45,44 @@ import com.google.gson.JsonPrimitive;
 public class ResourceSerializer
 {
     public static final String CORE_URI = "urn:scim:schemas:core:1.0";
-    
+
+
     public static String serialize( User user )
+    {
+        return _serialize( user );
+    }
+
+
+    public static String serialize( Group group )
+    {
+        return _serialize( group );
+    }
+
+
+    private static String _serialize( CoreResource resource )
     {
         JsonObject root = new JsonObject();
 
-        Map<String, List<AbstractAttribute>> attributes = user.getAttributes();
-        
+        Map<String, List<AbstractAttribute>> attributes = resource.getAttributes();
+
         JsonArray schemas = new JsonArray();
         root.add( "schemas", schemas );
-        
+
         for ( String uri : attributes.keySet() )
         {
             schemas.add( new JsonPrimitive( uri ) );
-            
+
             JsonObject parent = root;
-            
-            if( !uri.equals( CORE_URI ) )
+
+            if ( !uri.equals( CORE_URI ) )
             {
                 parent = new JsonObject();
                 root.add( uri, parent );
             }
-            
+
             serialize( parent, attributes.get( uri ) );
         }
-        
+
         return root.toString();
     }
 
@@ -91,31 +106,31 @@ public class ResourceSerializer
         {
             ComplexAttribute ct = ( ComplexAttribute ) at;
             JsonObject json = new JsonObject();
-            for( SimpleAttribute t : ct.getAtList() )
+            for ( SimpleAttribute t : ct.getAtList() )
             {
                 serializeSimpleAt( json, t );
             }
-            
+
             parent.add( ct.getName(), json );
         }
         else if ( at instanceof MultiValAttribute )
         {
             MultiValAttribute mv = ( MultiValAttribute ) at;
             List<SimpleAttributeGroup> lstGrp = mv.getAtGroupList();
-            
+
             JsonArray array = new JsonArray();
-            
-            for( SimpleAttributeGroup stg : lstGrp )
+
+            for ( SimpleAttributeGroup stg : lstGrp )
             {
                 JsonObject json = new JsonObject();
-                for( SimpleAttribute t : stg.getAtList() )
+                for ( SimpleAttribute t : stg.getAtList() )
                 {
                     serializeSimpleAt( json, t );
                 }
-                
+
                 array.add( json );
             }
-            
+
             parent.add( mv.getName(), array );
         }
     }

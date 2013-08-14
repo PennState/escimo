@@ -27,6 +27,7 @@ import org.apache.directory.api.ldap.model.entry.Attribute;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.entry.Value;
 import org.apache.directory.scim.AttributeHandler;
+import org.apache.directory.scim.CoreResource;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.SimpleAttribute;
@@ -62,7 +63,7 @@ public class PhotosAttributeHandler implements AttributeHandler
             return;
         }
 
-        User user = ctx.getUser();
+        CoreResource user = ctx.getCoreResource();
 
         Entry entry = ( Entry ) srcResource;
 
@@ -126,7 +127,7 @@ public class PhotosAttributeHandler implements AttributeHandler
     }
 
 
-    private SimpleAttribute getPhotoUrlValue( SimpleTypeGroup stg, Entry entry, String photoUrlBase, User user )
+    private SimpleAttribute getPhotoUrlValue( SimpleTypeGroup stg, Entry entry, String photoUrlBase, CoreResource user )
     {
         SimpleType valType = stg.getValueType();
         if ( valType != null )
