@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <entities>
     <!-- Core User resource schema -->
-    <schema id="user-core" uri="urn:scim:schemas:core:1.0">
+    <schema id="user-core" uri="urn:scim:schemas:core:2.0:User">
         <attribute name="id" mappedTo="entryUUID" />
         <attribute name="userName" mappedTo="uid" />
         <attribute name="displayName" mappedTo="displayName" />
@@ -89,7 +89,7 @@
     </schema>
 
     <!-- Enterprise User resource schema -->
-    <schema id="enterprise-user" uri="urn:scim:schemas:extension:enterprise:1.0">
+    <schema id="enterprise-user" uri="urn:scim:schemas:extension:enterprise:2.0:User">
         <attribute name="employeeNumber" mappedTo="" />
         <attribute name="costCenter" mappedTo="" />
         <attribute name="organization" mappedTo="" />
@@ -105,15 +105,19 @@
         </complex-attribute>
     </schema>
 
-    <schema id="group" uri="urn:scim:schemas:core:1.0">
+    <schema id="group" uri="urn:scim:schemas:core:2.0:Group">
         <attribute name="displayName" mappedTo="cn" />
         <attribute name="id" mappedTo="entryUUID" />
         <multival-attribute name="members" handlerRef="membersHandler"/>
+        <complex-attribute name="meta" handlerRef="metaHandler" />
     </schema>
 
     <userType baseDn="" filter="(objectClass = inetOrgPerson)">
         <schemaRef id="user-core" />
         <schemaRef id="enterprise-user" />
+        <objectClasses>
+         <objectClass>inetOrgPerson</objectClass>
+        </objectClasses>
     </userType>
 
     <groupType baseDn="" filter="(objectClass = inetOrgPerson)">

@@ -22,8 +22,6 @@ package org.apache.directory.scim.ldap.handlers;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.ws.rs.core.PathSegment;
-
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.entry.Attribute;
 import org.apache.directory.api.ldap.model.entry.Entry;
@@ -31,9 +29,9 @@ import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.ComplexAttribute;
 import org.apache.directory.scim.CoreResource;
+import org.apache.directory.scim.Group;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.SimpleAttribute;
-import org.apache.directory.scim.User;
 import org.apache.directory.scim.schema.BaseType;
 import org.apache.directory.scim.util.ResourceUtil;
 import org.slf4j.Logger;
@@ -86,17 +84,27 @@ public class MetaAttributeHandler implements AttributeHandler
                 atList.add( lastModified );
             }
 
-            CoreResource user = ctx.getCoreResource();
+            CoreResource resource = ctx.getCoreResource();
+            
+            String resourceType = "User";
+            
+            if( resource instanceof Group )
+            {
+                resourceType = "Group";
+            }
+            
+            SimpleAttribute resourceTypeAt = new SimpleAttribute( "resourceType", resourceType );
+            atList.add( resourceTypeAt );
             
             SimpleAttribute location = new SimpleAttribute( "location" );
             String locationVal = ctx.getUriInfo().getBaseUri().toString();
-            locationVal = locationVal + "Users/" + user.getId();
+            locationVal = locationVal + resourceType + "s/" + resource.getId();
             
             location.setValue( locationVal );
             atList.add( location );
             
             ComplexAttribute ct = new ComplexAttribute( bt.getName(), atList );
-            user.addAttribute( bt.getUri(), ct );
+            resource.addAttribute( bt.getUri(), ct );
         }
         catch( LdapException e )
         {

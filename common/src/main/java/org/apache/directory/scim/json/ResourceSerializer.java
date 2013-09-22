@@ -44,9 +44,10 @@ import com.google.gson.JsonPrimitive;
  */
 public class ResourceSerializer
 {
-    public static final String CORE_URI = "urn:scim:schemas:core:1.0";
-
-
+    public static final String CORE_USER_URI = "urn:scim:schemas:core:2.0:User";
+    public static final String CORE_GROUP_URI = "urn:scim:schemas:core:2.0:Group";
+    public static final String CORE_EXT_USER_URI = "urn:scim:schemas:extension:enterprise:2.0:User";
+    
     public static String serialize( User user )
     {
         return _serialize( user );
@@ -74,7 +75,7 @@ public class ResourceSerializer
 
             JsonObject parent = root;
 
-            if ( !uri.equals( CORE_URI ) )
+            if ( !uri.equals( CORE_USER_URI ) )
             {
                 parent = new JsonObject();
                 root.add( uri, parent );

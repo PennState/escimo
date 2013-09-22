@@ -51,14 +51,16 @@ public abstract class ResourceSchema
 
     private Map<String, AttributeHandler> atHandlers = new HashMap<String, AttributeHandler>();
 
+    private List<String> objectClasses = new ArrayList<String>();
+
 
     public ResourceSchema( String baseDn, String filter )
     {
-        if( Strings.isEmpty( baseDn ) )
+        if ( Strings.isEmpty( baseDn ) )
         {
             baseDn = ""; // RootDSE
         }
-        
+
         this.baseDn = baseDn;
         this.filter = filter;
     }
@@ -73,6 +75,19 @@ public abstract class ResourceSchema
     public BaseType getExtAttribute( String name )
     {
         return extendedTypes.get( name );
+    }
+
+
+    public BaseType getAttribute( String name )
+    {
+        BaseType bt = coreTypes.get( name );
+       
+        if ( bt == null )
+        {
+            bt = extendedTypes.get( name );
+        }
+
+        return bt;
     }
 
 
@@ -128,6 +143,21 @@ public abstract class ResourceSchema
     }
 
 
+    public void addObjectClass( String oc )
+    {
+        objectClasses.add( oc );
+    }
+
+
+    /**
+     * @return the objectClasses
+     */
+    public List<String> getObjectClasses()
+    {
+        return Collections.unmodifiableList( objectClasses );
+    }
+
+
     /**
      * @return the baseDn
      */
@@ -145,4 +175,9 @@ public abstract class ResourceSchema
         return filter;
     }
 
+
+    public List<String> getUris()
+    {
+        return new ArrayList<String>( uris );
+    }
 }

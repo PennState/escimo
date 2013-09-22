@@ -32,21 +32,21 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Properties;
 
-import org.apache.directory.api.ldap.codec.standalone.StandaloneLdapApiService;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.cursor.EntryCursor;
-import org.apache.directory.api.ldap.model.cursor.SearchCursor;
 import org.apache.directory.api.ldap.model.entry.Attribute;
+import org.apache.directory.api.ldap.model.entry.DefaultAttribute;
+import org.apache.directory.api.ldap.model.entry.DefaultEntry;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.entry.Value;
 import org.apache.directory.api.ldap.model.exception.LdapException;
-import org.apache.directory.api.ldap.model.message.Response;
 import org.apache.directory.api.ldap.model.message.SearchRequest;
 import org.apache.directory.api.ldap.model.message.SearchRequestImpl;
-import org.apache.directory.api.ldap.model.message.SearchResultEntry;
 import org.apache.directory.api.ldap.model.message.SearchScope;
-import org.apache.directory.api.ldap.model.name.Dn;
+import org.apache.directory.api.ldap.model.message.controls.ManageDsaITImpl;
+import org.apache.directory.api.ldap.model.schema.AttributeType;
 import org.apache.directory.api.ldap.model.schema.LdapSyntax;
+import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.api.ldap.model.schema.SyntaxChecker;
 import org.apache.directory.api.ldap.model.schema.syntaxCheckers.GeneralizedTimeSyntaxChecker;
 import org.apache.directory.api.ldap.model.schema.syntaxCheckers.IntegerSyntaxChecker;
@@ -72,7 +72,6 @@ import org.apache.directory.scim.ResourceNotFoundException;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
 import org.apache.directory.scim.User;
-import org.apache.directory.scim.json.ResourceSerializer;
 import org.apache.directory.scim.ldap.schema.ComplexType;
 import org.apache.directory.scim.ldap.schema.GroupSchema;
 import org.apache.directory.scim.ldap.schema.MultiValType;
@@ -85,6 +84,10 @@ import org.apache.directory.scim.schema.BaseType;
 import org.apache.directory.scim.util.ResourceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 
 /**
@@ -102,6 +105,8 @@ public class LdapResourceProvider implements ProviderService
 
     private GroupSchema groupSchema;
 
+    private SchemaManager ldapSchema;
+    
     private static final Logger LOG = LoggerFactory.getLogger( LdapResourceProvider.class );
 
 
@@ -133,6 +138,7 @@ public class LdapResourceProvider implements ProviderService
         schemaMapper.loadMappings();
         userSchema = schemaMapper.getUserSchema();
         groupSchema = schemaMapper.getGroupSchema();
+        ldapSchema = connection.getSchemaManager();
     }
 
 
@@ -255,7 +261,112 @@ public class LdapResourceProvider implements ProviderService
 
     }
 
+    
+    public void addUser( String json )
+    {
+        JsonParser parser = new JsonParser();
+        JsonObject obj = ( JsonObject ) parser.parse( json );
+        
+        List<String> uris = userSchema.getUris();
+        for( String u : uris )
+        {
+            JsonObject userAtObj = ( JsonObject ) obj.get( u );
+        }
+    }
 
+    private void addAttributes( Entry entry, JsonObject obj )
+    {
+        for( java.util.Map.Entry<String, JsonElement> e : obj.entrySet() )
+        {
+            String name = e.getKey();
+            
+            BaseType bt = userSchema.getAttribute( name );
+            
+            if( bt == null )
+            {
+                throw new IllegalArgumentException( "Unknown attribute name "  + name + " is present in the JSON payload" );
+            }
+            
+            String value = e.getValue().getAsString();
+        }
+    }
+    
+    
+    private void processAttributeData( BaseType bt, JsonElement el, Entry entry ) throws LdapException
+    {
+        if( bt instanceof SimpleType )
+        {
+            SimpleType st = ( SimpleType ) bt;
+            String ldapAtName = st.getMappedTo();
+            if( Strings.isEmpty( ldapAtName ) )
+            {
+                throw new IllegalArgumentException( "Attribute " + bt.getName() + " is not mapped to any LDAP attribute in the config" );
+            }
+            
+            AttributeType ldapType = ldapSchema.getAttributeType( ldapAtName );
+            
+            Attribute ldapAt = entry.get( ldapType );
+            if( ldapAt == null )
+            {
+                ldapAt = new DefaultAttribute( ldapAtName );
+            }
+            
+            if( !ldapType.getSyntax().isHumanReadable() )
+            {
+                byte[] value = Base64.decode( el.getAsString().toCharArray() );
+                ldapAt.add( value );
+            }
+            else
+            {
+                ldapAt.add( el.getAsString() );
+            }
+        }
+    }
+    
+    public void addUser( User user, RequestContext ctx )
+    {
+        try
+        {
+            Entry entry = new DefaultEntry();
+            
+            for( String oc : userSchema.getObjectClasses() )
+            {
+                entry.add( SchemaConstants.OBJECT_CLASS, oc );
+            }
+            
+            String dn = null;
+            
+            SimpleAttribute at = ( SimpleAttribute ) user.get( "userDn" );
+            if( at != null )
+            {
+                dn = String.valueOf( at.getValue() );
+                if( Strings.isEmpty( dn ) )
+                {
+                    dn = null;
+                }
+            }
+            
+            if( dn == null )
+            {
+                SimpleType st = ( SimpleType ) userSchema.getCoreAttribute( "userName" );
+                String userIdName = st.getMappedTo();
+
+                dn = userIdName + "=" + String.valueOf( user.getVal( "userName" ) ) + "," + userSchema.getBaseDn();
+            }
+            
+            if( dn != null )
+            {
+                entry.setDn( dn );
+            }
+            
+            
+        }
+        catch( LdapException e )
+        {
+            e.printStackTrace();
+        }
+    }
+    
     public User toUser( RequestContext ctx, Entry entry ) throws Exception
     {
         User user = new User();
@@ -641,14 +752,16 @@ public class LdapResourceProvider implements ProviderService
 
         LdapNetworkConnection c = new LdapNetworkConnection( "localhost", 10389 );
         c.setTimeOut( Long.MAX_VALUE );
-        c.bind( "uid=admin,ou=system", "secret" );
+        c.bind( "cn=mta,dc=example,dc=com", "secret" );
+        c.loadSchema();
         //c.loadSchema( new JarLdifSchemaLoader() );
 
-        //        PersistentSearch ps = new PersistentSearchImpl();
-        //        ps.setChangesOnly( false );
-        //        ps.setReturnECs( true );
+        ManageDsaITImpl managedsa = new ManageDsaITImpl();
+        SearchRequest req = new SearchRequestImpl();
+        req.addControl( managedsa );
 
-        EntryCursor cursor = c.search( "", "(entryUUID=7ca31977-ba2d-4cdc-a86d-ba9fba06cd15)", SearchScope.SUBTREE, "*" );
+        //EntryCursor cursor = c.search( "", "(entryUUID=7ca31977-ba2d-4cdc-a86d-ba9fba06cd15)", SearchScope.SUBTREE, "*" );
+        EntryCursor cursor = c.search( "dc=example,dc=com", "(objectClass=*)", SearchScope.SUBTREE, "*" );
         System.out.println("searching");
 
         while ( cursor.next() )

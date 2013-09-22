@@ -62,4 +62,33 @@ public abstract class CoreResource
     {
         return id;
     }
+    
+    public AbstractAttribute get( String name )
+    {
+        for( List<AbstractAttribute> atList : uriAtMap.values() )
+        {
+            for( AbstractAttribute at : atList )
+            {
+                if( at.getName().equals( name ) )
+                {
+                    return at;
+                }
+            }
+        }
+        
+        return null;
+    }
+    
+    
+    public Object getVal( String name )
+    {
+        AbstractAttribute at = get( name );
+
+        if( at instanceof SimpleAttribute )
+        {
+            return ( ( SimpleAttribute ) at ).getValue();
+        }
+        
+        return null;
+    }
 }

@@ -151,8 +151,7 @@ public class LdapSchemaMapper implements SchemaMapper
 
             List<Element> lstSchema = root.elements( "schema" );
             
-            List<Element> lstRef = elmUser.elements( "schemaRef" );
-            parseResourceSchema( lstRef, lstSchema, userSchema );
+            parseResourceSchema( elmUser, lstSchema, userSchema );
 
             Element elmGroup = root.element( "groupType" );
             String groupBaseDn = elmGroup.attributeValue( "baseDn" );
@@ -160,7 +159,7 @@ public class LdapSchemaMapper implements SchemaMapper
 
             groupSchema = new GroupSchema( groupBaseDn, groupFilter );
             List<Element> lstGroupRef = elmGroup.elements( "schemaRef" );
-            parseResourceSchema( lstGroupRef, lstSchema, groupSchema );
+            parseResourceSchema( elmGroup, lstSchema, groupSchema );
         }
         catch ( Exception e )
         {
@@ -184,8 +183,17 @@ public class LdapSchemaMapper implements SchemaMapper
     }
 
 
-    private void parseResourceSchema( List<Element> lstRef, List<Element> lstSchema, ResourceSchema resourceSchema )
+    private void parseResourceSchema( Element elmResourceSchema, List<Element> lstSchema, ResourceSchema resourceSchema )
     {
+        Element elmObjectClass = elmResourceSchema.element( "objectClasses" );
+        List<Element> elmOcs = elmObjectClass.elements( "objectClass" );
+        for( Element el : elmOcs )
+        {
+            resourceSchema.addObjectClass( el.getText() );
+        }
+        
+        List<Element> lstRef = elmResourceSchema.elements( "schemaRef" );
+        
         for ( Element ref : lstRef )
         {
             String refId = ref.attributeValue( "id" );
