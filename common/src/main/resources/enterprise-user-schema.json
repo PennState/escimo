@@ -1,0 +1,88 @@
+{
+     "id": "urn:scim:schemas:extension:enterprise:2.0:User",
+     "name": "EnterpriseUser",
+     "description": "Enterprise User",
+     "attributes":[
+       {
+         "name":"employeeNumber",
+         "type":"string",
+         "multiValued":false,
+         "description":"Numeric or alphanumeric identifier assigned to a person, typically based on order of hire or association with an organization.",
+         "readOnly":false,
+         "required":false,
+         "caseExact":false
+       },
+       {
+         "name":"costCenter",
+         "type":"string",
+         "multiValued":false,
+         "description":"Identifies the name of a cost center.",
+         "readOnly":false,
+         "required":false,
+         "caseExact":false
+       },
+       {
+         "name":"organization",
+         "type":"string",
+         "multiValued":false,
+         "description":"Identifies the name of an organization.",
+         "readOnly":false,
+         "required":false,
+         "caseExact":false
+       },
+       {
+         "name":"division",
+         "type":"string",
+         "multiValued":false,
+         "description":"Identifies the name of a division.",
+         "readOnly":false,
+         "required":false,
+         "caseExact":false
+       },
+       {
+         "name":"department",
+         "type":"string",
+         "multiValued":false,
+         "description":"Identifies the name of a department.",
+         "readOnly":false,
+         "required":false,
+         "caseExact":false
+       },
+       {
+         "name":"manager",
+         "type":"complex",
+         "multiValued":false,
+         "description":"The User's manager. A complex type that optionally allows Service Providers to represent organizational hierarchy by referencing the \"id\" attribute of another User.",
+         "readOnly":false,
+         "required":false,
+         "caseExact":false,
+         "subAttributes":[
+           {
+             "name":"managerId",
+             "type":"string",
+             "multiValued":false,
+             "description":"The id of the SCIM resource representing the User's  manager.  REQUIRED." ,
+             "readOnly":false,
+             "required":false,
+             "caseExact":false
+           },
+           {
+             "name":"$ref",
+             "type":"string",
+             "multiValued":false,
+             "description":"The URI of the SCIM resource representing the User's manager.  REQUIRED." ,
+             "readOnly":false,
+             "required":false,
+             "caseExact":false
+           },
+           {
+             "name":"displayName",
+             "type":"string",
+             "multiValued":false,
+             "description":"The displayName of the User's manager.  OPTIONAL and READ-ONLY." ,
+             "readOnly":true,
+             "required":false,
+             "caseExact":false
+           }]
+        }]
+}
