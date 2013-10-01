@@ -37,6 +37,8 @@
     <module>client</module>
     <module>ldap</module>
     <module>tests</module>
+    <module>json2java</module>
+    <module>schema</module>
   </modules>
   
  <dependencyManagement>
@@ -45,6 +47,11 @@
     <groupId>org.apache.wink</groupId>
     <artifactId>wink-client</artifactId>
     <version>${wink.version}</version>
+   </dependency>
+   <dependency>
+     <groupId>com.google.code.gson</groupId>
+     <artifactId>gson</artifactId>
+     <version>2.2.4</version>
    </dependency>
   </dependencies>
  </dependencyManagement>

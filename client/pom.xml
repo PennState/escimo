@@ -29,6 +29,12 @@
   <dependencies>
 
    <dependency>
+     <groupId>${project.groupId}</groupId>
+     <artifactId>escimo-schema</artifactId>
+     <version>${project.version}</version>
+   </dependency>   
+
+   <dependency>
      <groupId>org.apache.wink</groupId>
      <artifactId>wink-client</artifactId>
      <version>${wink.version}</version>
@@ -39,12 +45,31 @@
      <artifactId>escimo-common</artifactId>
      <version>${project.version}</version>
    </dependency>   
-
-   <dependency>
-     <groupId>org.antlr</groupId>
-     <artifactId>stringtemplate</artifactId>
-     <version>3.2.1</version>
-   </dependency>
       
   </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.directory.scim</groupId>
+                <artifactId>escimo-json2java</artifactId>
+                <version>${project.version}</version>
+                <executions>
+                    <execution>
+                        <goals>
+                            <goal>generate</goal>
+                        </goals>
+                    </execution>
+                </executions>
+                <configuration>
+                    <generatePackage>escimo</generatePackage>
+                    <useDefaultSchemas>true</useDefaultSchemas>
+<!--                     <schemaFiles>
+                        <param>**/*.java</param>
+                    </schemaFiles>
+ -->                </configuration>
+            </plugin>
+        </plugins>
+    </build>
+  
 </project>

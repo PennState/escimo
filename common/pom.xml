@@ -29,6 +29,12 @@
     <name>eSCIMo common API</name>
 
    <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>escimo-schema</artifactId>
+      <version>${project.version}</version>
+    </dependency>   
+
    <!-- for the lack of any API spec jar for jax-rs 2.0 including Wink server in common -->
     <dependency>
       <groupId>org.apache.wink</groupId>
@@ -38,7 +44,6 @@
     <dependency>
       <groupId>com.google.code.gson</groupId>
       <artifactId>gson</artifactId>
-      <version>2.2.4</version>
     </dependency>
    </dependencies>
 
