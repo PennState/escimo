@@ -19,24 +19,24 @@ $!/*
  */!$
 $if(package)$
 package $package$;
+
+import org.apache.directory.scim.schema.*;
 $endif$
 
-$visibility$ $static$ class $className$
+$visibility$ $static$ class $className$ $if(package)$extends CoreResource$endif$
 {
 
-    $if(schemaId)$
-    public static final String schemaId = "$schemaId$";
-    $endif$
-    
-    $if(resourceDesc)$
-    public static final String resourceDesc = "$resourceDesc$";
-    $endif$
-    
     $allAttrs: { attr | private $attr.javaType$ $attr.name$;}; separator="\n\n"$
     
     public $className$()
     {
-    
+	    $if(schemaId)$
+	     super.setSchemaId( "$schemaId$" );
+	    $endif$
+	    
+	    $if(resourceDesc)$
+	     super.setResourceDesc( "$resourceDesc$" );
+	    $endif$
     }
    
    $allAttrs: { attr | 

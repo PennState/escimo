@@ -33,6 +33,7 @@ import java.util.List;
 
 import org.antlr.stringtemplate.StringTemplate;
 import org.antlr.stringtemplate.StringTemplateGroup;
+import org.apache.directory.scim.schema.SchemaUtil;
 import org.apache.maven.plugin.AbstractMojo;
 import org.apache.maven.plugin.MojoExecutionException;
 import org.apache.maven.plugin.MojoFailureException;
@@ -111,7 +112,7 @@ public class JsonToJava extends AbstractMojo
         if ( useDefaultSchemas )
         {
             log.info( "Generating sources for the default schemas" );
-            lst = getDefaultSchemas();
+            lst = SchemaUtil.getDefaultSchemas();
 
             if ( lst.isEmpty() )
             {
@@ -163,23 +164,6 @@ public class JsonToJava extends AbstractMojo
                 }
             }
         }
-    }
-
-
-    private List<URL> getDefaultSchemas()
-    {
-        String[] stockNames =
-            { "user-schema.json", "group-schema.json", "enterprise-user-schema.json" };
-        List<URL> lst = new ArrayList<URL>();
-
-        ClassLoader cl = Thread.currentThread().getContextClassLoader();
-        for ( String s : stockNames )
-        {
-            URL u = cl.getResource( s );
-            lst.add( u );
-        }
-
-        return lst;
     }
 
 
@@ -244,15 +228,24 @@ public class JsonToJava extends AbstractMojo
             template.setAttribute( "resourceDesc", desc );
         }
 
+        List<AttributeDetail> simpleAttributes = new ArrayList<AttributeDetail>();
+
         if ( parent != null )
         {
             template.setAttribute( "static", "static" );
+            
+            boolean multiValued = json.get( "multiValued" ).getAsBoolean();
+            if ( multiValued )
+            {
+                AttributeDetail operation = new AttributeDetail( "operation", "String" );
+                
+                simpleAttributes.add( operation );
+            }
         }
 
         String className = json.get( "name" ).getAsString();
         template.setAttribute( "className", className );
 
-        List<AttributeDetail> simpleAttributes = new ArrayList<AttributeDetail>();
 
         JsonArray attributes;
 
@@ -296,7 +289,7 @@ public class JsonToJava extends AbstractMojo
                     // special case for Address'es'
                     if ( javaType.endsWith( "Addresses" ) )
                     {
-                        endPos += 1;
+                        endPos -= 1;
                     }
 
                     javaType = javaType.substring( 0, endPos );
