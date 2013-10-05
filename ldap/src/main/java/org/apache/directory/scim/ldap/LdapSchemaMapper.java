@@ -42,7 +42,6 @@ import org.apache.directory.scim.ldap.schema.MultiValType;
 import org.apache.directory.scim.ldap.schema.ResourceSchema;
 import org.apache.directory.scim.ldap.schema.SimpleType;
 import org.apache.directory.scim.ldap.schema.SimpleTypeGroup;
-import org.apache.directory.scim.ldap.schema.TypedType;
 import org.apache.directory.scim.ldap.schema.UserSchema;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
@@ -300,40 +299,6 @@ public class LdapSchemaMapper implements SchemaMapper
                     ct = new MultiValType( uri, name, showMultiVal, stg, baseDn, filter );
                 }
 
-            }
-            else
-            {
-                List<Element> lstElmTypes = elmMultiVal.elements( "type" );
-
-                List<TypedType> lstTypes = new ArrayList<TypedType>();
-
-                for ( Element elmType : lstElmTypes )
-                {
-                    Element elmTypeAtGroup = elmType.element( "at-group" );
-                    SimpleTypeGroup stg = parseAtGroup( elmTypeAtGroup, uri );
-
-                    boolean show = getShowVal( elmType );
-
-                    String primary = elmType.attributeValue( "primary" );
-
-                    if ( Strings.isEmpty( primary ) )
-                    {
-                        primary = "false";
-                    }
-
-                    String typeName = elmType.attributeValue( "name" );
-
-                    if ( Strings.isEmpty( typeName ) )
-                    {
-                        throw new IllegalArgumentException( "name is missing in the type element " + elmType.asXML() );
-                    }
-
-                    TypedType tt = new TypedType( uri, typeName, show, stg, 
-                        Boolean.parseBoolean( primary ) );
-                    lstTypes.add( tt );
-                }
-
-                ct = new MultiValType( uri, name, showMultiVal, lstTypes, baseDn, filter );
             }
             
             String handlerRef = elmMultiVal.attributeValue( "handlerRef" );
