@@ -19,8 +19,17 @@
  */
 package org.apache.directory.scim.rest;
 
+import java.net.URL;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.lang.StringUtils;
 import org.apache.directory.scim.ProviderService;
+import org.apache.directory.scim.schema.SchemaUtil;
+
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
 
 /**
  * TODO ServerInitializer.
@@ -30,6 +39,8 @@ import org.apache.directory.scim.ProviderService;
 public class ServerInitializer
 {
     private static ProviderService provider;
+    
+    private static Map<String,String> schemas = new HashMap<String, String>();
     
     private static void init()
     {
@@ -50,6 +61,30 @@ public class ServerInitializer
             re.initCause( e );
             throw re;
         }
+        
+        try
+        {
+            JsonParser parser = new JsonParser();
+            
+            List<URL> urls = SchemaUtil.getDefaultSchemas();
+            for( URL u : urls )
+            {
+                String json = SchemaUtil.getSchemaJson( u );
+                JsonObject obj = ( JsonObject ) parser.parse( json );
+                String uri = obj.get( "id" ).getAsString();
+                
+                schemas.put( uri, json );
+            }
+            
+            // TODO load custom schemas
+        }
+        catch( Exception e )
+        {
+            RuntimeException re = new RuntimeException( "Failed to load the default schemas" );
+            re.initCause( e );
+            throw re;
+        }
+        
     }
     
     public static ProviderService getProvider()
@@ -60,5 +95,11 @@ public class ServerInitializer
         }
         
         return provider;
+    }
+    
+    
+    public static String getSchema( String uri )
+    {
+        return schemas.get( uri );
     }
 }
