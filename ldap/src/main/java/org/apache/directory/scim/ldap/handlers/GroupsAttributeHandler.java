@@ -63,7 +63,7 @@ public class GroupsAttributeHandler implements AttributeHandler
 
 
     @Override
-    public void handle( BaseType bt, Object srcResource, RequestContext ctx )
+    public void read( BaseType bt, Object srcResource, RequestContext ctx )
     {
         if ( !bt.getName().equals( "groups" ) )
         {

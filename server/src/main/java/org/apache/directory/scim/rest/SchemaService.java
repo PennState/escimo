@@ -27,13 +27,10 @@ import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
-import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
-import org.apache.directory.scim.RequestContext;
-import org.apache.directory.scim.ResourceNotFoundException;
-import org.apache.directory.scim.User;
-import org.apache.directory.scim.json.ResourceSerializer;
+import org.apache.directory.scim.ProviderService;
+import org.apache.directory.scim.schema.JsonSchema;
 
 /**
  * TODO SchemaService.
@@ -44,6 +41,9 @@ import org.apache.directory.scim.json.ResourceSerializer;
 public class SchemaService
 {
 
+    private ProviderService provider = ServerInitializer.getProvider();
+
+    
     @GET
     @Produces({MediaType.APPLICATION_JSON})
     @Path("{uri}")
@@ -51,11 +51,11 @@ public class SchemaService
     {
         ResponseBuilder rb = null;
         
-        String json = ServerInitializer.getSchema( schemaUri );
+        JsonSchema jsonSchema = provider.getSchema( schemaUri );
         
-        if( json != null )
+        if( jsonSchema != null )
         {
-            rb = Response.ok( json, MediaType.APPLICATION_JSON );
+            rb = Response.ok( jsonSchema.getRawJson(), MediaType.APPLICATION_JSON );
         }
         else
         {

@@ -26,10 +26,13 @@ import static org.apache.directory.api.ldap.model.message.SearchScope.SUBTREE;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
@@ -81,6 +84,8 @@ import org.apache.directory.scim.ldap.schema.SimpleTypeGroup;
 import org.apache.directory.scim.ldap.schema.TypedType;
 import org.apache.directory.scim.ldap.schema.UserSchema;
 import org.apache.directory.scim.schema.BaseType;
+import org.apache.directory.scim.schema.JsonSchema;
+import org.apache.directory.scim.schema.SchemaUtil;
 import org.apache.directory.scim.util.ResourceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -107,6 +112,8 @@ public class LdapResourceProvider implements ProviderService
 
     private SchemaManager ldapSchema;
     
+    private Map<String,JsonSchema> schemas = new HashMap<String, JsonSchema>();
+
     private static final Logger LOG = LoggerFactory.getLogger( LdapResourceProvider.class );
 
 
@@ -124,6 +131,27 @@ public class LdapResourceProvider implements ProviderService
     public void init() throws Exception
     {
         LOG.info( "Initializing LDAP resource provider" );
+        
+        try
+        {
+            JsonParser parser = new JsonParser();
+            
+            List<URL> urls = SchemaUtil.getDefaultSchemas();
+            for( URL u : urls )
+            {
+                JsonSchema json = SchemaUtil.getSchemaJson( u );
+                schemas.put( json.getId(), json );
+            }
+            
+            // TODO load custom schemas
+        }
+        catch( Exception e )
+        {
+            RuntimeException re = new RuntimeException( "Failed to load the default schemas" );
+            re.initCause( e );
+            throw re;
+        }
+        
         if ( connection == null )
         {
             createConnection();
@@ -134,7 +162,8 @@ public class LdapResourceProvider implements ProviderService
             ( ( LdapNetworkConnection ) connection ).loadSchema( new JarLdifSchemaLoader() );
         }
 
-        schemaMapper = new LdapSchemaMapper();
+        Map<String,JsonSchema> jsonSchemaCopy = new HashMap<String, JsonSchema>( schemas );
+        schemaMapper = new LdapSchemaMapper( jsonSchemaCopy );
         schemaMapper.loadMappings();
         userSchema = schemaMapper.getUserSchema();
         groupSchema = schemaMapper.getGroupSchema();
@@ -292,8 +321,13 @@ public class LdapResourceProvider implements ProviderService
     }
     
     
-    private void processAttributeData( BaseType bt, JsonElement el, Entry entry ) throws LdapException
+    private void scimToLdapAttribute( BaseType bt, JsonElement el, Entry entry ) throws LdapException
     {
+        if( bt.isReadOnly() )
+        {
+            return;
+        }
+        
         if( bt instanceof SimpleType )
         {
             SimpleType st = ( SimpleType ) bt;
@@ -448,7 +482,7 @@ public class LdapResourceProvider implements ProviderService
                 if ( atHandler != null )
                 {
                     AttributeHandler handler = userSchema.getHandler( atHandler );
-                    handler.handle( ct, entry, ctx );
+                    handler.read( ct, entry, ctx );
                     continue;
                 }
 
@@ -474,7 +508,7 @@ public class LdapResourceProvider implements ProviderService
                 if ( atHandler != null )
                 {
                     AttributeHandler handler = userSchema.getHandler( atHandler );
-                    handler.handle( bt, entry, ctx );
+                    handler.read( bt, entry, ctx );
                     continue;
                 }
 
@@ -586,7 +620,7 @@ public class LdapResourceProvider implements ProviderService
         if ( atHandler != null )
         {
             AttributeHandler handler = userSchema.getHandler( atHandler );
-            handler.handle( st, entry, ctx );
+            handler.read( st, entry, ctx );
             return null;
         }
         else
@@ -739,6 +773,11 @@ public class LdapResourceProvider implements ProviderService
         return entry;
     }
 
+    
+    public JsonSchema getSchema( String uri )
+    {
+        return schemas.get( uri );
+    }
 
     public static void main( String[] args ) throws Exception
     {

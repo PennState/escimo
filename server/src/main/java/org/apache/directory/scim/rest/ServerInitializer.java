@@ -40,8 +40,6 @@ public class ServerInitializer
 {
     private static ProviderService provider;
     
-    private static Map<String,String> schemas = new HashMap<String, String>();
-    
     private static void init()
     {
         String fqcn = System.getProperty( "escimo.resource.provider", "org.apache.directory.scim.ldap.LdapResourceProvider" );
@@ -62,29 +60,6 @@ public class ServerInitializer
             throw re;
         }
         
-        try
-        {
-            JsonParser parser = new JsonParser();
-            
-            List<URL> urls = SchemaUtil.getDefaultSchemas();
-            for( URL u : urls )
-            {
-                String json = SchemaUtil.getSchemaJson( u );
-                JsonObject obj = ( JsonObject ) parser.parse( json );
-                String uri = obj.get( "id" ).getAsString();
-                
-                schemas.put( uri, json );
-            }
-            
-            // TODO load custom schemas
-        }
-        catch( Exception e )
-        {
-            RuntimeException re = new RuntimeException( "Failed to load the default schemas" );
-            re.initCause( e );
-            throw re;
-        }
-        
     }
     
     public static ProviderService getProvider()
@@ -95,11 +70,5 @@ public class ServerInitializer
         }
         
         return provider;
-    }
-    
-    
-    public static String getSchema( String uri )
-    {
-        return schemas.get( uri );
     }
 }

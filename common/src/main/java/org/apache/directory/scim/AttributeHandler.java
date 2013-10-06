@@ -30,5 +30,5 @@ import org.apache.directory.scim.schema.BaseType;
  */
 public interface AttributeHandler
 {
-    void handle( BaseType bt, Object srcResource, RequestContext ctx );
+    void read( BaseType bt, Object srcResource, RequestContext ctx );
 }

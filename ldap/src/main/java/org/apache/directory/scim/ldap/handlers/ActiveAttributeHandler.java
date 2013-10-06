@@ -41,7 +41,7 @@ public class ActiveAttributeHandler implements AttributeHandler
     private static final Logger LOG = LoggerFactory.getLogger( ActiveAttributeHandler.class );
     
     @Override
-    public void handle( BaseType bt, Object srcResource, RequestContext ctx )
+    public void read( BaseType bt, Object srcResource, RequestContext ctx )
     {
         if( !bt.getName().equals( "active" ) )
         {

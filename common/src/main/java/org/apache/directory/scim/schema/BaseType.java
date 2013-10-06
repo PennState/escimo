@@ -38,6 +38,8 @@ public abstract class BaseType
 
     private String atHandlerName;
     
+    private boolean readOnly = false;
+    
     public BaseType( String uri, String name, boolean show )
     {
         this.uri = uri;
@@ -112,6 +114,24 @@ public abstract class BaseType
     public boolean isDynamic()
     {
         return false;
+    }
+
+
+    /**
+     * @return the readOnly
+     */
+    public boolean isReadOnly()
+    {
+        return readOnly;
+    }
+
+
+    /**
+     * @param readOnly the readOnly to set
+     */
+    public void setReadOnly( boolean readOnly )
+    {
+        this.readOnly = readOnly;
     }
 
 }

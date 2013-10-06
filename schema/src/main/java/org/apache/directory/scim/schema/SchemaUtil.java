@@ -52,7 +52,7 @@ public class SchemaUtil
     }
 
 
-    public static String getSchemaJson( URL url ) throws IOException
+    public static JsonSchema getSchemaJson( URL url ) throws IOException
     {
         BufferedReader br = null;
         try
@@ -67,7 +67,7 @@ public class SchemaUtil
                 sb.append( s );
             }
 
-            return sb.toString();
+            return JsonSchema.parse( sb.toString() );
         }
         finally
         {
