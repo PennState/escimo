@@ -80,7 +80,7 @@ public class JsonToJava extends AbstractMojo
     {
         Log log = getLog();
 
-        getLog().warn( "===============" + JsonToJava.class.getName() );
+        log.info( "Starting json2java" );
 
         if ( useDefaultSchemas && ( ( schemaBaseUrl != null ) || ( schemaFiles != null ) ) )
         {
@@ -179,8 +179,6 @@ public class JsonToJava extends AbstractMojo
         StringTemplate template = generateClass( json, innerClasses, null );
         template.setAttribute( "allInnerClasses", innerClasses );
 
-        System.out.println( template );
-        
         File javaFile = new File( srcDir, className + ".java" );
         
         FileWriter fw = null;
