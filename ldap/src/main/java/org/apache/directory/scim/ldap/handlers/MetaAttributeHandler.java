@@ -28,8 +28,8 @@ import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.ComplexAttribute;
-import org.apache.directory.scim.CoreResource;
-import org.apache.directory.scim.Group;
+import org.apache.directory.scim.Resource;
+import org.apache.directory.scim.GroupResource;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.schema.BaseType;
@@ -42,7 +42,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class MetaAttributeHandler implements AttributeHandler
+public class MetaAttributeHandler extends AttributeHandler
 {
 
     private static final Logger LOG = LoggerFactory.getLogger( ActiveAttributeHandler.class );
@@ -84,11 +84,11 @@ public class MetaAttributeHandler implements AttributeHandler
                 atList.add( lastModified );
             }
 
-            CoreResource resource = ctx.getCoreResource();
+            Resource resource = ctx.getCoreResource();
             
             String resourceType = "User";
             
-            if( resource instanceof Group )
+            if( resource instanceof GroupResource )
             {
                 resourceType = "Group";
             }

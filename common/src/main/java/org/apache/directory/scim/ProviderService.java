@@ -32,11 +32,13 @@ public interface ProviderService
     
     void stop();
     
-    User getUser( RequestContext ctx, String userId ) throws ResourceNotFoundException;
+    UserResource getUser( RequestContext ctx, String userId ) throws ResourceNotFoundException;
     
     InputStream getUserPhoto( String id, String atName ) throws MissingParameterException;
     
-    Group getGroup( RequestContext ctx, String groupId ) throws ResourceNotFoundException;
+    GroupResource getGroup( RequestContext ctx, String groupId ) throws ResourceNotFoundException;
     
     JsonSchema getSchema( String uriId );
+    
+    UserResource addUser( String jsonData, RequestContext ctx ) throws Exception;
 }

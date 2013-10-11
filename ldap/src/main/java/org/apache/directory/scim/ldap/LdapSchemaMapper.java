@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.directory.api.ldap.model.exception.LdapException;
+import org.apache.directory.api.ldap.model.schema.AttributeType;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.api.util.Strings;
 import org.apache.directory.ldap.client.api.LdapConnection;
@@ -50,9 +51,6 @@ import org.dom4j.Element;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
-
 
 /**
  * TODO LdapSchemaMapper.
@@ -71,25 +69,10 @@ public class LdapSchemaMapper implements SchemaMapper
 
     private Map<String,JsonSchema> jsonSchemas;
     
-    public LdapSchemaMapper( Map<String,JsonSchema> jsonSchemas )
+    public LdapSchemaMapper( Map<String,JsonSchema> jsonSchemas, SchemaManager ldapSchema )
     {
         this.jsonSchemas = jsonSchemas;
-    }
-
-
-    public LdapSchemaMapper( LdapConnection connection )
-    {
-        try
-        {
-            connection.loadSchema();
-        }
-        catch ( LdapException e )
-        {
-            LOG.debug( "Failed to load schema from the server", e );
-            LOG.info( "Could not load schema from the LDAP server, disabling schema checks" );
-        }
-
-        ldapSchema = connection.getSchemaManager();
+        this.ldapSchema = ldapSchema;
     }
 
 
@@ -108,6 +91,21 @@ public class LdapSchemaMapper implements SchemaMapper
     }
 
 
+    /**
+     * @return the ldapSchema
+     */
+    public SchemaManager getLdapSchema()
+    {
+        return ldapSchema;
+    }
+
+    
+    public AttributeType getLdapAttributeType( String name )
+    {
+        return ldapSchema.getAttributeType( name );
+    }
+
+    
     public void loadMappings()
     {
         InputStream in = this.getClass().getClassLoader().getResourceAsStream( "escimo-ldap-mapping.xml" );

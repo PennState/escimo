@@ -24,7 +24,7 @@ package org.apache.directory.scim;
  */
 public class ScimUtil
 {
-    /*public static User toUser( Entry entry )
+    /*public static UserResource toUser( Entry entry )
     {
         
     }*/

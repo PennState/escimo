@@ -3,6 +3,10 @@ package org.apache.directory.scim;
 
 import java.io.File;
 import java.io.FilenameFilter;
+import java.io.InputStream;
+import java.util.Enumeration;
+import java.util.jar.JarEntry;
+import java.util.jar.JarFile;
 
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.webapp.WebAppContext;
@@ -27,6 +31,9 @@ public class JettyServer
         webapp.setWar( getEscimoWar().getAbsolutePath() );
         webapp.setParentLoaderPriority( true );
         String cpath = System.getProperty("java.class.path");
+        
+        checkForJdk6Compliance( cpath );
+        
         cpath = cpath.replaceAll( ":", ";" );
 //        webapp.setExtraClasspath( cpath );
 
@@ -59,8 +66,6 @@ public class JettyServer
 
         FilenameFilter ff = new FilenameFilter()
         {
-
-            @Override
             public boolean accept( File dir, String name )
             {
                 return ( name.startsWith( "escimo" ) && name.endsWith( ".war" ) );
@@ -104,9 +109,97 @@ public class JettyServer
         return warFile;
     }
 
+    private static void checkForJdk6Compliance( String classpath ) throws Exception
+    {
+        String[] files = classpath.split( ":" );
+        StringBuilder offendingJars = new StringBuilder();
+        
+        for( String item : files )
+        {
+            //System.out.println("Processing " + item);
+            boolean valid = false;
+            if( item.endsWith( ".jar" ) )
+            {
+                valid = isValidJar( item );
+                if( !valid )
+                {
+                    offendingJars.append( item )
+                    .append( "\n" );
+                }
+            }
+            else if( item.endsWith( ".war" ) )
+            {
+                
+            }
+        }
+        
+        if( offendingJars.length() > 0 )
+        {
+            System.out.println("Offending jars:\n" + offendingJars);
+            System.exit( 0 );
+        }
+    }
 
+    private static boolean isValidJar( String jarFilePath ) throws Exception
+    {
+        byte[] majorVersion = new byte[8];
+        
+        JarFile jar = new JarFile( jarFilePath );
+        Enumeration<JarEntry> en = jar.entries();
+        while( en.hasMoreElements() )
+        {
+            JarEntry je = en.nextElement();
+            if( je.isDirectory() )
+            {
+                continue;
+            }
+            
+            if( !je.getName().endsWith( ".class" ) )
+            {
+                continue;
+            }
+            
+            //System.out.println("Processing entry : " + je.getName());
+            InputStream in = jar.getInputStream( je );
+            //System.out.println(in.available());
+            
+            in.read( majorVersion, 0, 8 );
+            in.close();
+            
+            int ver = ( majorVersion[6] & 0xFF ) + ( majorVersion[7] & 0xFF );
+
+            return ver <= 50;
+            //System.out.println( ver );
+            // completed processing for the jar, break out
+        }
+        
+        return false;
+    }
+    
+    private static void recurseRepo( File folder ) throws Exception
+    {
+        File[] files = folder.listFiles();
+        for(File f : files )
+        {
+            if( f.isDirectory() )
+            {
+                recurseRepo( f );
+            }
+            else if( f.getName().endsWith( ".jar" ) )
+            {
+                System.out.println("Processing : " + f);
+                boolean valid = isValidJar( f.getAbsolutePath() );
+                if( !valid )
+                {
+                    System.out.println("Not valid: " + f.getAbsolutePath() );
+                }
+            }
+        }
+    }
+    
     public static void main( String[] args ) throws Exception
     {
+        //recurseRepo( new File("/Users/dbugger/.m2/repository") );
         System.out.println( getEscimoWar() );
         start();
     }

@@ -59,7 +59,7 @@
         </multival-attribute>
 
         <multival-attribute name="groups" baseDn="ou=system"
-            filter="(uniqueMember = $entryDn)" handlerRef="groupsHandler" />
+            filter="(uniqueMember=$entryDn)" handlerRef="groupsHandler" />
 
         <multival-attribute name="entitlements" />
 
@@ -99,7 +99,7 @@
         <complex-attribute name="meta" handlerRef="metaHandler" />
     </schema>
 
-    <userType baseDn="" filter="(objectClass = inetOrgPerson)">
+    <userType baseDn="ou=system" filter="(objectClass = inetOrgPerson)">
         <schemaRef id="user-core" />
         <schemaRef id="enterprise-user" />
         <objectClasses>

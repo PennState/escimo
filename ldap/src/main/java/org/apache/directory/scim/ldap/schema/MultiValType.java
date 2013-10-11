@@ -20,8 +20,6 @@
 package org.apache.directory.scim.ldap.schema;
 
 
-import java.util.List;
-
 import org.apache.directory.scim.schema.BaseType;
 
 
@@ -32,9 +30,7 @@ import org.apache.directory.scim.schema.BaseType;
  */
 public class MultiValType extends BaseType
 {
-    private SimpleTypeGroup stGroup;
-
-    private List<TypedType> typedList;
+    private SimpleTypeGroup atGroup;
 
     private String baseDn;
 
@@ -44,39 +40,21 @@ public class MultiValType extends BaseType
     private String format;
 
 
-    public MultiValType( String uri, String name, boolean show, SimpleTypeGroup stGroup, String baseDn, String filter )
+    public MultiValType( String uri, String name, boolean show, SimpleTypeGroup atGroup, String baseDn, String filter )
     {
         super( uri, name, show );
-        this.stGroup = stGroup;
+        this.atGroup = atGroup;
         this.baseDn = baseDn;
         this.filter = filter;
-    }
-
-
-    public MultiValType( String uri, String name, boolean show, List<TypedType> typedList, String baseDn, String filter )
-    {
-        super( uri, name, show );
-        this.typedList = typedList;
-        this.baseDn = baseDn;
-        this.filter = filter;
-    }
-
-
-    /**
-     * @return the typedList
-     */
-    public List<TypedType> getTypedList()
-    {
-        return typedList;
     }
 
 
     /**
      * @return the stGroup
      */
-    public SimpleTypeGroup getStGroup()
+    public SimpleTypeGroup getAtGroup()
     {
-        return stGroup;
+        return atGroup;
     }
 
 

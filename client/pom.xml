@@ -35,9 +35,9 @@
    </dependency>   
 
    <dependency>
-     <groupId>org.apache.wink</groupId>
-     <artifactId>wink-client</artifactId>
-     <version>${wink.version}</version>
+     <groupId>org.apache.httpcomponents</groupId>
+     <artifactId>httpclient</artifactId>
+     <version>${httpclient.version}</version>
    </dependency>
 
    <dependency>
@@ -48,28 +48,4 @@
       
   </dependencies>
 
-    <build>
-        <plugins>
-            <plugin>
-                <groupId>org.apache.directory.scim</groupId>
-                <artifactId>escimo-json2java</artifactId>
-                <version>${project.version}</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>generate</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <configuration>
-                    <generatePackage>escimo</generatePackage>
-                    <useDefaultSchemas>true</useDefaultSchemas>
-<!--                     <schemaFiles>
-                        <param>**/*.java</param>
-                    </schemaFiles>
- -->                </configuration>
-            </plugin>
-        </plugins>
-    </build>
-  
 </project>

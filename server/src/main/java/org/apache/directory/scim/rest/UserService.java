@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 
 import javax.ws.rs.GET;
+import javax.ws.rs.POST;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -40,7 +41,7 @@ import org.apache.directory.scim.MissingParameterException;
 import org.apache.directory.scim.ProviderService;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.ResourceNotFoundException;
-import org.apache.directory.scim.User;
+import org.apache.directory.scim.UserResource;
 import org.apache.directory.scim.json.ResourceSerializer;
 
 /**
@@ -65,7 +66,7 @@ public class UserService
             RequestContext ctx = new RequestContext( provider );
             ctx.setUriInfo( uriInfo );
             
-            User user = provider.getUser( ctx, userId );
+            UserResource user = provider.getUser( ctx, userId );
             String json = ResourceSerializer.serialize( user );
             rb = Response.ok( json, MediaType.APPLICATION_JSON );
         }
@@ -77,6 +78,36 @@ public class UserService
         return rb.build();
     }
     
+    
+    @POST
+    @Produces({MediaType.APPLICATION_JSON})
+    public Response addUser( String jsonData, @Context UriInfo uriInfo )
+    {
+        ResponseBuilder rb = null;
+
+        if( ( jsonData == null ) || ( jsonData.trim().length() == 0 ) )
+        {
+            rb = Response.status( Status.BAD_REQUEST ).entity( "No data is present with the call to " + uriInfo.getPath() );
+            return rb.build();
+        }
+        
+        try
+        {
+            RequestContext ctx = new RequestContext( provider );
+            ctx.setUriInfo( uriInfo );
+            
+            provider.addUser( jsonData, ctx );
+            
+            String json = ResourceSerializer.serialize( ctx.getCoreResource() );
+            rb = Response.ok( json, MediaType.APPLICATION_JSON );
+        }
+        catch( Exception e )
+        {
+            rb = Response.status( Status.INTERNAL_SERVER_ERROR );
+        }
+        
+        return rb.build();
+    }
     
     @GET
     @Produces({MediaType.APPLICATION_OCTET_STREAM})
@@ -97,7 +128,6 @@ public class UserService
                 StreamingOutput streamOut = new StreamingOutput()
                 {
                     
-                    @Override
                     public void write( OutputStream output ) throws IOException, WebApplicationException
                     {
                         byte[] buf = new byte[1024];

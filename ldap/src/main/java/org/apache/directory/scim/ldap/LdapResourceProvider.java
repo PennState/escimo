@@ -65,8 +65,8 @@ import org.apache.directory.ldap.client.api.LdapConnectionConfig;
 import org.apache.directory.ldap.client.api.LdapNetworkConnection;
 import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.ComplexAttribute;
-import org.apache.directory.scim.CoreResource;
-import org.apache.directory.scim.Group;
+import org.apache.directory.scim.Resource;
+import org.apache.directory.scim.GroupResource;
 import org.apache.directory.scim.MissingParameterException;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.ProviderService;
@@ -74,7 +74,7 @@ import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.ResourceNotFoundException;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
-import org.apache.directory.scim.User;
+import org.apache.directory.scim.UserResource;
 import org.apache.directory.scim.ldap.schema.ComplexType;
 import org.apache.directory.scim.ldap.schema.GroupSchema;
 import org.apache.directory.scim.ldap.schema.MultiValType;
@@ -134,8 +134,6 @@ public class LdapResourceProvider implements ProviderService
         
         try
         {
-            JsonParser parser = new JsonParser();
-            
             List<URL> urls = SchemaUtil.getDefaultSchemas();
             for( URL u : urls )
             {
@@ -162,12 +160,13 @@ public class LdapResourceProvider implements ProviderService
             ( ( LdapNetworkConnection ) connection ).loadSchema( new JarLdifSchemaLoader() );
         }
 
+        ldapSchema = connection.getSchemaManager();
+        
         Map<String,JsonSchema> jsonSchemaCopy = new HashMap<String, JsonSchema>( schemas );
-        schemaMapper = new LdapSchemaMapper( jsonSchemaCopy );
+        schemaMapper = new LdapSchemaMapper( jsonSchemaCopy, ldapSchema );
         schemaMapper.loadMappings();
         userSchema = schemaMapper.getUserSchema();
         groupSchema = schemaMapper.getGroupSchema();
-        ldapSchema = connection.getSchemaManager();
     }
 
 
@@ -216,13 +215,13 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    public User getUser( RequestContext ctx, String id ) throws ResourceNotFoundException
+    public UserResource getUser( RequestContext ctx, String id ) throws ResourceNotFoundException
     {
         Entry entry = fetchEntryById( id, userSchema );
 
         if ( entry == null )
         {
-            throw new ResourceNotFoundException( "No User resource found with the ID " + id );
+            throw new ResourceNotFoundException( "No UserResource resource found with the ID " + id );
         }
 
         try
@@ -236,7 +235,6 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    @Override
     public InputStream getUserPhoto( String id, String atName ) throws MissingParameterException
     {
         if ( Strings.isEmpty( id ) )
@@ -269,14 +267,13 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    @Override
-    public Group getGroup( RequestContext ctx, String groupId ) throws ResourceNotFoundException
+    public GroupResource getGroup( RequestContext ctx, String groupId ) throws ResourceNotFoundException
     {
         Entry entry = fetchEntryById( groupId, groupSchema );
 
         if ( entry == null )
         {
-            throw new ResourceNotFoundException( "No Group resource found with the ID " + groupId );
+            throw new ResourceNotFoundException( "No GroupResource resource found with the ID " + groupId );
         }
 
         try
@@ -291,119 +288,112 @@ public class LdapResourceProvider implements ProviderService
     }
 
     
-    public void addUser( String json )
-    {
-        JsonParser parser = new JsonParser();
-        JsonObject obj = ( JsonObject ) parser.parse( json );
-        
-        List<String> uris = userSchema.getUris();
-        for( String u : uris )
-        {
-            JsonObject userAtObj = ( JsonObject ) obj.get( u );
-        }
-    }
-
-    private void addAttributes( Entry entry, JsonObject obj )
+    private void addAttributes( Entry entry, JsonObject obj, RequestContext ctx ) throws LdapException
     {
         for( java.util.Map.Entry<String, JsonElement> e : obj.entrySet() )
         {
             String name = e.getKey();
             
+            if( name.startsWith( "urn:scim:schemas:" ) )
+            {
+                continue;
+            }
+            
             BaseType bt = userSchema.getAttribute( name );
             
             if( bt == null )
             {
-                throw new IllegalArgumentException( "Unknown attribute name "  + name + " is present in the JSON payload" );
+                throw new IllegalArgumentException( "Unknown attribute name "  + name + " is present in the JSON payload that has no corresponding mapping in the escimo-ldap-mapping.xml file" );
             }
             
-            String value = e.getValue().getAsString();
-        }
-    }
-    
-    
-    private void scimToLdapAttribute( BaseType bt, JsonElement el, Entry entry ) throws LdapException
-    {
-        if( bt.isReadOnly() )
-        {
-            return;
-        }
-        
-        if( bt instanceof SimpleType )
-        {
-            SimpleType st = ( SimpleType ) bt;
-            String ldapAtName = st.getMappedTo();
-            if( Strings.isEmpty( ldapAtName ) )
+            if( bt.isReadOnly() )
             {
-                throw new IllegalArgumentException( "Attribute " + bt.getName() + " is not mapped to any LDAP attribute in the config" );
+                continue;
             }
+
+            AttributeHandler handler = userSchema.getHandler( bt.getAtHandlerName() );
             
-            AttributeType ldapType = ldapSchema.getAttributeType( ldapAtName );
-            
-            Attribute ldapAt = entry.get( ldapType );
-            if( ldapAt == null )
+            if( handler != null )
             {
-                ldapAt = new DefaultAttribute( ldapAtName );
-            }
-            
-            if( !ldapType.getSyntax().isHumanReadable() )
-            {
-                byte[] value = Base64.decode( el.getAsString().toCharArray() );
-                ldapAt.add( value );
+                handler.write( bt, e.getValue(), entry, ctx );
             }
             else
             {
-                ldapAt.add( el.getAsString() );
+                LdapUtil.scimToLdapAttribute( bt, e.getValue(), entry, ctx );
             }
         }
     }
     
-    public void addUser( User user, RequestContext ctx )
+    
+    public UserResource addUser( String json, RequestContext ctx ) throws Exception
     {
         try
         {
+            JsonParser parser = new JsonParser();
+            JsonObject obj = ( JsonObject ) parser.parse( json );
+            
             Entry entry = new DefaultEntry();
             
+            // process the core attributes first
+            addAttributes( entry, obj, ctx );
+            
+            List<String> uris = userSchema.getUris();
+            
+            for( String u : uris )
+            {
+                JsonObject userAtObj = ( JsonObject ) obj.get( u );
+                if( userAtObj != null )
+                {
+                    addAttributes( entry, userAtObj, ctx );
+                }
+            }
+
             for( String oc : userSchema.getObjectClasses() )
             {
                 entry.add( SchemaConstants.OBJECT_CLASS, oc );
             }
             
-            String dn = null;
+            SimpleType st = ( SimpleType ) userSchema.getCoreAttribute( "userName" );
+            String userIdName = st.getMappedTo();
+
+            String dn = ctx.getReqParam( "userDn" );
             
-            SimpleAttribute at = ( SimpleAttribute ) user.get( "userDn" );
-            if( at != null )
+            if( Strings.isEmpty( dn ) )
             {
-                dn = String.valueOf( at.getValue() );
-                if( Strings.isEmpty( dn ) )
-                {
-                    dn = null;
-                }
+                dn = null;
             }
             
             if( dn == null )
             {
-                SimpleType st = ( SimpleType ) userSchema.getCoreAttribute( "userName" );
-                String userIdName = st.getMappedTo();
+                String userName = obj.get( "userName" ).getAsString();
+                
+                dn = userIdName + "=" + userName + "," + userSchema.getBaseDn();
+            }
+            
+            entry.setDn( dn );
+            
+            connection.add( entry );
+            
+            entry = connection.lookup( entry.getDn(), SchemaConstants.ALL_ATTRIBUTES_ARRAY );
 
-                dn = userIdName + "=" + String.valueOf( user.getVal( "userName" ) ) + "," + userSchema.getBaseDn();
-            }
+            UserResource addedUser = new UserResource();
+
+            ctx.setCoreResource( addedUser );
+
+            _loadCoreResource( ctx, entry, userSchema );
             
-            if( dn != null )
-            {
-                entry.setDn( dn );
-            }
-            
-            
+            return addedUser;
         }
-        catch( LdapException e )
+        catch( Exception e )
         {
             e.printStackTrace();
+            throw e;
         }
     }
     
-    public User toUser( RequestContext ctx, Entry entry ) throws Exception
+    public UserResource toUser( RequestContext ctx, Entry entry ) throws Exception
     {
-        User user = new User();
+        UserResource user = new UserResource();
 
         ctx.setCoreResource( user );
 
@@ -413,9 +403,9 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    public Group toGroup( RequestContext ctx, Entry entry ) throws Exception
+    public GroupResource toGroup( RequestContext ctx, Entry entry ) throws Exception
     {
-        Group group = new Group();
+        GroupResource group = new GroupResource();
         ctx.setCoreResource( group );
 
         _loadCoreResource( ctx, entry, groupSchema );
@@ -426,7 +416,7 @@ public class LdapResourceProvider implements ProviderService
 
     private void _loadCoreResource( RequestContext ctx, Entry entry, ResourceSchema resourceSchema ) throws Exception
     {
-        CoreResource resource = ctx.getCoreResource();
+        Resource resource = ctx.getCoreResource();
 
         // first fill in the id, we need this for deriving location
         SimpleType idType = ( SimpleType ) resourceSchema.getCoreAttribute( "id" );
@@ -443,7 +433,7 @@ public class LdapResourceProvider implements ProviderService
     private void _loadAttributes( RequestContext ctx, Entry entry, Collection<BaseType> types, SimpleType idType )
         throws Exception
     {
-        CoreResource user = ctx.getCoreResource();
+        Resource user = ctx.getCoreResource();
 
         for ( BaseType bt : types )
         {
@@ -512,35 +502,8 @@ public class LdapResourceProvider implements ProviderService
                     continue;
                 }
 
-                List<TypedType> typedList = mt.getTypedList();
-                SimpleTypeGroup stg = mt.getStGroup();
-
-                if ( typedList != null )
-                {
-                    MultiValAttribute mv = new MultiValAttribute( mt.getName() );
-
-                    for ( TypedType tt : typedList )
-                    {
-                        SimpleTypeGroup typeStg = tt.getAtGroup();
-                        List<SimpleAttribute> lstAts = getValuesInto( typeStg, entry );
-
-                        if ( !lstAts.isEmpty() )
-                        {
-                            lstAts.add( new SimpleAttribute( "type", tt.getName() ) );
-                            if ( tt.isPrimary() )
-                            {
-                                lstAts.add( new SimpleAttribute( "primary", true ) );
-                            }
-                            mv.addAtGroup( new SimpleAttributeGroup( lstAts ) );
-                        }
-                    }
-
-                    if ( mv.getAtGroupList() != null )
-                    {
-                        user.addAttribute( bt.getUri(), mv );
-                    }
-                }
-                else if ( stg != null )
+                SimpleTypeGroup stg = mt.getAtGroup();
+                if ( stg != null )
                 {
                     List<SimpleAttributeGroup> atGroupList = getValuesFor( stg, entry );
 
@@ -569,7 +532,7 @@ public class LdapResourceProvider implements ProviderService
             return null;
         }
 
-        List<SimpleType> types = new ArrayList<SimpleType>( stg.getLstSTypes() );
+        List<SimpleType> types = new ArrayList<SimpleType>( stg.getSubTypes() );
         types.remove( valType );
 
         Attribute ldapAt = entry.get( valType.getMappedTo() );
@@ -694,7 +657,7 @@ public class LdapResourceProvider implements ProviderService
 
         String format = stg.getFormat();
 
-        for ( SimpleType st : stg.getLstSTypes() )
+        for ( SimpleType st : stg.getSubTypes() )
         {
             SimpleAttribute at = getValueForSimpleType( st, entry );
             if ( at != null )
@@ -778,6 +741,16 @@ public class LdapResourceProvider implements ProviderService
     {
         return schemas.get( uri );
     }
+
+    
+    /**
+     * @return the ldapSchema
+     */
+    public SchemaManager getLdapSchema()
+    {
+        return ldapSchema;
+    }
+
 
     public static void main( String[] args ) throws Exception
     {

@@ -27,12 +27,12 @@ import org.apache.directory.api.ldap.model.entry.Attribute;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.entry.Value;
 import org.apache.directory.scim.AttributeHandler;
-import org.apache.directory.scim.CoreResource;
+import org.apache.directory.scim.Resource;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
-import org.apache.directory.scim.User;
+import org.apache.directory.scim.UserResource;
 import org.apache.directory.scim.ldap.schema.MultiValType;
 import org.apache.directory.scim.ldap.schema.SimpleType;
 import org.apache.directory.scim.ldap.schema.SimpleTypeGroup;
@@ -47,7 +47,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class PhotosAttributeHandler implements AttributeHandler
+public class PhotosAttributeHandler extends AttributeHandler
 {
 
     private static final Logger LOG = LoggerFactory.getLogger( PhotosAttributeHandler.class );
@@ -63,7 +63,7 @@ public class PhotosAttributeHandler implements AttributeHandler
             return;
         }
 
-        CoreResource user = ctx.getCoreResource();
+        Resource user = ctx.getCoreResource();
 
         Entry entry = ( Entry ) srcResource;
 
@@ -71,9 +71,7 @@ public class PhotosAttributeHandler implements AttributeHandler
 
         MultiValType mt = ( MultiValType ) bt;
 
-        SimpleTypeGroup stg = mt.getStGroup();
-
-        List<TypedType> ttList = mt.getTypedList();
+        SimpleTypeGroup stg = mt.getAtGroup();
 
         String photoUrlBase = ctx.getUriInfo().getBaseUri().toString();
         photoUrlBase += "Users/photo?atName=%s&id=%s";
@@ -89,36 +87,6 @@ public class PhotosAttributeHandler implements AttributeHandler
                 mv.addAtGroup( sg );
             }
         }
-        else if ( ttList != null )
-        {
-            for ( TypedType tt : ttList )
-            {
-                SimpleTypeGroup typeStg = tt.getAtGroup();
-                SimpleAttribute sa = getPhotoUrlValue( typeStg, entry, photoUrlBase, user );
-
-                if ( sa != null )
-                {
-                    SimpleAttributeGroup sg = new SimpleAttributeGroup();
-                    sg.addAttribute( sa );
-
-                    SimpleAttribute atType = new SimpleAttribute( "type", tt.getName() );
-                    sg.addAttribute( atType );
-
-                    if ( tt.isPrimary() )
-                    {
-                        SimpleAttribute atPrimary = new SimpleAttribute( "primary", true );
-                        sg.addAttribute( atPrimary );
-                    }
-
-                    if ( mv == null )
-                    {
-                        mv = new MultiValAttribute( bt.getName() );
-                    }
-
-                    mv.addAtGroup( sg );
-                }
-            }
-        }
 
         if ( mv != null )
         {
@@ -127,7 +95,7 @@ public class PhotosAttributeHandler implements AttributeHandler
     }
 
 
-    private SimpleAttribute getPhotoUrlValue( SimpleTypeGroup stg, Entry entry, String photoUrlBase, CoreResource user )
+    private SimpleAttribute getPhotoUrlValue( SimpleTypeGroup stg, Entry entry, String photoUrlBase, Resource user )
     {
         SimpleType valType = stg.getValueType();
         if ( valType != null )

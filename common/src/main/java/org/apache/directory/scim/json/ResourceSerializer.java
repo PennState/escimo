@@ -25,12 +25,12 @@ import java.util.Map;
 
 import org.apache.directory.scim.AbstractAttribute;
 import org.apache.directory.scim.ComplexAttribute;
-import org.apache.directory.scim.CoreResource;
-import org.apache.directory.scim.Group;
+import org.apache.directory.scim.Resource;
+import org.apache.directory.scim.GroupResource;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
-import org.apache.directory.scim.User;
+import org.apache.directory.scim.UserResource;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
@@ -48,19 +48,8 @@ public class ResourceSerializer
     public static final String CORE_GROUP_URI = "urn:scim:schemas:core:2.0:Group";
     public static final String CORE_EXT_USER_URI = "urn:scim:schemas:extension:enterprise:2.0:User";
     
-    public static String serialize( User user )
-    {
-        return _serialize( user );
-    }
 
-
-    public static String serialize( Group group )
-    {
-        return _serialize( group );
-    }
-
-
-    private static String _serialize( CoreResource resource )
+    public static String serialize( Resource resource )
     {
         JsonObject root = new JsonObject();
 

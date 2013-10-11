@@ -21,16 +21,16 @@ package org.apache.directory.scim;
 
 
 /**
- * TODO Group.
+ * TODO UserResource.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class Group extends CoreResource
+public class UserResource extends Resource
 {
     @Override
     public String toString()
     {
-        return "Group [attributes=" + super.getAttributes() + "]";
+        return "UserResource [attributes=" + super.getAttributes() + "]";
     }
     
 }

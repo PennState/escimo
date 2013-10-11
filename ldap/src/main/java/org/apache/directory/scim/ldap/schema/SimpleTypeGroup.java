@@ -31,14 +31,14 @@ import java.util.List;
  */
 public class SimpleTypeGroup
 {
-    private List<SimpleType> lstSTypes;
+    private List<SimpleType> subTypes;
 
     /** used for setting the value of "formatted" attribute */
     private String format;
 
-    public SimpleTypeGroup( List<SimpleType> lstSTypes, String format )
+    public SimpleTypeGroup( List<SimpleType> subTypes, String format )
     {
-        this.lstSTypes = lstSTypes;
+        this.subTypes = subTypes;
         this.format = format;
     }
 
@@ -55,15 +55,15 @@ public class SimpleTypeGroup
     /**
      * @return the lstSTypes
      */
-    public List<SimpleType> getLstSTypes()
+    public List<SimpleType> getSubTypes()
     {
-        return Collections.unmodifiableList( lstSTypes );
+        return Collections.unmodifiableList( subTypes );
     }
 
     
     public SimpleType getValueType()
     {
-        for( SimpleType st : lstSTypes )
+        for( SimpleType st : subTypes )
         {
             if( "value".equals( st.getName() ))
             {
@@ -80,7 +80,7 @@ public class SimpleTypeGroup
     @Override
     public String toString()
     {
-        return "SimpleTypeGroup [lstSTypes=" + lstSTypes + ", format=" + format + "]";
+        return "SimpleTypeGroup [subTypes=" + subTypes + ", format=" + format + "]";
     }
     
 }

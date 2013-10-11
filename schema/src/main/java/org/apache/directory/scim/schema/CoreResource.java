@@ -29,12 +29,16 @@ import java.util.List;
  */
 public abstract class CoreResource
 {
+    // this field is manually serialized/deserialized
+    @DoNotExpose
     private List<CoreResource> extResources;
 
     private MetaData meta;
     
+    @DoNotExpose
     private String schemaId;
     
+    @DoNotExpose
     private String resourceDesc;
     
     public void addExtendedResource( CoreResource resource )
