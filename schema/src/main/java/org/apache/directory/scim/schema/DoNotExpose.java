@@ -17,20 +17,21 @@
  *   under the License.
  *
  */
-package org.apache.directory.scim;
+package org.apache.directory.scim.schema;
 
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
 /**
- * TODO Group.
+ * TODO DoNotExpose.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class Group extends CoreResource
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+public @interface DoNotExpose
 {
-    @Override
-    public String toString()
-    {
-        return "Group [attributes=" + super.getAttributes() + "]";
-    }
-    
+
 }

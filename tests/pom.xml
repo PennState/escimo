@@ -11,16 +11,13 @@
   <version>1.0-SNAPSHOT</version>
   <name>eSCIMo Tests</name>
 
-  <properties>
-    <ldap.api.version>1.0.0-M20-SNAPSHOT</ldap.api.version>
-    <apacheds.version>2.0.0-M15-SNAPSHOT</apacheds.version>
-    <slf4j.api.version>1.7.5</slf4j.api.version>
-    <slf4j.log4j12.version>1.7.5</slf4j.log4j12.version>
-    <log4j.version>1.2.17</log4j.version>
-    <jetty.version>7.5.0.v20110901</jetty.version>
-  </properties>
-
   <dependencies>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>escimo-client</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>escimo-server</artifactId>
@@ -83,7 +80,7 @@
       <version>4.10</version>
       <scope>test</scope>
     </dependency>
-
+<!-- 
     <dependency>
       <groupId>org.apache.directory.server</groupId>
       <artifactId>apacheds-core-annotations</artifactId>
@@ -103,11 +100,45 @@
       <artifactId>apacheds-test-framework</artifactId>
       <version>${apacheds.version}</version>
       <scope>test</scope>
-    </dependency>
+    </dependency>-->
   </dependencies>
 
   <build>
      <plugins>
+       <plugin>
+         <groupId>org.apache.directory.scim</groupId>
+         <artifactId>escimo-json2java-plugin</artifactId>
+         <version>${project.version}</version>
+         <executions>
+           <execution>
+             <goals>
+                 <goal>generate</goal>
+             </goals>
+           </execution>
+         </executions>
+         <configuration>
+             <generatePackage>org.apache.directory.scim</generatePackage>
+             <useDefaultSchemas>true</useDefaultSchemas>
+         </configuration>
+       </plugin>
+       <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>add-source</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>${project.build.directory}/generated-sources/json2java</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
        <plugin>
          <groupId>org.apache.felix</groupId>
          <artifactId>maven-bundle-plugin</artifactId>

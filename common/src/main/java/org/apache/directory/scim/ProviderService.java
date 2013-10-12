@@ -20,6 +20,8 @@ package org.apache.directory.scim;
 
 import java.io.InputStream;
 
+import org.apache.directory.scim.schema.JsonSchema;
+
 /**
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
@@ -30,9 +32,13 @@ public interface ProviderService
     
     void stop();
     
-    User getUser( RequestContext ctx, String userId ) throws ResourceNotFoundException;
+    UserResource getUser( RequestContext ctx, String userId ) throws ResourceNotFoundException;
     
     InputStream getUserPhoto( String id, String atName ) throws MissingParameterException;
     
-    Group getGroup( RequestContext ctx, String groupId ) throws ResourceNotFoundException;
+    GroupResource getGroup( RequestContext ctx, String groupId ) throws ResourceNotFoundException;
+    
+    JsonSchema getSchema( String uriId );
+    
+    UserResource addUser( String jsonData, RequestContext ctx ) throws Exception;
 }

@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.directory.api.ldap.model.exception.LdapException;
+import org.apache.directory.api.ldap.model.schema.AttributeType;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.api.util.Strings;
 import org.apache.directory.ldap.client.api.LdapConnection;
@@ -42,8 +43,8 @@ import org.apache.directory.scim.ldap.schema.MultiValType;
 import org.apache.directory.scim.ldap.schema.ResourceSchema;
 import org.apache.directory.scim.ldap.schema.SimpleType;
 import org.apache.directory.scim.ldap.schema.SimpleTypeGroup;
-import org.apache.directory.scim.ldap.schema.TypedType;
 import org.apache.directory.scim.ldap.schema.UserSchema;
+import org.apache.directory.scim.schema.JsonSchema;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
 import org.dom4j.Element;
@@ -66,25 +67,12 @@ public class LdapSchemaMapper implements SchemaMapper
 
     private UserSchema userSchema;
 
-
-    public LdapSchemaMapper()
+    private Map<String,JsonSchema> jsonSchemas;
+    
+    public LdapSchemaMapper( Map<String,JsonSchema> jsonSchemas, SchemaManager ldapSchema )
     {
-    }
-
-
-    public LdapSchemaMapper( LdapConnection connection )
-    {
-        try
-        {
-            connection.loadSchema();
-        }
-        catch ( LdapException e )
-        {
-            LOG.debug( "Failed to load schema from the server", e );
-            LOG.info( "Could not load schema from the LDAP server, disabling schema checks" );
-        }
-
-        ldapSchema = connection.getSchemaManager();
+        this.jsonSchemas = jsonSchemas;
+        this.ldapSchema = ldapSchema;
     }
 
 
@@ -103,6 +91,21 @@ public class LdapSchemaMapper implements SchemaMapper
     }
 
 
+    /**
+     * @return the ldapSchema
+     */
+    public SchemaManager getLdapSchema()
+    {
+        return ldapSchema;
+    }
+
+    
+    public AttributeType getLdapAttributeType( String name )
+    {
+        return ldapSchema.getAttributeType( name );
+    }
+
+    
     public void loadMappings()
     {
         InputStream in = this.getClass().getClassLoader().getResourceAsStream( "escimo-ldap-mapping.xml" );
@@ -217,6 +220,8 @@ public class LdapSchemaMapper implements SchemaMapper
 
         resourceSchema.addUri( uri );
 
+        JsonSchema json = jsonSchemas.get( uri );
+        
         List<Element> simpleAtElmList = schemaRoot.elements( "attribute" );
 
         for ( Element el : simpleAtElmList )
@@ -224,6 +229,7 @@ public class LdapSchemaMapper implements SchemaMapper
             SimpleType st = parseSimpleType( el, uri );
             if ( st != null )
             {
+                st.setReadOnly( json.isReadOnly( st.getName() ) );
                 resourceSchema.addAttributeType( st.getName(), st );
             }
         }
@@ -244,7 +250,7 @@ public class LdapSchemaMapper implements SchemaMapper
             boolean show = getShowVal( elmComplex );
             
             Element atGrpElm = elmComplex.element( "at-group" );
-            SimpleTypeGroup stg = parseAtGroup( atGrpElm, uri );
+            SimpleTypeGroup stg = parseAtGroup( atGrpElm, uri, name );
             ComplexType ct = null;
             if ( stg != null )
             {
@@ -267,6 +273,7 @@ public class LdapSchemaMapper implements SchemaMapper
             if( ct != null )
             {
                 ct.setAtHandlerName( handlerRef );
+                ct.setReadOnly( json.isReadOnly( name ) );
                 resourceSchema.addAttributeType( name, ct );
             }
         }
@@ -289,51 +296,17 @@ public class LdapSchemaMapper implements SchemaMapper
 
             boolean showMultiVal = getShowVal( elmMultiVal );
             
-            MultiValType ct = null;
+            MultiValType mt = null;
             
             Element elmAtGroup = elmMultiVal.element( "at-group" );
             if ( elmAtGroup != null )
             {
-                SimpleTypeGroup stg = parseAtGroup( elmAtGroup, uri );
+                SimpleTypeGroup stg = parseAtGroup( elmAtGroup, uri, name );
                 if ( stg != null )
                 {
-                    ct = new MultiValType( uri, name, showMultiVal, stg, baseDn, filter );
+                    mt = new MultiValType( uri, name, showMultiVal, stg, baseDn, filter );
                 }
 
-            }
-            else
-            {
-                List<Element> lstElmTypes = elmMultiVal.elements( "type" );
-
-                List<TypedType> lstTypes = new ArrayList<TypedType>();
-
-                for ( Element elmType : lstElmTypes )
-                {
-                    Element elmTypeAtGroup = elmType.element( "at-group" );
-                    SimpleTypeGroup stg = parseAtGroup( elmTypeAtGroup, uri );
-
-                    boolean show = getShowVal( elmType );
-
-                    String primary = elmType.attributeValue( "primary" );
-
-                    if ( Strings.isEmpty( primary ) )
-                    {
-                        primary = "false";
-                    }
-
-                    String typeName = elmType.attributeValue( "name" );
-
-                    if ( Strings.isEmpty( typeName ) )
-                    {
-                        throw new IllegalArgumentException( "name is missing in the type element " + elmType.asXML() );
-                    }
-
-                    TypedType tt = new TypedType( uri, typeName, show, stg, 
-                        Boolean.parseBoolean( primary ) );
-                    lstTypes.add( tt );
-                }
-
-                ct = new MultiValType( uri, name, showMultiVal, lstTypes, baseDn, filter );
             }
             
             String handlerRef = elmMultiVal.attributeValue( "handlerRef" );
@@ -343,26 +316,29 @@ public class LdapSchemaMapper implements SchemaMapper
                 handlerRef = null;
             }
 
-            if( ( ct == null ) && ( handlerRef != null ) )
+            if( ( mt == null ) && ( handlerRef != null ) )
             {
-                ct = new MultiValType( uri, name, showMultiVal, ( SimpleTypeGroup ) null, baseDn, filter );
+                mt = new MultiValType( uri, name, showMultiVal, ( SimpleTypeGroup ) null, baseDn, filter );
             }
             
-            if( ct != null )
+            if( mt != null )
             {
-                ct.setAtHandlerName( handlerRef );
-                resourceSchema.addAttributeType( name, ct );
+                mt.setAtHandlerName( handlerRef );
+                mt.setReadOnly( json.isReadOnly( name ) );
+                resourceSchema.addAttributeType( name, mt );
             }
         }
     }
 
 
-    private SimpleTypeGroup parseAtGroup( Element elmAtGroup, String uri )
+    private SimpleTypeGroup parseAtGroup( Element elmAtGroup, String uri, String parentAtName )
     {
         SimpleTypeGroup stg = null;
 
         List<SimpleType> lstSTypes = null;
-
+        
+        JsonSchema json = jsonSchemas.get( uri );
+        
         if ( elmAtGroup != null )
         {
             lstSTypes = new ArrayList<SimpleType>();
@@ -373,6 +349,7 @@ public class LdapSchemaMapper implements SchemaMapper
                 SimpleType st = parseSimpleType( elmAt, uri );
                 if ( st != null )
                 {
+                    st.setReadOnly( json.isReadOnly( parentAtName + "." + st.getName() ) );
                     lstSTypes.add( st );
                 }
             }

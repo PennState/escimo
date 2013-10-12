@@ -18,14 +18,30 @@
  */
 package org.apache.directory.scim;
 
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+
+
 /**
  * 
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
 public class ScimUtil
 {
-    /*public static User toUser( Entry entry )
+    public static String exceptionToStr( Exception e )
     {
+        StringWriter sw = new StringWriter();
+
+        PrintWriter pw = new PrintWriter( sw );
+
+        pw.write( e.getMessage() );
         
-    }*/
+        e.printStackTrace( pw );
+
+        pw.close();
+
+        return sw.toString();
+    }
+
 }

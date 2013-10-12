@@ -27,52 +27,39 @@
         </complex-attribute>
 
         <multival-attribute name="emails">
-            <type name="work" primary="true">
-                <at-group>
-                    <attribute name="value" mappedTo="mail" />
-                </at-group>
-            </type>
+            <at-group>
+                <attribute name="value" mappedTo="mail" />
+            </at-group>
         </multival-attribute>
 
         <multival-attribute name="phoneNumbers">
-            <type name="work" primary="true">
-                <at-group>
-                    <attribute name="value" mappedTo="telephoneNumber" />
-                </at-group>
-            </type>
-            <type name="home" primary="false">
-                <at-group>
-                    <attribute name="value" mappedTo="homePhone" />
-                </at-group>
-            </type>
+            <at-group>
+                <attribute name="value" mappedTo="telephoneNumber" />
+            </at-group>
         </multival-attribute>
 
         <multival-attribute name="ims">
         </multival-attribute>
 
         <multival-attribute name="photos" handlerRef="photosHandler">
-            <type name="photo" primary="true">
-                <at-group>
-                    <attribute name="value" mappedTo="jpegPhoto" />
-                </at-group>
-            </type>
+            <at-group>
+                <attribute name="value" mappedTo="jpegPhoto" />
+            </at-group>
         </multival-attribute>
 
         <multival-attribute name="addresses">
-            <type name="work" primary="true">
-                <at-group>
-                    <attribute name="streetAddress" mappedTo="street" />
-                    <attribute name="locality" mappedTo="l" />
-                    <attribute name="region" mappedTo="region" />
-                    <attribute name="postalCode" mappedTo="postalCode" />
-                    <attribute name="country" mappedTo="" />
-                    <formatted format="$streetAddress $locality" />
-                </at-group>
-            </type>
+            <at-group>
+                <attribute name="streetAddress" mappedTo="street" />
+                <attribute name="locality" mappedTo="l" />
+                <attribute name="region" mappedTo="region" />
+                <attribute name="postalCode" mappedTo="postalCode" />
+                <attribute name="country" mappedTo="" />
+                <formatted format="$streetAddress $locality" />
+            </at-group>
         </multival-attribute>
 
         <multival-attribute name="groups" baseDn="ou=system"
-            filter="(uniqueMember = $entryDn)" handlerRef="groupsHandler" />
+            filter="(uniqueMember=$entryDn)" handlerRef="groupsHandler" />
 
         <multival-attribute name="entitlements" />
 
@@ -112,7 +99,7 @@
         <complex-attribute name="meta" handlerRef="metaHandler" />
     </schema>
 
-    <userType baseDn="" filter="(objectClass = inetOrgPerson)">
+    <userType baseDn="ou=system" filter="(objectClass = inetOrgPerson)">
         <schemaRef id="user-core" />
         <schemaRef id="enterprise-user" />
         <objectClasses>
@@ -122,6 +109,10 @@
 
     <groupType baseDn="" filter="(objectClass = inetOrgPerson)">
         <schemaRef id="group" />
+        <objectClasses>
+         <objectClass>groupOfNames</objectClass>
+         <objectClass>groupOfUniqueNames</objectClass>
+        </objectClasses>
     </groupType>
 
     <atHandlers>

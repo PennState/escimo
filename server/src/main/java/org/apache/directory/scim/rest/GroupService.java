@@ -31,7 +31,7 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
-import org.apache.directory.scim.Group;
+import org.apache.directory.scim.GroupResource;
 import org.apache.directory.scim.ProviderService;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.ResourceNotFoundException;
@@ -60,7 +60,7 @@ public class GroupService
             RequestContext ctx = new RequestContext( provider );
             ctx.setUriInfo( uriInfo );
             
-            Group group = provider.getGroup( ctx, userId );
+            GroupResource group = provider.getGroup( ctx, userId );
             String json = ResourceSerializer.serialize( group );
             rb = Response.ok( json, MediaType.APPLICATION_JSON );
         }

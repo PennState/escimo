@@ -56,14 +56,14 @@ import org.slf4j.LoggerFactory;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class GroupsAttributeHandler implements AttributeHandler
+public class GroupsAttributeHandler extends AttributeHandler
 {
 
     private static final Logger LOG = LoggerFactory.getLogger( GroupsAttributeHandler.class );
 
 
     @Override
-    public void handle( BaseType bt, Object srcResource, RequestContext ctx )
+    public void read( BaseType bt, Object srcResource, RequestContext ctx )
     {
         if ( !bt.getName().equals( "groups" ) )
         {

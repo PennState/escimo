@@ -38,6 +38,7 @@ public class EscimoApplication extends Application
     {
         resources.add( UserService.class );
         resources.add( GroupService.class );
+        resources.add( SchemaService.class );
     }
     
     @Override

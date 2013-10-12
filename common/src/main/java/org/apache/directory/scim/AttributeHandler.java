@@ -22,13 +22,20 @@ package org.apache.directory.scim;
 
 import org.apache.directory.scim.schema.BaseType;
 
+import com.google.gson.JsonElement;
+
 
 /**
  * TODO AttributeHandler.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public interface AttributeHandler
+public abstract class AttributeHandler
 {
-    void handle( BaseType bt, Object srcResource, RequestContext ctx );
+    public abstract void read( BaseType bt, Object srcResource, RequestContext ctx );
+    
+    public void write( BaseType atType, JsonElement jsonData, Object targetEntry, RequestContext ctx )
+    {
+        
+    }
 }

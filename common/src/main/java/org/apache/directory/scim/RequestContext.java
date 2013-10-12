@@ -20,6 +20,9 @@
 package org.apache.directory.scim;
 
 
+import java.util.HashMap;
+import java.util.Map;
+
 import javax.ws.rs.core.UriInfo;
 
 
@@ -34,8 +37,9 @@ public class RequestContext
 
     private UriInfo uriInfo;
 
-    private CoreResource resource;
+    private Resource resource;
 
+    private Map<String,String> reqParams;
 
     public RequestContext( ProviderService providerService )
     {
@@ -43,13 +47,13 @@ public class RequestContext
     }
 
 
-    public CoreResource getCoreResource()
+    public Resource getCoreResource()
     {
         return resource;
     }
 
 
-    public void setCoreResource( CoreResource resource )
+    public void setCoreResource( Resource resource )
     {
         this.resource = resource;
     }
@@ -72,4 +76,25 @@ public class RequestContext
         return providerService;
     }
 
+    
+    public void addReqParam( String name, String value )
+    {
+        if( reqParams == null )
+        {
+            reqParams = new HashMap<String, String>();
+        }
+        
+        reqParams.put( name, value );
+    }
+    
+    
+    public String getReqParam( String name )
+    {
+        if( reqParams == null )
+        {
+            return null;
+        }
+        
+        return reqParams.get( name );
+    }
 }
