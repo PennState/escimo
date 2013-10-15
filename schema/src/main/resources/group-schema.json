@@ -26,8 +26,8 @@
          "type":"string",
          "multiValued":false,
          "description":"A human readable name for the Group.  REQUIRED.",
-         "readOnly":true,
-         "required":false,
+         "readOnly":false,
+         "required":true,
          "caseExact":false
        },
        {
