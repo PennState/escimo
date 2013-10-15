@@ -25,7 +25,7 @@ package org.apache.directory.scim;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class GroupResource extends Resource
+public class GroupResource extends ServerResource
 {
     @Override
     public String toString()

@@ -25,11 +25,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * TODO Resource.
+ * TODO ServerResource.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public abstract class Resource
+public abstract class ServerResource
 {
     private Map<String,List<AbstractAttribute>> uriAtMap = new HashMap<String, List<AbstractAttribute>>();
     

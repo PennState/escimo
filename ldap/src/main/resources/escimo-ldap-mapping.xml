@@ -93,6 +93,7 @@
     </schema>
 
     <schema id="group" uri="urn:scim:schemas:core:2.0:Group">
+        <!-- the 'displayName' MUST be mapped to the RDN attribute otherwise creation of new groups fails -->
         <attribute name="displayName" mappedTo="cn" />
         <attribute name="id" mappedTo="entryUUID" />
         <multival-attribute name="members" handlerRef="membersHandler"/>

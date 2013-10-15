@@ -25,7 +25,7 @@ import java.util.Map;
 
 import org.apache.directory.scim.AbstractAttribute;
 import org.apache.directory.scim.ComplexAttribute;
-import org.apache.directory.scim.Resource;
+import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.GroupResource;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.SimpleAttribute;
@@ -49,7 +49,7 @@ public class ResourceSerializer
     public static final String CORE_EXT_USER_URI = "urn:scim:schemas:extension:enterprise:2.0:User";
     
 
-    public static String serialize( Resource resource )
+    public static String serialize( ServerResource resource )
     {
         JsonObject root = new JsonObject();
 

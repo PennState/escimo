@@ -38,11 +38,14 @@ import java.util.Properties;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.cursor.EntryCursor;
 import org.apache.directory.api.ldap.model.entry.Attribute;
-import org.apache.directory.api.ldap.model.entry.DefaultAttribute;
 import org.apache.directory.api.ldap.model.entry.DefaultEntry;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.entry.Value;
 import org.apache.directory.api.ldap.model.exception.LdapException;
+import org.apache.directory.api.ldap.model.message.ModifyRequest;
+import org.apache.directory.api.ldap.model.message.ModifyRequestImpl;
+import org.apache.directory.api.ldap.model.message.ModifyResponse;
+import org.apache.directory.api.ldap.model.message.ResultCodeEnum;
 import org.apache.directory.api.ldap.model.message.SearchRequest;
 import org.apache.directory.api.ldap.model.message.SearchRequestImpl;
 import org.apache.directory.api.ldap.model.message.SearchScope;
@@ -65,12 +68,12 @@ import org.apache.directory.ldap.client.api.LdapConnectionConfig;
 import org.apache.directory.ldap.client.api.LdapNetworkConnection;
 import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.ComplexAttribute;
-import org.apache.directory.scim.Resource;
 import org.apache.directory.scim.GroupResource;
 import org.apache.directory.scim.MissingParameterException;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.ProviderService;
 import org.apache.directory.scim.RequestContext;
+import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.ResourceNotFoundException;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
@@ -81,7 +84,6 @@ import org.apache.directory.scim.ldap.schema.MultiValType;
 import org.apache.directory.scim.ldap.schema.ResourceSchema;
 import org.apache.directory.scim.ldap.schema.SimpleType;
 import org.apache.directory.scim.ldap.schema.SimpleTypeGroup;
-import org.apache.directory.scim.ldap.schema.TypedType;
 import org.apache.directory.scim.ldap.schema.UserSchema;
 import org.apache.directory.scim.schema.BaseType;
 import org.apache.directory.scim.schema.JsonSchema;
@@ -90,6 +92,7 @@ import org.apache.directory.scim.util.ResourceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -102,6 +105,7 @@ import com.google.gson.JsonParser;
  */
 public class LdapResourceProvider implements ProviderService
 {
+
     private LdapConnection connection;
 
     private LdapSchemaMapper schemaMapper;
@@ -116,6 +120,7 @@ public class LdapResourceProvider implements ProviderService
 
     private static final Logger LOG = LoggerFactory.getLogger( LdapResourceProvider.class );
 
+    private static final String ENTRYDN_HEADER = "X-ENTRYDN";
 
     public LdapResourceProvider()
     {
@@ -288,7 +293,7 @@ public class LdapResourceProvider implements ProviderService
     }
 
     
-    private void addAttributes( Entry entry, JsonObject obj, RequestContext ctx ) throws LdapException
+    private void addAttributes( Entry entry, JsonObject obj, RequestContext ctx, ResourceSchema resourceSchema ) throws LdapException
     {
         for( java.util.Map.Entry<String, JsonElement> e : obj.entrySet() )
         {
@@ -299,7 +304,7 @@ public class LdapResourceProvider implements ProviderService
                 continue;
             }
             
-            BaseType bt = userSchema.getAttribute( name );
+            BaseType bt = resourceSchema.getAttribute( name );
             
             if( bt == null )
             {
@@ -311,7 +316,7 @@ public class LdapResourceProvider implements ProviderService
                 continue;
             }
 
-            AttributeHandler handler = userSchema.getHandler( bt.getAtHandlerName() );
+            AttributeHandler handler = resourceSchema.getHandler( bt.getAtHandlerName() );
             
             if( handler != null )
             {
@@ -332,31 +337,12 @@ public class LdapResourceProvider implements ProviderService
             JsonParser parser = new JsonParser();
             JsonObject obj = ( JsonObject ) parser.parse( json );
             
-            Entry entry = new DefaultEntry();
-            
-            // process the core attributes first
-            addAttributes( entry, obj, ctx );
-            
-            List<String> uris = userSchema.getUris();
-            
-            for( String u : uris )
-            {
-                JsonObject userAtObj = ( JsonObject ) obj.get( u );
-                if( userAtObj != null )
-                {
-                    addAttributes( entry, userAtObj, ctx );
-                }
-            }
-
-            for( String oc : userSchema.getObjectClasses() )
-            {
-                entry.add( SchemaConstants.OBJECT_CLASS, oc );
-            }
-            
+            Entry entry = new DefaultEntry( ldapSchema );
+         
             SimpleType st = ( SimpleType ) userSchema.getCoreAttribute( "userName" );
             String userIdName = st.getMappedTo();
 
-            String dn = ctx.getReqParam( "userDn" );
+            String dn = ctx.getHeaderValue( ENTRYDN_HEADER );
             
             if( Strings.isEmpty( dn ) )
             {
@@ -370,9 +356,7 @@ public class LdapResourceProvider implements ProviderService
                 dn = userIdName + "=" + userName + "," + userSchema.getBaseDn();
             }
             
-            entry.setDn( dn );
-            
-            connection.add( entry );
+            _resourceToEntry( entry, obj, ctx, userSchema, dn );
             
             entry = connection.lookup( entry.getDn(), SchemaConstants.ALL_ATTRIBUTES_ARRAY );
 
@@ -383,11 +367,306 @@ public class LdapResourceProvider implements ProviderService
             _loadCoreResource( ctx, entry, userSchema );
             
             return addedUser;
+
         }
         catch( Exception e )
         {
-            e.printStackTrace();
+            LOG.warn( "Failed to create User resource", e );
             throw e;
+        }
+    }
+    
+    
+    public GroupResource addGroup( String jsonData, RequestContext ctx ) throws Exception
+    {
+        try
+        {
+            JsonParser parser = new JsonParser();
+            JsonObject obj = ( JsonObject ) parser.parse( jsonData );
+            
+            Entry entry = new DefaultEntry( ldapSchema );
+         
+            SimpleType st = ( SimpleType ) groupSchema.getCoreAttribute( "displayName" );
+            String groupNameAt = st.getMappedTo();
+
+            String dn = ctx.getHeaderValue( ENTRYDN_HEADER );
+            
+            if( Strings.isEmpty( dn ) )
+            {
+                dn = null;
+            }
+            
+            if( dn == null )
+            {
+                String groupName = obj.get( "displayName" ).getAsString();
+                
+                dn = groupNameAt + "=" + groupName + "," + groupSchema.getBaseDn();
+            }
+            
+            _resourceToEntry( entry, obj, ctx, groupSchema, dn );
+            
+            entry = connection.lookup( entry.getDn(), SchemaConstants.ALL_ATTRIBUTES_ARRAY );
+
+            GroupResource addedGroup = new GroupResource();
+
+            ctx.setCoreResource( addedGroup );
+
+            _loadCoreResource( ctx, entry, groupSchema );
+            
+            return addedGroup;
+
+        }
+        catch( Exception e )
+        {
+            LOG.warn( "Failed to create Group resource", e );
+            throw e;
+        }
+    }
+
+
+    private void _resourceToEntry( Entry entry, JsonObject obj, RequestContext ctx, ResourceSchema resourceSchema, String dn ) throws Exception
+    {
+
+        // process the core attributes first
+        addAttributes( entry, obj, ctx, resourceSchema );
+        
+        List<String> uris = resourceSchema.getUris();
+        
+        for( String u : uris )
+        {
+            JsonObject userAtObj = ( JsonObject ) obj.get( u );
+            if( userAtObj != null )
+            {
+                addAttributes( entry, userAtObj, ctx, resourceSchema );
+            }
+        }
+
+        for( String oc : resourceSchema.getObjectClasses() )
+        {
+            entry.add( SchemaConstants.OBJECT_CLASS, oc );
+        }
+        
+        
+        entry.setDn( dn );
+        
+        connection.add( entry );
+    }
+    
+    
+    // TODO can userName be changed for a user?? likewise displayName for a Group
+    public ServerResource replaceResource( String jsonData, RequestContext ctx, ResourceSchema resourceSchema ) throws Exception
+    {
+        JsonParser parser = new JsonParser();
+        JsonObject obj = ( JsonObject ) parser.parse( jsonData );
+        
+        String resourceId = obj.get( "id" ).getAsString();
+        
+        Entry entry = new DefaultEntry( ldapSchema );
+        
+        _resourceToEntry( entry, obj, ctx, resourceSchema, "" );
+        
+        Entry existingEntry = fetchEntryById( resourceId, resourceSchema );
+        
+        // save a reference to the existing password attribute
+        Attribute existingPwdAt = existingEntry.get( SchemaConstants.USER_PASSWORD_AT );
+        Attribute newPwdAt = entry.get( SchemaConstants.USER_PASSWORD_AT );
+        
+        if( existingPwdAt != null )
+        {
+            existingEntry.remove( existingPwdAt );
+        }
+        
+        if( newPwdAt != null )
+        {
+            entry.remove( newPwdAt );
+        }
+        
+        Attribute existingUserNameAt = null;
+        Attribute newUserNameAt = null;
+        SimpleType st = null;
+        
+        if( resourceSchema == userSchema )
+        {
+            st = ( SimpleType ) resourceSchema.getAttribute( "userName" );
+        }
+        else if( resourceSchema == groupSchema )
+        {
+            st = ( SimpleType ) resourceSchema.getAttribute( "displayName" );
+        }
+        
+        if( st != null )
+        {
+            existingUserNameAt = existingEntry.get( st.getMappedTo() );
+            newUserNameAt = entry.get( st.getMappedTo() );
+            
+            if( newUserNameAt != null )
+            {
+                entry.remove( newUserNameAt );
+            }
+        }
+        
+        ModifyRequest modReq = new ModifyRequestImpl();
+        modReq.setName( existingEntry.getDn() );
+        
+        Iterator<Attribute> itr = existingEntry.iterator();
+        while( itr.hasNext() )
+        {
+            Attribute ldapAt = itr.next();
+            
+            AttributeType type = ldapAt.getAttributeType();
+            
+            if( !type.isUserModifiable() )
+            {
+                continue;
+            }
+            
+            if( entry.containsAttribute( type ) )
+            {
+                ldapAt = entry.get( type );
+                entry.removeAttributes( type );
+                modReq.replace( ldapAt );
+            }
+            else
+            {
+                modReq.remove( ldapAt );
+            }
+        }
+        
+        // iterate over the remaining attributes of new entry and add them to modlist as 'add' modifications
+        
+        for( Attribute newAt : entry )
+        {
+            modReq.add( newAt );
+        }
+        
+        if( newPwdAt != null )
+        {
+            if( existingPwdAt != null )
+            {
+                modReq.replace( newPwdAt );
+            }
+            else
+            {
+                modReq.add( newPwdAt );
+            }
+        }
+        
+        ModifyResponse modResp = connection.modify( modReq );
+        
+        if( modResp.getLdapResult().getResultCode() != ResultCodeEnum.SUCCESS )
+        {
+            throw new Exception( "Failed to replace the resource " + modResp.getLdapResult().getDiagnosticMessage() );
+        }
+        
+        if( newUserNameAt != null )
+        {
+            if( !existingUserNameAt.contains( newUserNameAt.getString() ) )
+            {
+                // a modDN needs to be performed
+                connection.rename( existingEntry.getDn().getName(), newUserNameAt.getUpId() + "=" + newUserNameAt.getString(), true );
+            }
+        }
+        
+        entry = fetchEntryById( resourceId, resourceSchema );
+        
+        ServerResource resource = null;
+        
+        if( resourceSchema == userSchema )
+        {
+            resource = new UserResource();
+        }
+        else
+        {
+            resource = new GroupResource();
+        }
+
+        ctx.setCoreResource( resource );
+
+        _loadCoreResource( ctx, entry, resourceSchema );
+        
+        return resource;
+    }
+    
+    
+    public void patchResource( String jsonData, RequestContext ctx, ResourceSchema resourceSchema ) throws Exception
+    {
+        JsonParser parser = new JsonParser();
+        JsonObject obj = ( JsonObject ) parser.parse( jsonData );
+
+        String resourceId = obj.get( "id" ).getAsString();
+        
+        Entry existingEntry = fetchEntryById( resourceId, resourceSchema );
+        
+        if( existingEntry == null )
+        {
+            throw new ResourceNotFoundException( "No resource found with the id " + resourceId );
+        }
+        
+        
+        ModifyRequest modReq = new ModifyRequestImpl();
+        modReq.setName( existingEntry.getDn() );
+        
+        List<String> deleteModAtOids = new ArrayList<String>();
+        
+        JsonObject metaObj = ( JsonObject ) obj.get( "meta" );
+        if( metaObj != null )
+        {
+            JsonArray metaAtNames = ( JsonArray ) metaObj.get( "attributes" );
+            if( metaAtNames != null )
+            {
+                for( JsonElement e : metaAtNames )
+                {
+                    String name = e.getAsString();
+                    BaseType bt = resourceSchema.getAttribute( name );
+                    
+                    if( bt == null )
+                    {
+                        //FIXME should throw attribute not found exception
+                        throw new ResourceNotFoundException( "No definition found for the attribute " + name );
+                    }
+                    
+                    if( bt.isReadOnly() || ( ! ( bt instanceof SimpleType ) ) )
+                    {
+                        continue;
+                    }
+                    
+                    SimpleType st = ( SimpleType ) bt;
+                    
+                    name = st.getMappedTo();
+                    
+                    if( !Strings.isEmpty( name ) )
+                    {
+                        Attribute ldapAt = existingEntry.get( name );
+                        modReq.remove( ldapAt );
+                        deleteModAtOids.add( ldapAt.getAttributeType().getOid() );
+                    }
+                }
+            }
+        }
+
+        Entry entry = new DefaultEntry( ldapSchema );
+        
+        _resourceToEntry( entry, obj, ctx, resourceSchema, "" );
+
+        for( Attribute ldapAt : entry )
+        {
+            AttributeType type = ldapAt.getAttributeType();
+            
+            if( deleteModAtOids.contains( type.getOid() ) )
+            {
+                modReq.add( ldapAt );
+            }
+            else if( existingEntry.containsAttribute( type ) )
+            {
+                if( type.isSingleValued() )
+                {
+                    modReq.replace( ldapAt );
+                }
+                else
+                {
+                    modReq.add( ldapAt );
+                }
+            }
         }
     }
     
@@ -416,7 +695,7 @@ public class LdapResourceProvider implements ProviderService
 
     private void _loadCoreResource( RequestContext ctx, Entry entry, ResourceSchema resourceSchema ) throws Exception
     {
-        Resource resource = ctx.getCoreResource();
+        ServerResource resource = ctx.getCoreResource();
 
         // first fill in the id, we need this for deriving location
         SimpleType idType = ( SimpleType ) resourceSchema.getCoreAttribute( "id" );
@@ -433,7 +712,7 @@ public class LdapResourceProvider implements ProviderService
     private void _loadAttributes( RequestContext ctx, Entry entry, Collection<BaseType> types, SimpleType idType )
         throws Exception
     {
-        Resource user = ctx.getCoreResource();
+        ServerResource user = ctx.getCoreResource();
 
         for ( BaseType bt : types )
         {

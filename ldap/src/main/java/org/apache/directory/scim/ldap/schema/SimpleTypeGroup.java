@@ -36,6 +36,7 @@ public class SimpleTypeGroup
     /** used for setting the value of "formatted" attribute */
     private String format;
 
+
     public SimpleTypeGroup( List<SimpleType> subTypes, String format )
     {
         this.subTypes = subTypes;
@@ -60,19 +61,31 @@ public class SimpleTypeGroup
         return Collections.unmodifiableList( subTypes );
     }
 
-    
+
     public SimpleType getValueType()
     {
-        for( SimpleType st : subTypes )
+        return getType( "value" );
+    }
+
+
+    public SimpleType getType( String name )
+    {
+        if( subTypes == null )
         {
-            if( "value".equals( st.getName() ))
+            return null;
+        }
+        
+        for ( SimpleType st : subTypes )
+        {
+            if ( name.equals( st.getName() ) )
             {
                 return st;
             }
         }
-        
+
         return null;
     }
+
 
     /* (non-Javadoc)
      * @see java.lang.Object#toString()
@@ -82,5 +95,5 @@ public class SimpleTypeGroup
     {
         return "SimpleTypeGroup [subTypes=" + subTypes + ", format=" + format + "]";
     }
-    
+
 }

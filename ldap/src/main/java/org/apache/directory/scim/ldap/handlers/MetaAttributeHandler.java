@@ -28,7 +28,7 @@ import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.ComplexAttribute;
-import org.apache.directory.scim.Resource;
+import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.GroupResource;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.SimpleAttribute;
@@ -84,7 +84,7 @@ public class MetaAttributeHandler extends AttributeHandler
                 atList.add( lastModified );
             }
 
-            Resource resource = ctx.getCoreResource();
+            ServerResource resource = ctx.getCoreResource();
             
             String resourceType = "User";
             

@@ -41,4 +41,6 @@ public interface ProviderService
     JsonSchema getSchema( String uriId );
     
     UserResource addUser( String jsonData, RequestContext ctx ) throws Exception;
+    
+    GroupResource addGroup( String jsonData, RequestContext ctx ) throws Exception;
 }

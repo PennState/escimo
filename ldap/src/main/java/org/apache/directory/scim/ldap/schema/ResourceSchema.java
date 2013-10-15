@@ -80,8 +80,42 @@ public abstract class ResourceSchema
 
     public BaseType getAttribute( String name )
     {
+        if( name.contains( "." ) )
+        {
+            String[] atPath = name.split( "." );
+            
+            BaseType b = _findAtType( atPath[0] );
+            
+            
+            SimpleTypeGroup stg = null;
+            
+            if ( b instanceof ComplexType )
+            {
+                ComplexType c = ( ComplexType ) b;
+                stg = c.getAtGroup();
+            }
+            else if ( b instanceof MultiValType )
+            {
+                MultiValType m = ( MultiValType ) b;
+                stg = m.getAtGroup();
+            }
+            
+            if( stg != null )
+            {
+                return stg.getType( atPath[1] );
+            }
+            
+            return null;
+        }
+
+        return _findAtType( name );
+    }
+
+    
+    private BaseType _findAtType( String name )
+    {
         BaseType bt = coreTypes.get( name );
-       
+        
         if ( bt == null )
         {
             bt = extendedTypes.get( name );
@@ -89,7 +123,6 @@ public abstract class ResourceSchema
 
         return bt;
     }
-
 
     public void addAttributeType( String name, BaseType type )
     {

@@ -20,9 +20,9 @@
 package org.apache.directory.scim;
 
 
-import java.util.HashMap;
-import java.util.Map;
+import java.util.List;
 
+import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.UriInfo;
 
 
@@ -37,23 +37,25 @@ public class RequestContext
 
     private UriInfo uriInfo;
 
-    private Resource resource;
+    private HttpHeaders headers;
+    
+    private ServerResource resource;
 
-    private Map<String,String> reqParams;
-
-    public RequestContext( ProviderService providerService )
+    public RequestContext( ProviderService providerService, UriInfo uriInfo, HttpHeaders headers )
     {
         this.providerService = providerService;
+        this.uriInfo = uriInfo;
+        this.headers = headers;
     }
 
 
-    public Resource getCoreResource()
+    public ServerResource getCoreResource()
     {
         return resource;
     }
 
 
-    public void setCoreResource( Resource resource )
+    public void setCoreResource( ServerResource resource )
     {
         this.resource = resource;
     }
@@ -65,9 +67,12 @@ public class RequestContext
     }
 
 
-    public void setUriInfo( UriInfo uriInfo )
+    /**
+     * @return the headers
+     */
+    public HttpHeaders getHeaders()
     {
-        this.uriInfo = uriInfo;
+        return headers;
     }
 
 
@@ -77,24 +82,15 @@ public class RequestContext
     }
 
     
-    public void addReqParam( String name, String value )
+    public String getHeaderValue( String name )
     {
-        if( reqParams == null )
-        {
-            reqParams = new HashMap<String, String>();
-        }
+        List<String> lst = headers.getRequestHeader( name );
         
-        reqParams.put( name, value );
-    }
-    
-    
-    public String getReqParam( String name )
-    {
-        if( reqParams == null )
+        if( ( lst == null ) || ( lst.isEmpty() ) )
         {
             return null;
         }
         
-        return reqParams.get( name );
+        return lst.get( 0 );
     }
 }
