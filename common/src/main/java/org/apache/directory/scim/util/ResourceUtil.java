@@ -43,8 +43,7 @@ public class ResourceUtil
 
         start = end;
         end += 2;
-        sb.append( zTime.substring( start, end ) )
-            .append( "-" );
+        sb.append( zTime.substring( start, end ) );
 
         sb.append( "T" );
 

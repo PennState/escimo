@@ -42,14 +42,12 @@ import org.apache.directory.api.ldap.model.entry.DefaultEntry;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.entry.Value;
 import org.apache.directory.api.ldap.model.exception.LdapException;
+import org.apache.directory.api.ldap.model.ldif.LdifEntry;
+import org.apache.directory.api.ldap.model.ldif.LdifReader;
 import org.apache.directory.api.ldap.model.message.ModifyRequest;
 import org.apache.directory.api.ldap.model.message.ModifyRequestImpl;
 import org.apache.directory.api.ldap.model.message.ModifyResponse;
 import org.apache.directory.api.ldap.model.message.ResultCodeEnum;
-import org.apache.directory.api.ldap.model.message.SearchRequest;
-import org.apache.directory.api.ldap.model.message.SearchRequestImpl;
-import org.apache.directory.api.ldap.model.message.SearchScope;
-import org.apache.directory.api.ldap.model.message.controls.ManageDsaITImpl;
 import org.apache.directory.api.ldap.model.schema.AttributeType;
 import org.apache.directory.api.ldap.model.schema.LdapSyntax;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
@@ -73,8 +71,8 @@ import org.apache.directory.scim.MissingParameterException;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.ProviderService;
 import org.apache.directory.scim.RequestContext;
-import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.ResourceNotFoundException;
+import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
 import org.apache.directory.scim.UserResource;
@@ -293,8 +291,10 @@ public class LdapResourceProvider implements ProviderService
     }
 
     
-    private void addAttributes( Entry entry, JsonObject obj, RequestContext ctx, ResourceSchema resourceSchema ) throws LdapException
+    private void addAttributes( Entry entry, JsonObject obj, RequestContext ctx, ResourceSchema resourceSchema ) throws Exception
     {
+        //obj.remove( "schemas" );
+        
         for( java.util.Map.Entry<String, JsonElement> e : obj.entrySet() )
         {
             String name = e.getKey();
@@ -308,7 +308,8 @@ public class LdapResourceProvider implements ProviderService
             
             if( bt == null )
             {
-                throw new IllegalArgumentException( "Unknown attribute name "  + name + " is present in the JSON payload that has no corresponding mapping in the escimo-ldap-mapping.xml file" );
+                LOG.debug( "Unknown attribute name "  + name + " is present in the JSON payload that has no corresponding mapping in the escimo-ldap-mapping.xml file" );
+                continue;
             }
             
             if( bt.isReadOnly() )
@@ -646,28 +647,29 @@ public class LdapResourceProvider implements ProviderService
 
         Entry entry = new DefaultEntry( ldapSchema );
         
-        _resourceToEntry( entry, obj, ctx, resourceSchema, "" );
+        LdapUtil.patchAttributes( entry, obj, ctx, resourceSchema, modReq );
+        
 
-        for( Attribute ldapAt : entry )
-        {
-            AttributeType type = ldapAt.getAttributeType();
-            
-            if( deleteModAtOids.contains( type.getOid() ) )
-            {
-                modReq.add( ldapAt );
-            }
-            else if( existingEntry.containsAttribute( type ) )
-            {
-                if( type.isSingleValued() )
-                {
-                    modReq.replace( ldapAt );
-                }
-                else
-                {
-                    modReq.add( ldapAt );
-                }
-            }
-        }
+//        for( Attribute ldapAt : entry )
+//        {
+//            AttributeType type = ldapAt.getAttributeType();
+//            
+//            if( deleteModAtOids.contains( type.getOid() ) )
+//            {
+//                modReq.add( ldapAt );
+//            }
+//            else if( existingEntry.containsAttribute( type ) )
+//            {
+//                if( type.isSingleValued() )
+//                {
+//                    modReq.replace( ldapAt );
+//                }
+//                else
+//                {
+//                    modReq.add( ldapAt );
+//                }
+//            }
+//        }
     }
     
     public UserResource toUser( RequestContext ctx, Entry entry ) throws Exception
@@ -681,6 +683,23 @@ public class LdapResourceProvider implements ProviderService
         return user;
     }
 
+    
+    public void deleteUser( String id ) throws Exception
+    {
+        deleteResource( id, userSchema );
+    }
+    
+    public void deleteGroup( String id ) throws Exception
+    {
+        deleteResource( id, groupSchema );
+    }
+    
+    
+    private void deleteResource( String id, ResourceSchema schema ) throws LdapException
+    {
+        Entry entry = fetchEntryById( id, schema );
+        connection.delete( entry.getDn() );
+    }
 
     public GroupResource toGroup( RequestContext ctx, Entry entry ) throws Exception
     {
@@ -1029,7 +1048,8 @@ public class LdapResourceProvider implements ProviderService
     {
         return ldapSchema;
     }
-
+    
+    private static String HPD_PROVIDER_DN = "m-oid=1.3.6.1.4.1.19376.1.2.4.1,ou=objectClasses,cn=hpd,ou=schema";
 
     public static void main( String[] args ) throws Exception
     {
@@ -1043,25 +1063,24 @@ public class LdapResourceProvider implements ProviderService
 
         LdapNetworkConnection c = new LdapNetworkConnection( "localhost", 10389 );
         c.setTimeOut( Long.MAX_VALUE );
-        c.bind( "cn=mta,dc=example,dc=com", "secret" );
-        c.loadSchema();
+        c.bind( "uid=admin,ou=system", "secret" );
+//        c.loadSchema();
         //c.loadSchema( new JarLdifSchemaLoader() );
 
-        ManageDsaITImpl managedsa = new ManageDsaITImpl();
-        SearchRequest req = new SearchRequestImpl();
-        req.addControl( managedsa );
-
-        //EntryCursor cursor = c.search( "", "(entryUUID=7ca31977-ba2d-4cdc-a86d-ba9fba06cd15)", SearchScope.SUBTREE, "*" );
-        EntryCursor cursor = c.search( "dc=example,dc=com", "(objectClass=*)", SearchScope.SUBTREE, "*" );
-        System.out.println("searching");
-
-        while ( cursor.next() )
-        {
-            Entry entry = cursor.get();
-            System.out.println( entry );
-        }
-
-        cursor.close();
+        Entry hpdProviderEntry = c.lookup(HPD_PROVIDER_DN);
+        boolean hasBeenApplied = hpdProviderEntry.contains( "m-may", "hpdProviderLegalAddress1");
+        System.out.println(hasBeenApplied);
+        String ldif = "dn: m-oid=1.3.6.1.4.1.19376.1.2.4.1,ou=objectClasses,cn=hpd,ou=schema\n"+
+                      "changetype: modify\n"+
+                      "delete: m-may\n" +
+                      "m-may: hpdProviderLegalAddress\n" +
+                      "-\n";
+        LdifReader reader = new LdifReader( ldif );
+        
+        LdifEntry entry = reader.next();
+        
+        c.add( entry.getEntry() );
+        
         c.close();
     }
 }

@@ -51,7 +51,7 @@
             <at-group>
                 <attribute name="streetAddress" mappedTo="street" />
                 <attribute name="locality" mappedTo="l" />
-                <attribute name="region" mappedTo="region" />
+                <attribute name="region" mappedTo="" />
                 <attribute name="postalCode" mappedTo="postalCode" />
                 <attribute name="country" mappedTo="" />
                 <formatted format="$streetAddress $locality" />

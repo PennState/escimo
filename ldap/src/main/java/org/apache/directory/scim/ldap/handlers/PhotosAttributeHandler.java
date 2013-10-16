@@ -20,26 +20,31 @@
 package org.apache.directory.scim.ldap.handlers;
 
 
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.net.URL;
 import java.net.URLEncoder;
-import java.util.List;
 
 import org.apache.directory.api.ldap.model.entry.Attribute;
+import org.apache.directory.api.ldap.model.entry.DefaultAttribute;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.entry.Value;
-import org.apache.directory.scim.AttributeHandler;
-import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.RequestContext;
+import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
-import org.apache.directory.scim.UserResource;
 import org.apache.directory.scim.ldap.schema.MultiValType;
 import org.apache.directory.scim.ldap.schema.SimpleType;
 import org.apache.directory.scim.ldap.schema.SimpleTypeGroup;
-import org.apache.directory.scim.ldap.schema.TypedType;
 import org.apache.directory.scim.schema.BaseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 
 /**
@@ -47,7 +52,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class PhotosAttributeHandler extends AttributeHandler
+public class PhotosAttributeHandler extends LdapAttributeHandler
 {
 
     private static final Logger LOG = LoggerFactory.getLogger( PhotosAttributeHandler.class );
@@ -56,12 +61,7 @@ public class PhotosAttributeHandler extends AttributeHandler
     @Override
     public void read( BaseType bt, Object srcResource, RequestContext ctx )
     {
-        if ( !bt.getName().equals( "photos" ) )
-        {
-            LOG.debug( "PhotosAttributeHandler can  only be called on the photos attribute, invalid attribute name {}",
-                bt.getName() );
-            return;
-        }
+        checkHandler( bt, "photos", this );
 
         ServerResource user = ctx.getCoreResource();
 
@@ -131,4 +131,87 @@ public class PhotosAttributeHandler extends AttributeHandler
         }
     }
 
+
+    @Override
+    public void write( BaseType atType, JsonElement jsonData, Object targetEntry, RequestContext ctx ) throws Exception
+    {
+        checkHandler( atType, "photos", this );
+        
+        MultiValType mt = ( MultiValType ) atType;
+        
+        SimpleType st = mt.getAtGroup().getValueType();
+        
+        JsonArray photos = ( JsonArray ) jsonData;
+        
+        Entry entry = ( Entry ) targetEntry;
+        
+        Attribute ldapAt = entry.get( st.getMappedTo() );
+        
+        // fetch the URL and insert the photo
+        for( JsonElement je : photos )
+        {
+            String url = null;
+            
+            // for the cases where multivalued attribute comes as an array of primitives
+            // e.x "photos":['http://example.com/p1', 'http://example.com/p2']
+            if( je.isJsonPrimitive() )
+            {
+                url = je.getAsString();
+            }
+            else
+            {
+                JsonObject jo = ( JsonObject ) je;
+                url = jo.get( "value" ).getAsString();
+            }
+            
+            byte[] data = fetchPhoto( url );
+            
+            
+            if( ldapAt == null )
+            {
+                ldapAt = new DefaultAttribute( st.getMappedTo(), data );
+                entry.add( ldapAt );
+            }
+            else
+            {
+                ldapAt.add( data );
+            }
+        }
+    }
+
+    
+    private byte[] fetchPhoto( String url ) throws IOException
+    {
+        InputStream in = null;
+        ByteArrayOutputStream bout = new ByteArrayOutputStream();
+
+        try
+        {
+            in = new URL( url ).openStream();
+            byte[] buf = new byte[1024];
+            
+            while( true )
+            {
+                int read = in.read( buf );
+                
+                if( read <= 0 )
+                {
+                    break;
+                }
+                
+                bout.write( buf, 0, read );
+            }
+            
+            return bout.toByteArray();
+        }
+        finally
+        {
+            if( in != null )
+            {
+                in.close();
+            }
+
+            bout.close();
+        }
+    }
 }

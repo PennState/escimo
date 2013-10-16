@@ -39,7 +39,6 @@ import org.apache.directory.api.ldap.model.filter.FilterVisitor;
 import org.apache.directory.api.ldap.model.filter.SimpleNode;
 import org.apache.directory.api.ldap.model.message.SearchScope;
 import org.apache.directory.api.util.Strings;
-import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.SimpleAttribute;
@@ -56,7 +55,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class GroupsAttributeHandler extends AttributeHandler
+public class GroupsAttributeHandler extends LdapAttributeHandler
 {
 
     private static final Logger LOG = LoggerFactory.getLogger( GroupsAttributeHandler.class );

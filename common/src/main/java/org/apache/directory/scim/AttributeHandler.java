@@ -34,8 +34,7 @@ public abstract class AttributeHandler
 {
     public abstract void read( BaseType bt, Object srcResource, RequestContext ctx );
     
-    public void write( BaseType atType, JsonElement jsonData, Object targetEntry, RequestContext ctx )
-    {
-        
-    }
+    public abstract void write( BaseType atType, JsonElement jsonData, Object targetEntry, RequestContext ctx ) throws Exception;
+    
+    public abstract void patch( BaseType atType, JsonElement jsonData, Object targetEntry, RequestContext ctx, Object patchCtx ) throws Exception;
 }

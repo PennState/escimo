@@ -23,10 +23,15 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.directory.scim.User.Email;
 import org.apache.directory.scim.User.Name;
+import org.apache.directory.scim.schema.CoreResource;
+import org.junit.AfterClass;
+import org.junit.BeforeClass;
 import org.junit.Test;
 
 /**
@@ -34,12 +39,51 @@ import org.junit.Test;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
+//@ApplyLdifs(
+//    {
+//        "dn: uid=user1,ou=users,ou=system",
+//        "objectClass: inetOrgPerson",
+//        "sn: user1 sn",
+//        "cn: user One",
+//        "uid: user1",
+//
+//        "dn: uid=user2,ou=users,ou=system",
+//        "objectClass: inetOrgPerson",
+//        "sn: User Two",
+//        "cn: user2",
+//        "uid: user2",
+//
+//        "dn: uid=elecharny,ou=users,ou=system",
+//        "objectClass: inetOrgPerson",
+//        "sn:: RW1tYW51ZWwgTMOpY2hhcm55",
+//        "cn: elecharny",
+//        "uid: elecharny"
+//})
 public class UserResourceTest
 {
-    private EscimoClient client = new EscimoClient( "http://localhost:8080/v2" );
+    private static EscimoClient client;
+    
+    @BeforeClass
+    public static void startJetty() throws Exception
+    {
+        Map<String,Class<? extends CoreResource>> uriClassMap = new HashMap<String, Class<? extends CoreResource>>();
+        uriClassMap.put( User.SCHEMA_ID, User.class );
+        uriClassMap.put( Group.SCHEMA_ID, Group.class );
+        uriClassMap.put( EnterpriseUser.SCHEMA_ID, EnterpriseUser.class );
+        
+        client = new EscimoClient( "http://localhost:8080/v2", uriClassMap );
+        
+        JettyServer.start();
+    }
+    
+    @AfterClass
+    public static void stopJetty() throws Exception
+    {
+        JettyServer.stop();
+    }
     
     @Test
-    public void testAddUser() throws Exception
+    public void testAddGetAndDeleteUser() throws Exception
     {
         User user = new User();
         user.setUserName( "test2" );
@@ -63,5 +107,12 @@ public class UserResourceTest
         assertNotNull( addedUser );
         
         assertEquals( user.getUserName(), addedUser.getUserName() );
+        
+        User fetchedUser = ( User ) client.getUser( addedUser.getId() );
+        
+        assertEquals( addedUser.getUserName(), fetchedUser.getUserName() );
+        assertEquals( addedUser.getId(), fetchedUser.getId() );
+        
+//        client.
     }
 }

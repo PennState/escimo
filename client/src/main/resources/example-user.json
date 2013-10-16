@@ -64,12 +64,8 @@
      ],
      "photos": [
        {
-         "value": "https://photos.example.com/profilephoto/72930000000Ccne/F",
+         "value": "file:///Users/dbugger/myphotos/23.jpg",
          "type": "photo"
-       },
-       {
-         "value": "https://photos.example.com/profilephoto/72930000000Ccne/T",
-         "type": "thumbnail"
        }
      ],
      "userType": "Employee",

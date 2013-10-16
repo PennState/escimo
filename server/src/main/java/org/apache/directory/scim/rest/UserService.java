@@ -25,6 +25,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -79,6 +80,25 @@ public class UserService
             rb = Response.ok( json, MediaType.APPLICATION_JSON );
         }
         catch( ResourceNotFoundException e )
+        {
+            rb = Response.status( Status.INTERNAL_SERVER_ERROR ).entity( exceptionToStr( e ) );
+        }
+        
+        return rb.build();
+    }
+    
+
+    @DELETE
+    @Path("{id}")
+    public Response deleteUser( @PathParam("id") String userId, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    {
+        ResponseBuilder rb = Response.ok();
+        
+        try
+        {
+            provider.deleteUser( userId );
+        }
+        catch( Exception e )
         {
             rb = Response.status( Status.INTERNAL_SERVER_ERROR ).entity( exceptionToStr( e ) );
         }

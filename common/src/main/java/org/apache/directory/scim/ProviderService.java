@@ -43,4 +43,16 @@ public interface ProviderService
     UserResource addUser( String jsonData, RequestContext ctx ) throws Exception;
     
     GroupResource addGroup( String jsonData, RequestContext ctx ) throws Exception;
+    
+    void deleteUser( String id ) throws Exception;
+    
+    void deleteGroup( String id ) throws Exception;
+    
+    /*UserResource putUser( String jsonData, RequestContext ctx ) throws Exception;
+    
+    GroupResource putGroup( String jsonData, RequestContext ctx ) throws Exception;
+
+    UserResource patchUser( String jsonData, RequestContext ctx ) throws Exception;
+    
+    GroupResource patchGroup( String jsonData, RequestContext ctx ) throws Exception;*/
 }

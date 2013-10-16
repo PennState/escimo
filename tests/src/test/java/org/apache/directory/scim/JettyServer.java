@@ -5,9 +5,23 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.InputStream;
 import java.util.Enumeration;
+import java.util.concurrent.CountDownLatch;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
+import org.apache.directory.api.ldap.model.schema.SchemaManager;
+import org.apache.directory.server.annotations.CreateLdapServer;
+import org.apache.directory.server.annotations.CreateTransport;
+import org.apache.directory.server.core.annotations.ContextEntry;
+import org.apache.directory.server.core.annotations.CreateDS;
+import org.apache.directory.server.core.annotations.CreateIndex;
+import org.apache.directory.server.core.annotations.CreatePartition;
+import org.apache.directory.server.core.api.CoreSession;
+import org.apache.directory.server.core.api.DirectoryService;
+import org.apache.directory.server.core.factory.DSAnnotationProcessor;
+import org.apache.directory.server.factory.ServerAnnotationProcessor;
+import org.apache.directory.server.ldap.LdapServer;
+import org.apache.directory.server.ldap.replication.provider.SyncReplRequestHandler;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.webapp.WebAppContext;
 
@@ -18,7 +32,10 @@ public class JettyServer
 {
     private static Server server;
 
+    private static LdapServer ldapServer;
 
+    private static CoreSession adminSession;
+    
     public static void start() throws Exception
     {
         if ( ( server != null ) && server.isRunning() )
@@ -26,13 +43,15 @@ public class JettyServer
             return;
         }
         
+        startLdapServer();
+        
         WebAppContext webapp = new WebAppContext();
         webapp.setContextPath( "/" );
         webapp.setWar( getEscimoWar().getAbsolutePath() );
         webapp.setParentLoaderPriority( true );
         String cpath = System.getProperty("java.class.path");
         
-        checkForJdk6Compliance( cpath );
+        //checkForJdk6Compliance( cpath );
         
         cpath = cpath.replaceAll( ":", ";" );
 //        webapp.setExtraClasspath( cpath );
@@ -40,7 +59,6 @@ public class JettyServer
         server = new Server( 8080 );
         server.setHandler( webapp );
         server.start();
-        server.join();
     }
 
 
@@ -56,6 +74,11 @@ public class JettyServer
             {
                 e.printStackTrace();
             }
+        }
+        
+        if( ldapServer != null )
+        {
+            ldapServer.stop();
         }
     }
 
@@ -109,6 +132,60 @@ public class JettyServer
         return warFile;
     }
 
+    
+    
+    @CreateDS(
+        allowAnonAccess = true,
+        name = "provider-replication",
+        enableChangeLog = false,
+        partitions =
+            {
+                @CreatePartition(
+                    name = "example",
+                    suffix = "dc=example,dc=com",
+                    indexes =
+                        {
+                            @CreateIndex(attribute = "objectClass"),
+                            @CreateIndex(attribute = "dc"),
+                            @CreateIndex(attribute = "ou")
+                    },
+                    contextEntry = @ContextEntry(entryLdif =
+                        "dn: dc=example,dc=com\n" +
+                            "objectClass: domain\n" +
+                            "dc: example"))
+        })
+    @CreateLdapServer(transports =
+        { @CreateTransport(port = 10389, protocol = "LDAP") })
+    public static void startLdapServer() throws Exception
+    {
+        DirectoryService provDirService = DSAnnotationProcessor.getDirectoryService();
+
+        ldapServer = ServerAnnotationProcessor.getLdapServer( provDirService );
+        ldapServer.setReplicationReqHandler( new SyncReplRequestHandler() );
+        ldapServer.startReplicationProducer();
+
+        Runnable r = new Runnable()
+        {
+
+            public void run()
+            {
+                try
+                {
+                    adminSession = ldapServer.getDirectoryService().getAdminSession();
+                }
+                catch ( Exception e )
+                {
+                    throw new RuntimeException( e );
+                }
+            }
+        };
+
+        Thread t = new Thread( r );
+        t.setDaemon( true );
+        t.start();
+        t.join();
+    }
+    
     private static void checkForJdk6Compliance( String classpath ) throws Exception
     {
         String[] files = classpath.split( ":" );

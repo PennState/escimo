@@ -26,11 +26,10 @@ import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.entry.Attribute;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.exception.LdapException;
-import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.ComplexAttribute;
-import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.GroupResource;
 import org.apache.directory.scim.RequestContext;
+import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.schema.BaseType;
 import org.apache.directory.scim.util.ResourceUtil;
@@ -42,7 +41,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class MetaAttributeHandler extends AttributeHandler
+public class MetaAttributeHandler extends LdapAttributeHandler
 {
 
     private static final Logger LOG = LoggerFactory.getLogger( ActiveAttributeHandler.class );

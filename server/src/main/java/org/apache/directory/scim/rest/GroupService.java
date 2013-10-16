@@ -22,6 +22,7 @@ package org.apache.directory.scim.rest;
 
 import java.net.URI;
 
+import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
 import javax.ws.rs.Path;
@@ -81,6 +82,26 @@ public class GroupService
         return rb.build();
     }
 
+    
+    @DELETE
+    @Path("{id}")
+    public Response deleteGroup( @PathParam("id") String userId, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    {
+        ResponseBuilder rb = Response.ok();
+        
+        try
+        {
+            provider.deleteGroup( userId );
+        }
+        catch( Exception e )
+        {
+            rb = Response.status( Status.INTERNAL_SERVER_ERROR ).entity( exceptionToStr( e ) );
+        }
+        
+        return rb.build();
+    }
+
+    
     @POST
     @Produces({MediaType.APPLICATION_JSON})
     public Response addGroup( String jsonData, @Context UriInfo uriInfo, @Context HttpHeaders headers )
