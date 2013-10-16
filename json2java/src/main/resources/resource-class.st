@@ -27,11 +27,15 @@ $visibility$ $static$ class $className$ $if(package)$extends CoreResource$endif$
 {
 
     $allAttrs: { attr | private $attr.javaType$ $attr.name$;}; separator="\n\n"$
+
+   $if(schemaId)$
+    public static String SCHEMA_ID = "$schemaId$";
+   $endif$
     
     public $className$()
     {
 	    $if(schemaId)$
-	     super.setSchemaId( "$schemaId$" );
+	     super.setSchemaId( SCHEMA_ID );
 	    $endif$
 	    
 	    $if(resourceDesc)$
