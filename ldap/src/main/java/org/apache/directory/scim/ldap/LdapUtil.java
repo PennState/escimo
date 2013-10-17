@@ -150,7 +150,7 @@ public class LdapUtil
         Attribute ldapAt = entry.get( ldapType );
         if( ldapAt == null )
         {
-            ldapAt = new DefaultAttribute( ldapAtName );
+            ldapAt = new DefaultAttribute( ldapType );
             entry.add( ldapAt );
         }
         

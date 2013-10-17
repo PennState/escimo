@@ -48,6 +48,7 @@ import org.apache.directory.api.ldap.model.message.ModifyRequest;
 import org.apache.directory.api.ldap.model.message.ModifyRequestImpl;
 import org.apache.directory.api.ldap.model.message.ModifyResponse;
 import org.apache.directory.api.ldap.model.message.ResultCodeEnum;
+import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.schema.AttributeType;
 import org.apache.directory.api.ldap.model.schema.LdapSyntax;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
@@ -76,6 +77,8 @@ import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
 import org.apache.directory.scim.UserResource;
+import org.apache.directory.scim.ldap.LdapSchemaMapper;
+import org.apache.directory.scim.ldap.LdapUtil;
 import org.apache.directory.scim.ldap.schema.ComplexType;
 import org.apache.directory.scim.ldap.schema.GroupSchema;
 import org.apache.directory.scim.ldap.schema.MultiValType;
@@ -238,6 +241,18 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
+    public UserResource putUser( String jsonData, RequestContext ctx ) throws Exception
+    {
+        return ( UserResource ) replaceResource( jsonData, ctx, userSchema );
+    }
+
+
+    public GroupResource putGroup( String jsonData, RequestContext ctx ) throws Exception
+    {
+        return ( GroupResource ) replaceResource( jsonData, ctx, groupSchema );
+    }
+
+
     public InputStream getUserPhoto( String id, String atName ) throws MissingParameterException
     {
         if ( Strings.isEmpty( id ) )
@@ -357,8 +372,11 @@ public class LdapResourceProvider implements ProviderService
                 dn = userIdName + "=" + userName + "," + userSchema.getBaseDn();
             }
             
-            _resourceToEntry( entry, obj, ctx, userSchema, dn );
+            _resourceToEntry( entry, obj, ctx, userSchema );
             
+            entry.setDn( dn );
+            connection.add( entry );
+
             entry = connection.lookup( entry.getDn(), SchemaConstants.ALL_ATTRIBUTES_ARRAY );
 
             UserResource addedUser = new UserResource();
@@ -404,7 +422,10 @@ public class LdapResourceProvider implements ProviderService
                 dn = groupNameAt + "=" + groupName + "," + groupSchema.getBaseDn();
             }
             
-            _resourceToEntry( entry, obj, ctx, groupSchema, dn );
+            _resourceToEntry( entry, obj, ctx, groupSchema );
+            
+            entry.setDn( dn );
+            connection.add( entry );
             
             entry = connection.lookup( entry.getDn(), SchemaConstants.ALL_ATTRIBUTES_ARRAY );
 
@@ -425,7 +446,7 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    private void _resourceToEntry( Entry entry, JsonObject obj, RequestContext ctx, ResourceSchema resourceSchema, String dn ) throws Exception
+    private void _resourceToEntry( Entry entry, JsonObject obj, RequestContext ctx, ResourceSchema resourceSchema ) throws Exception
     {
 
         // process the core attributes first
@@ -446,11 +467,6 @@ public class LdapResourceProvider implements ProviderService
         {
             entry.add( SchemaConstants.OBJECT_CLASS, oc );
         }
-        
-        
-        entry.setDn( dn );
-        
-        connection.add( entry );
     }
     
     
@@ -464,7 +480,7 @@ public class LdapResourceProvider implements ProviderService
         
         Entry entry = new DefaultEntry( ldapSchema );
         
-        _resourceToEntry( entry, obj, ctx, resourceSchema, "" );
+        _resourceToEntry( entry, obj, ctx, resourceSchema );
         
         Entry existingEntry = fetchEntryById( resourceId, resourceSchema );
         
@@ -498,6 +514,12 @@ public class LdapResourceProvider implements ProviderService
         if( st != null )
         {
             existingUserNameAt = existingEntry.get( st.getMappedTo() );
+            
+            if( existingUserNameAt != null )
+            {
+                existingEntry.remove( existingUserNameAt );
+            }
+            
             newUserNameAt = entry.get( st.getMappedTo() );
             
             if( newUserNameAt != null )

@@ -27,7 +27,9 @@ import java.net.URI;
 
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
+import javax.ws.rs.HttpMethod;
 import javax.ws.rs.POST;
+import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
@@ -45,8 +47,8 @@ import javax.ws.rs.core.UriInfo;
 import org.apache.directory.scim.MissingParameterException;
 import org.apache.directory.scim.ProviderService;
 import org.apache.directory.scim.RequestContext;
-import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.ResourceNotFoundException;
+import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.UserResource;
 import org.apache.directory.scim.json.ResourceSerializer;
 import org.slf4j.Logger;
@@ -142,6 +144,42 @@ public class UserService
         
         return rb.build();
     }
+
+    
+    @PUT
+    @Produces({MediaType.APPLICATION_JSON})
+    public Response putUser( String jsonData, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    {
+        ResponseBuilder rb = null;
+
+        if( ( jsonData == null ) || ( jsonData.trim().length() == 0 ) )
+        {
+            rb = Response.status( Status.BAD_REQUEST ).entity( "No data is present with the call to " + uriInfo.getAbsolutePath() );
+            return rb.build();
+        }
+        
+        LOG.debug( "Data received at the URI {}\n{}", uriInfo.getAbsolutePath(), jsonData );
+        
+        try
+        {
+            RequestContext ctx = new RequestContext( provider, uriInfo, headers );
+            
+            ServerResource res = provider.putUser( jsonData, ctx );
+            
+            String json = ResourceSerializer.serialize( res );
+            
+            URI location = uriInfo.getBaseUriBuilder().build( res.getId() );
+            
+            rb = Response.ok().entity( json ).location( location );
+        }
+        catch( Exception e )
+        {
+            rb = Response.status( Status.INTERNAL_SERVER_ERROR ).entity( exceptionToStr( e ) );
+        }
+        
+        return rb.build();
+    }
+
     
     @GET
     @Produces({MediaType.APPLICATION_OCTET_STREAM})

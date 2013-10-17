@@ -19,8 +19,7 @@
  */
 package org.apache.directory.scim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -113,6 +112,44 @@ public class UserResourceTest
         assertEquals( addedUser.getUserName(), fetchedUser.getUserName() );
         assertEquals( addedUser.getId(), fetchedUser.getId() );
         
-//        client.
+        client.deleteUser( fetchedUser.getId() );
+        fetchedUser = ( User ) client.getUser( addedUser.getId() );
+        assertNull( fetchedUser );
+    }
+    
+    @Test
+    public void testPut() throws Exception
+    {
+        User user = new User();
+        user.setUserName( "test2" );
+        user.setDisplayName( "Test UserResource" );
+        user.setPassword( "secret01" );
+        
+        Name name = new Name();
+        name.setFamilyName( "UserResource" );
+        name.setGivenName( "Test" );
+        
+        user.setName( name );
+        
+        List<Email> emails = new ArrayList<Email>();
+        Email mail = new Email();
+        mail.setValue( "test@example.com" );
+        emails.add( mail );
+        user.setEmails( emails );
+
+        User addedUser = ( User ) client.addUser( user );
+        assertNotNull( addedUser );
+
+        addedUser.getEmails().clear();
+        
+        Email newEmail = new Email();
+        newEmail.setValue( "newemail@example.com" );
+        addedUser.getEmails().add( newEmail );
+        
+        User replacedUser = ( User ) client.putUser( addedUser );
+
+        assertNotNull( replacedUser );
+        assertEquals( 1, replacedUser.getEmails().size() );
+        assertEquals( newEmail.getValue(), replacedUser.getEmails().get( 0 ).getValue() );
     }
 }

@@ -32,6 +32,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.impl.client.HttpClients;
@@ -111,6 +112,18 @@ public class EscimoClient
         return deleteResource( id, GROUPS_URI );
     }
 
+    public CoreResource putUser( CoreResource resource ) throws Exception
+    {
+        return putResource( resource, USERS_URI );
+    }
+
+    
+    public CoreResource putGroup( CoreResource resource ) throws Exception
+    {
+        return putResource( resource, GROUPS_URI );
+    }
+
+    
     private boolean deleteResource( String id, String uri ) throws Exception
     {
 
@@ -218,6 +231,44 @@ public class EscimoClient
         return null;
     }
 
+
+    private CoreResource putResource( CoreResource resource, String uri ) throws Exception
+    {
+        if ( resource == null )
+        {
+            throw new IllegalArgumentException( "resource cannot be null" );
+        }
+
+        HttpPut put = new HttpPut( providerUrl + uri );
+
+        String payload = serialize( resource ).toString();
+
+        LOG.debug( "sending JSON payload to URI {} for adding resource:\n{}", uri, payload );
+
+        put.setEntity( new StringEntity( payload, ContentType.APPLICATION_JSON ) );
+
+        HttpClient client = HttpClients.createDefault();
+
+        try
+        {
+            HttpResponse resp = client.execute( put );
+            StatusLine sl = resp.getStatusLine();
+            
+            if ( sl.getStatusCode() == 200 )
+            {
+                String retVal = EntityUtils.toString( resp.getEntity() );
+                
+                return deserialize( retVal );
+            }
+        }
+        catch ( Exception e )
+        {
+            LOG.warn( "", e );
+            throw e;
+        }
+        
+        return null;
+    }
 
     private CoreResource deserialize( String json )
     {
