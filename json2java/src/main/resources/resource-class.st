@@ -43,11 +43,13 @@ $visibility$ $static$ class $className$ $if(package)$extends CoreResource$endif$
 	    $endif$
     }
    
-   $allAttrs: { attr | 
+   $allAttrs: { attr |
+   $if(!attr.readOnly)$ 
     public void set$attr.methodName$( $attr.javaType$ $attr.name$ )
     {      
        this.$attr.name$ = $attr.name$;
     }
+   $endif$
    
     $if(attr.boolean)$
     public $attr.javaType$ is$attr.methodName$()

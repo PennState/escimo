@@ -265,6 +265,8 @@ public class JsonToJava extends AbstractMojo
 
             String name = jo.get( "name" ).getAsString();
 
+            boolean readOnly = jo.get( "readOnly" ).getAsBoolean();
+            
             String javaType = "String";
             if ( type.equals( "numeric" ) )
             {
@@ -312,10 +314,11 @@ public class JsonToJava extends AbstractMojo
                 innerClasses.add( inner.toString() );
             }
 
-            AttributeDetail nc = new AttributeDetail( name, javaType );
-            nc.setMultiValued( multiValued );
+            AttributeDetail ad = new AttributeDetail( name, javaType );
+            ad.setMultiValued( multiValued );
+            ad.setReadOnly( readOnly );
 
-            simpleAttributes.add( nc );
+            simpleAttributes.add( ad );
         }
 
         template.setAttribute( "allAttrs", simpleAttributes );

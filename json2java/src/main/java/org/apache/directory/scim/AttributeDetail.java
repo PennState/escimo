@@ -32,6 +32,7 @@ public class AttributeDetail
     private String name;
     private String javaType;
     private boolean multiValued = false;
+    private boolean readOnly = false;
 
 
     public AttributeDetail( String name, String javaType )
@@ -92,6 +93,24 @@ public class AttributeDetail
     public boolean equals( Object obj )
     {
         return getName().equals( ( ( AttributeDetail ) obj ).getName() );
+    }
+
+
+    /**
+     * @return the readOnly
+     */
+    public boolean isReadOnly()
+    {
+        return readOnly;
+    }
+
+
+    /**
+     * @param readOnly the readOnly to set
+     */
+    public void setReadOnly( boolean readOnly )
+    {
+        this.readOnly = readOnly;
     }
 
 
