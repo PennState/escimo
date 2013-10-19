@@ -27,7 +27,6 @@ import java.net.URI;
 
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
-import javax.ws.rs.HttpMethod;
 import javax.ws.rs.POST;
 import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
@@ -44,6 +43,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.directory.scim.AttributeNotFoundException;
 import org.apache.directory.scim.MissingParameterException;
 import org.apache.directory.scim.ProviderService;
 import org.apache.directory.scim.RequestContext;
@@ -171,6 +171,49 @@ public class UserService
             URI location = uriInfo.getBaseUriBuilder().build( res.getId() );
             
             rb = Response.ok().entity( json ).location( location );
+        }
+        catch( Exception e )
+        {
+            rb = Response.status( Status.INTERNAL_SERVER_ERROR ).entity( exceptionToStr( e ) );
+        }
+        
+        return rb.build();
+    }
+
+    
+    @PATCH
+    @Produces({MediaType.APPLICATION_JSON})
+    public Response patchUser( String jsonData, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    {
+        ResponseBuilder rb = null;
+
+        if( ( jsonData == null ) || ( jsonData.trim().length() == 0 ) )
+        {
+            rb = Response.status( Status.BAD_REQUEST ).entity( "No data is present with the call to " + uriInfo.getAbsolutePath() );
+            return rb.build();
+        }
+        
+        LOG.debug( "Data received at the URI {}\n{}", uriInfo.getAbsolutePath(), jsonData );
+        
+        try
+        {
+            RequestContext ctx = new RequestContext( provider, uriInfo, headers );
+            
+            ServerResource resource = provider.patchUser( jsonData, ctx );
+            
+            if( resource == null )
+            {
+                rb = Response.status( Status.NO_CONTENT );
+            }
+            else
+            {
+                String json = ResourceSerializer.serialize( resource );
+                rb = Response.ok().entity( json );
+            }
+        }
+        catch( AttributeNotFoundException e )
+        {
+            rb = Response.status( Status.NOT_FOUND ).entity( exceptionToStr( e ) );
         }
         catch( Exception e )
         {

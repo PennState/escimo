@@ -85,7 +85,7 @@ public class UserResourceTest
     public void testAddGetAndDeleteUser() throws Exception
     {
         User user = new User();
-        user.setUserName( "test2" );
+        user.setUserName( "test1" );
         user.setDisplayName( "Test UserResource" );
         user.setPassword( "secret01" );
         
@@ -152,4 +152,57 @@ public class UserResourceTest
         assertEquals( 1, replacedUser.getEmails().size() );
         assertEquals( newEmail.getValue(), replacedUser.getEmails().get( 0 ).getValue() );
     }
+    
+    
+    @Test
+    public void testPatch() throws Exception
+    {
+        User user = new User();
+        user.setUserName( "testPatch" );
+        user.setDisplayName( "Test UserResource" );
+        user.setPassword( "secret01" );
+        
+        Name name = new Name();
+        name.setFamilyName( "UserResource" );
+        name.setGivenName( "Test" );
+        
+        user.setName( name );
+        
+        List<Email> emails = new ArrayList<Email>();
+        Email mail = new Email();
+        mail.setValue( "test@example.com" );
+        emails.add( mail );
+        user.setEmails( emails );
+
+        User addedUser = ( User ) client.addUser( user );
+        assertNotNull( addedUser );
+
+        addedUser.getEmails().get( 0 ).setOperation( "delete" );
+        
+        List<String> newEmails = new ArrayList<String>();
+        newEmails.add( "newemail@example.com" );
+        newEmails.add( "anothermail@example.com" );
+        for( String e : newEmails )
+        {
+            Email newEmail = new Email();
+            newEmail.setValue( e );
+            addedUser.getEmails().add( newEmail );
+        }
+        
+        User patchedUser = ( User ) client.patchUser( addedUser );
+
+        assertNull( patchedUser );
+        
+        patchedUser = ( User ) client.getUser( addedUser.getId() );
+        assertNotNull( patchedUser );
+        
+        for( Email e : patchedUser.getEmails() )
+        {
+            System.out.println(e.getValue());
+            assertTrue( newEmails.contains( e.getValue() ) );
+        }
+        
+        assertEquals( 2, patchedUser.getEmails().size() );
+    }
+
 }

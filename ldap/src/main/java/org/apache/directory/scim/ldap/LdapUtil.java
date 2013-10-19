@@ -43,6 +43,7 @@ import org.slf4j.LoggerFactory;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
+import static org.apache.directory.api.ldap.model.entry.ModificationOperation.*;
 
 /**
  * TODO LdapUtil.
@@ -169,7 +170,7 @@ public class LdapUtil
     
     //================ PATCH ========
     
-    public static void patchAttributes( Entry entry, JsonObject obj, RequestContext ctx, ResourceSchema resourceSchema, ModifyRequest modReq ) throws Exception
+    public static void patchAttributes( Entry existingEntry, JsonObject obj, RequestContext ctx, ResourceSchema resourceSchema, ModifyRequest modReq ) throws Exception
     {
         for( java.util.Map.Entry<String, JsonElement> e : obj.entrySet() )
         {
@@ -196,11 +197,11 @@ public class LdapUtil
             
             if( handler != null )
             {
-                handler.patch( bt, e.getValue(), entry, ctx, modReq );
+                handler.patch( bt, e.getValue(), existingEntry, ctx, modReq );
             }
             else
             {
-                patchLdapAttribute( bt, e.getValue(), entry, ctx, modReq );
+                patchLdapAttribute( bt, e.getValue(), existingEntry, ctx, modReq );
             }
         }
     }
@@ -236,7 +237,7 @@ public class LdapUtil
                 // e.x "emails":['elecharny@apache.org', 'pajbam@apache.org']
                 if( je.isJsonPrimitive() )
                 {
-                    patchSimpleAttribute( multiStg.getValueType(), je, entry, ldapSchema, modReq, ModificationOperation.REPLACE_ATTRIBUTE );
+                    patchSimpleAttribute( multiStg.getValueType(), je, entry, ldapSchema, modReq, false );
                 }
                 else
                 {
@@ -247,7 +248,7 @@ public class LdapUtil
         }
         else
         {
-            patchSimpleAttribute( ( SimpleType ) bt, el, entry, ldapSchema, modReq, ModificationOperation.REPLACE_ATTRIBUTE );
+            patchSimpleAttribute( ( SimpleType ) bt, el, entry, ldapSchema, modReq, false );
         }
     }
 
@@ -255,14 +256,17 @@ public class LdapUtil
     // BaseType atType, JsonElement jsonData, Object targetEntry, Object patchCtx 
     private static void patchSimpleTypeGroup( SimpleTypeGroup stg, JsonObject jo, Entry entry, SchemaManager ldapSchema, String scimComplexAtName, ModifyRequest modReq ) throws LdapException
     {
-        ModificationOperation operation = ModificationOperation.REPLACE_ATTRIBUTE; // the default
+        //ModificationOperation operation = REPLACE_ATTRIBUTE; // the default
+        
+        boolean delete = false;
         
         JsonElement atOperation = jo.get( "operation" );
         if( atOperation != null )
         {
             if( atOperation.getAsString().equalsIgnoreCase( "delete" ) )
             {
-                operation = ModificationOperation.REMOVE_ATTRIBUTE;
+                //operation = REMOVE_ATTRIBUTE;
+                delete = true;
             }
             
             jo.remove( "operation" );
@@ -285,7 +289,7 @@ public class LdapUtil
             
             if( st != null )
             {
-                patchSimpleAttribute( st, e.getValue(), entry, ldapSchema, modReq, operation );
+                patchSimpleAttribute( st, e.getValue(), entry, ldapSchema, modReq, delete );
             }
             else
             {
@@ -294,12 +298,14 @@ public class LdapUtil
         }
     }
     
-    public static void patchSimpleAttribute( SimpleType st, JsonElement el, Entry entry, SchemaManager ldapSschema, ModifyRequest modReq, ModificationOperation operation ) throws LdapException
+    public static void patchSimpleAttribute( SimpleType st, JsonElement el, Entry entry, SchemaManager ldapSschema, ModifyRequest modReq, boolean delete ) throws LdapException
     {
         if( st.isReadOnly() )
         {
             return;
         }
+
+        ModificationOperation operation = ( delete ? REMOVE_ATTRIBUTE : REPLACE_ATTRIBUTE );
         
         String ldapAtName = st.getMappedTo();
         
@@ -314,15 +320,11 @@ public class LdapUtil
         {
             byte[] value = Base64.decode( el.getAsString().toCharArray() );
             
-            if( operation == ModificationOperation.REPLACE_ATTRIBUTE )
-            {
-                modReq.replace( ldapAtName, value );
-            }
-            if( operation == ModificationOperation.REMOVE_ATTRIBUTE )
+            if( delete )
             {
                 modReq.remove( ldapAtName, value );
             }
-            else
+            else if( !entry.contains( ldapType, value ) )
             {
                 modReq.add( ldapAtName, value );
             }
@@ -330,19 +332,28 @@ public class LdapUtil
         else
         {
             String value = el.getAsString();
-            
-            if( operation == ModificationOperation.REPLACE_ATTRIBUTE )
-            {
-                modReq.replace( ldapAtName, value );
-            }
-            if( operation == ModificationOperation.REMOVE_ATTRIBUTE )
+
+            if( delete )
             {
                 modReq.remove( ldapAtName, value );
             }
-            else
+            else if( !entry.contains( ldapType, value ) )
             {
                 modReq.add( ldapAtName, value );
             }
+            
+//            if( operation == REPLACE_ATTRIBUTE )
+//            {
+//                modReq.replace( ldapAtName, value );
+//            }
+//            else if( operation == REMOVE_ATTRIBUTE )
+//            {
+//                modReq.remove( ldapAtName, value );
+//            }
+//            else
+//            {
+//                modReq.add( ldapAtName, value );
+//            }
         }
     }
 

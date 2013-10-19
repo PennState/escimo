@@ -44,11 +44,11 @@ import org.apache.directory.api.ldap.model.entry.Value;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.ldif.LdifEntry;
 import org.apache.directory.api.ldap.model.ldif.LdifReader;
+import org.apache.directory.api.ldap.model.message.LdapResult;
 import org.apache.directory.api.ldap.model.message.ModifyRequest;
 import org.apache.directory.api.ldap.model.message.ModifyRequestImpl;
 import org.apache.directory.api.ldap.model.message.ModifyResponse;
 import org.apache.directory.api.ldap.model.message.ResultCodeEnum;
-import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.schema.AttributeType;
 import org.apache.directory.api.ldap.model.schema.LdapSyntax;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
@@ -66,6 +66,7 @@ import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.ldap.client.api.LdapConnectionConfig;
 import org.apache.directory.ldap.client.api.LdapNetworkConnection;
 import org.apache.directory.scim.AttributeHandler;
+import org.apache.directory.scim.AttributeNotFoundException;
 import org.apache.directory.scim.ComplexAttribute;
 import org.apache.directory.scim.GroupResource;
 import org.apache.directory.scim.MissingParameterException;
@@ -77,8 +78,6 @@ import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
 import org.apache.directory.scim.UserResource;
-import org.apache.directory.scim.ldap.LdapSchemaMapper;
-import org.apache.directory.scim.ldap.LdapUtil;
 import org.apache.directory.scim.ldap.schema.ComplexType;
 import org.apache.directory.scim.ldap.schema.GroupSchema;
 import org.apache.directory.scim.ldap.schema.MultiValType;
@@ -253,6 +252,18 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
+    public UserResource patchUser( String jsonData, RequestContext ctx ) throws Exception
+    {
+        return ( UserResource ) patchResource( jsonData, ctx, userSchema );
+    }
+
+
+    public GroupResource patchGroup( String jsonData, RequestContext ctx ) throws Exception
+    {
+        return ( GroupResource ) patchResource( jsonData, ctx, groupSchema );
+    }
+
+    
     public InputStream getUserPhoto( String id, String atName ) throws MissingParameterException
     {
         if ( Strings.isEmpty( id ) )
@@ -611,7 +622,7 @@ public class LdapResourceProvider implements ProviderService
     }
     
     
-    public void patchResource( String jsonData, RequestContext ctx, ResourceSchema resourceSchema ) throws Exception
+    public ServerResource patchResource( String jsonData, RequestContext ctx, ResourceSchema resourceSchema ) throws Exception
     {
         JsonParser parser = new JsonParser();
         JsonObject obj = ( JsonObject ) parser.parse( jsonData );
@@ -631,12 +642,16 @@ public class LdapResourceProvider implements ProviderService
         
         List<String> deleteModAtOids = new ArrayList<String>();
         
+        boolean hasAttributesInMeta = false;
+        
         JsonObject metaObj = ( JsonObject ) obj.get( "meta" );
         if( metaObj != null )
         {
             JsonArray metaAtNames = ( JsonArray ) metaObj.get( "attributes" );
             if( metaAtNames != null )
             {
+                hasAttributesInMeta = true;
+                
                 for( JsonElement e : metaAtNames )
                 {
                     String name = e.getAsString();
@@ -644,8 +659,7 @@ public class LdapResourceProvider implements ProviderService
                     
                     if( bt == null )
                     {
-                        //FIXME should throw attribute not found exception
-                        throw new ResourceNotFoundException( "No definition found for the attribute " + name );
+                        throw new AttributeNotFoundException( "No definition found for the attribute " + name );
                     }
                     
                     if( bt.isReadOnly() || ( ! ( bt instanceof SimpleType ) ) )
@@ -667,31 +681,47 @@ public class LdapResourceProvider implements ProviderService
             }
         }
 
-        Entry entry = new DefaultEntry( ldapSchema );
-        
-        LdapUtil.patchAttributes( entry, obj, ctx, resourceSchema, modReq );
-        
+        try
+        {
+            LdapUtil.patchAttributes( existingEntry, obj, ctx, resourceSchema, modReq );
+            
+            ModifyResponse modResp = connection.modify( modReq );
+            
+            LdapResult result = modResp.getLdapResult();
+            if( result.getResultCode() != ResultCodeEnum.SUCCESS )
+            {
+                throw new Exception( result.getDiagnosticMessage() );
+            }
+            
+            if( hasAttributesInMeta )
+            {
+                Entry entry = fetchEntryById( resourceId, resourceSchema );
+                
+                ServerResource resource = null;
+                
+                if( resourceSchema == userSchema )
+                {
+                    resource = new UserResource();
+                }
+                else
+                {
+                    resource = new GroupResource();
+                }
 
-//        for( Attribute ldapAt : entry )
-//        {
-//            AttributeType type = ldapAt.getAttributeType();
-//            
-//            if( deleteModAtOids.contains( type.getOid() ) )
-//            {
-//                modReq.add( ldapAt );
-//            }
-//            else if( existingEntry.containsAttribute( type ) )
-//            {
-//                if( type.isSingleValued() )
-//                {
-//                    modReq.replace( ldapAt );
-//                }
-//                else
-//                {
-//                    modReq.add( ldapAt );
-//                }
-//            }
-//        }
+                ctx.setCoreResource( resource );
+
+                _loadCoreResource( ctx, entry, resourceSchema );
+                
+                return resource;
+            }
+            
+            return null;
+        }
+        catch( Exception e )
+        {
+            LOG.warn( "Failed to patch the resource with ID {}", resourceId, e );
+            throw e;
+        }
     }
     
     public UserResource toUser( RequestContext ctx, Entry entry ) throws Exception
