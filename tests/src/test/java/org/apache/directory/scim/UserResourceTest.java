@@ -19,13 +19,19 @@
  */
 package org.apache.directory.scim;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.directory.api.ldap.model.constants.SchemaConstants;
+import org.apache.directory.api.ldap.model.entry.Entry;
+import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.scim.User.Email;
 import org.apache.directory.scim.User.Name;
 import org.apache.directory.scim.schema.CoreResource;
@@ -38,28 +44,10 @@ import org.junit.Test;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-//@ApplyLdifs(
-//    {
-//        "dn: uid=user1,ou=users,ou=system",
-//        "objectClass: inetOrgPerson",
-//        "sn: user1 sn",
-//        "cn: user One",
-//        "uid: user1",
-//
-//        "dn: uid=user2,ou=users,ou=system",
-//        "objectClass: inetOrgPerson",
-//        "sn: User Two",
-//        "cn: user2",
-//        "uid: user2",
-//
-//        "dn: uid=elecharny,ou=users,ou=system",
-//        "objectClass: inetOrgPerson",
-//        "sn:: RW1tYW51ZWwgTMOpY2hhcm55",
-//        "cn: elecharny",
-//        "uid: elecharny"
-//})
 public class UserResourceTest
 {
+    private static String baseUrl = "http://localhost:8080/v2";
+    
     private static EscimoClient client;
     
     @BeforeClass
@@ -70,7 +58,7 @@ public class UserResourceTest
         uriClassMap.put( Group.SCHEMA_ID, Group.class );
         uriClassMap.put( EnterpriseUser.SCHEMA_ID, EnterpriseUser.class );
         
-        client = new EscimoClient( "http://localhost:8080/v2", uriClassMap );
+        client = new EscimoClient( baseUrl, uriClassMap );
         
         JettyServer.start();
     }
@@ -205,4 +193,30 @@ public class UserResourceTest
         assertEquals( 2, patchedUser.getEmails().size() );
     }
 
+
+    @Test
+    public void testCreateGroups() throws Exception
+    {
+        Group group = new Group();
+        group.setDisplayName( "Administrator" );
+        
+        List<Group.Member> members = new ArrayList<Group.Member>();
+        group.setMembers( members );
+        
+        Entry entry = JettyServer.getAdminSession().lookup( new Dn( "uid=admin,ou=system" ), SchemaConstants.ENTRY_UUID_AT );
+        
+        Group.Member m1 = new Group.Member();
+        
+        String value = entry.get( SchemaConstants.ENTRY_UUID_AT ).getString();
+        
+        m1.setValue( value );
+        m1.set$ref( baseUrl + "/Users/" + value );
+        
+        members.add( m1 );
+        
+        Group addedGroup = ( Group ) client.addGroup( group );
+        assertNotNull( addedGroup );
+        assertEquals( group.getDisplayName(), addedGroup.getDisplayName() );
+        assertNotNull( addedGroup.getId() );
+    }
 }

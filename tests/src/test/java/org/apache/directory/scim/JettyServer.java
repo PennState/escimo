@@ -186,6 +186,15 @@ public class JettyServer
         t.join();
     }
     
+    /**
+     * @return the adminSession
+     */
+    public static CoreSession getAdminSession()
+    {
+        return adminSession;
+    }
+
+
     private static void checkForJdk6Compliance( String classpath ) throws Exception
     {
         String[] files = classpath.split( ":" );
