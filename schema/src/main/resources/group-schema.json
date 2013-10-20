@@ -33,7 +33,7 @@
        {
          "name":"members",
          "type":"complex",
-         "multiValued":false,
+         "multiValued":true,
          "description":"A list of members of the Group.",
          "readOnly":false,
          "required":false,

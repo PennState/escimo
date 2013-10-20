@@ -462,8 +462,8 @@
               "type":"string",
               "multiValued":false,
               "description":"The identifier of the User's group.",
-              "readOnly":false,
-              "required":false,
+              "readOnly":true,
+              "required":true,
               "caseExact":false
             },
             {
@@ -471,7 +471,7 @@
               "type":"string",
               "multiValued":false,
               "description":"The URI of the corresponding Group resource to which the user belongs",
-              "readOnly":false,
+              "readOnly":true,
               "required":false,
               "caseExact":false
             },
@@ -489,7 +489,7 @@
               "type":"string",
               "multiValued":false,
               "description":"A label indicating the attribute's function; e.g., 'direct' or 'indirect'.",
-              "readOnly":false,
+              "readOnly":true,
               "required":false,
               "caseExact":false,
               "canonicalValues":["direct", "indirect"]
@@ -499,7 +499,7 @@
               "type":"boolean",
               "multiValued":false,
               "description":"A Boolean value indicating the 'primary' or preferred attribute value for this attribute. The primary attribute value 'true' MUST appear no more than once.",
-              "readOnly":false,
+              "readOnly":true,
               "required":false,
               "caseExact":false
             }]
