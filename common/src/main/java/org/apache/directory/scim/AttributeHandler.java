@@ -37,4 +37,6 @@ public abstract class AttributeHandler
     public abstract void write( BaseType atType, JsonElement jsonData, Object targetEntry, RequestContext ctx ) throws Exception;
     
     public abstract void patch( BaseType atType, JsonElement jsonData, Object targetEntry, RequestContext ctx, Object patchCtx ) throws Exception;
+    
+    public abstract void deleteAttribute(  BaseType atType, Object targetEntry, RequestContext ctx, Object patchCtx ) throws Exception;
 }

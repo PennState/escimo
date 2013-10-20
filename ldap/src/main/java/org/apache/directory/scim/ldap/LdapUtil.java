@@ -305,8 +305,6 @@ public class LdapUtil
             return;
         }
 
-        ModificationOperation operation = ( delete ? REMOVE_ATTRIBUTE : REPLACE_ATTRIBUTE );
-        
         String ldapAtName = st.getMappedTo();
         
         if( Strings.isEmpty( ldapAtName ) )
@@ -357,4 +355,62 @@ public class LdapUtil
         }
     }
 
+    
+    public static void deleteAttribute( BaseType bt, Entry existingEntry, ModifyRequest modReq )
+    {
+        if( bt.isReadOnly() )
+        {
+            return;
+        }
+
+        SimpleTypeGroup stg = null;
+        
+        if( bt instanceof MultiValType )
+        {
+            MultiValType mt = ( MultiValType ) bt;
+            stg = mt.getAtGroup();
+        }
+        else if ( bt instanceof ComplexType )
+        {
+            ComplexType ct = ( ComplexType ) bt;
+            stg = ct.getAtGroup();
+        }
+
+        if( stg != null )
+        {
+            for( SimpleType st : stg.getSubTypes() )
+            {
+                if( st.isReadOnly() )
+                {
+                    continue;
+                }
+                
+                String name = st.getMappedTo();
+                
+                if( !Strings.isEmpty( name ) )
+                {
+                    Attribute ldapAt = existingEntry.get( name );
+                    if( ldapAt != null )
+                    {
+                        modReq.remove( ldapAt );
+                    }
+                }
+            }
+
+            return;
+        }
+        
+        SimpleType st = ( SimpleType ) bt;
+        
+        String name = st.getMappedTo();
+        
+        if( !Strings.isEmpty( name ) )
+        {
+            Attribute ldapAt = existingEntry.get( name );
+            if( ldapAt != null )
+            {
+                modReq.remove( ldapAt );
+            }
+        }
+    }
 }

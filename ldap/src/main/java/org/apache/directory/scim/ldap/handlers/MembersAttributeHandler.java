@@ -29,6 +29,7 @@ import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.cursor.EntryCursor;
 import org.apache.directory.api.ldap.model.entry.Attribute;
 import org.apache.directory.api.ldap.model.entry.BinaryValue;
+import org.apache.directory.api.ldap.model.entry.DefaultAttribute;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.entry.Value;
 import org.apache.directory.api.ldap.model.exception.LdapException;
@@ -37,16 +38,24 @@ import org.apache.directory.api.ldap.model.filter.ExprNode;
 import org.apache.directory.api.ldap.model.filter.FilterParser;
 import org.apache.directory.api.ldap.model.filter.FilterVisitor;
 import org.apache.directory.api.ldap.model.filter.SimpleNode;
+import org.apache.directory.api.ldap.model.message.ModifyRequest;
 import org.apache.directory.api.ldap.model.message.SearchScope;
+import org.apache.directory.api.ldap.model.schema.AttributeType;
+import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.api.util.Strings;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
 import org.apache.directory.scim.ldap.LdapResourceProvider;
+import org.apache.directory.scim.ldap.schema.ResourceSchema;
 import org.apache.directory.scim.schema.BaseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 
 
 /**
@@ -63,14 +72,8 @@ public class MembersAttributeHandler extends LdapAttributeHandler
     @Override
     public void read( BaseType bt, Object srcResource, RequestContext ctx )
     {
-        if ( !bt.getName().equals( "members" ) )
-        {
-            LOG.warn(
-                "MembersAttributeHandler can only be used on members multivalue attribute, invalid attribute name {}",
-                bt.getName() );
-            return;
-        }
-
+        checkHandler( bt, "members", this );
+        
         Entry groupEntry = ( Entry ) srcResource;
 
         Attribute memberAt = groupEntry.get( SchemaConstants.UNIQUE_MEMBER_AT );
@@ -106,6 +109,163 @@ public class MembersAttributeHandler extends LdapAttributeHandler
     }
 
 
+    @Override
+    public void write( BaseType atType, JsonElement jsonData, Object targetEntry, RequestContext ctx ) throws Exception
+    {
+        checkHandler( atType, "members", this );
+        
+        LdapResourceProvider provider = ( LdapResourceProvider ) ctx.getProviderService();
+
+        SchemaManager ldapSchema = provider.getLdapSchema();
+        Entry entry = ( Entry ) targetEntry;
+        
+        AttributeType memberType = getMemberType( ldapSchema, entry );
+
+        JsonArray members = ( JsonArray ) jsonData;
+        
+        for( JsonElement je : members )
+        {
+            JsonObject jo = ( JsonObject ) je;
+            
+            String dn = getMemberDn( jo, provider );
+            
+            if( dn == null )
+            {
+                continue;
+            }
+            
+            Attribute ldapAt = entry.get( memberType );
+            
+            if( ldapAt == null )
+            {
+                ldapAt = new DefaultAttribute( memberType );
+                ldapAt.add( dn );
+                entry.add( ldapAt );
+            }
+            else
+            {
+                ldapAt.add( dn );
+            }
+        }
+    }
+
+    
+    @Override
+    public void patch( BaseType atType, JsonElement jsonData, Object existingEntry, RequestContext ctx, Object patchCtx )
+        throws Exception
+    {
+        checkHandler( atType, "members", this );
+
+        LdapResourceProvider provider = ( LdapResourceProvider ) ctx.getProviderService();
+
+        SchemaManager ldapSchema = provider.getLdapSchema();
+
+        Entry entry = ( Entry ) existingEntry;
+        
+        AttributeType memberType = getMemberType( ldapSchema, entry );
+        
+        ModifyRequest modReq = ( ModifyRequest ) patchCtx;
+        
+        JsonArray members = ( JsonArray ) jsonData;
+        
+        for( JsonElement je : members )
+        {
+            JsonObject jo = ( JsonObject ) je;
+            
+            String dn = getMemberDn( jo, provider );
+            
+            if( dn == null )
+            {
+                continue;
+            }
+        
+            boolean delete = false;
+            
+            JsonElement atOperation = jo.get( "operation" );
+            if( atOperation != null )
+            {
+                if( atOperation.getAsString().equalsIgnoreCase( "delete" ) )
+                {
+                    delete = true;
+                }
+            }
+
+            if( delete )
+            {
+                modReq.remove( memberType.getName(), dn );
+            }
+            else if ( !entry.contains( memberType, dn ) )
+            {
+                modReq.add( memberType.getName(), dn );
+            }
+        }
+    }
+
+    
+    @Override
+    public void deleteAttribute( BaseType atType, Object targetEntry, RequestContext ctx, Object patchCtx )
+        throws Exception
+    {
+        checkHandler( atType, "members", this );
+
+        LdapResourceProvider provider = ( LdapResourceProvider ) ctx.getProviderService();
+
+        SchemaManager ldapSchema = provider.getLdapSchema();
+
+        Entry entry = ( Entry ) targetEntry;
+        
+        AttributeType memberType = getMemberType( ldapSchema, entry );
+        
+        ModifyRequest modReq = ( ModifyRequest ) patchCtx;
+        
+        modReq.remove( entry.get( memberType ) );
+        // add a dummy member, cause groupOfNames and groupOfUniqueNames OC need atleast one member attribute
+        modReq.add( memberType.getName(), "uid=dummyUser,ou=system" );
+    }
+
+
+    private String getMemberDn( JsonObject jo, LdapResourceProvider provider )
+    {
+        String resId = jo.get( "value" ).getAsString();
+        String resRef = jo.get( "$ref" ).getAsString();
+        
+        ResourceSchema resSchema = provider.getUserSchema();
+        
+        if( resRef.endsWith( "/Groups/" + resId ) )
+        {
+            resSchema = provider.getGroupSchema();
+        }
+        
+        Entry resEntry = provider.fetchEntryById( resId, resSchema );
+        
+        if( resEntry == null )
+        {
+            LOG.debug( "No resource found with the member ID {} with reference {}", resId, resRef );
+            return null;
+        }
+        
+        return resEntry.getDn().getName();
+    }
+
+    
+    private AttributeType getMemberType( SchemaManager ldapSchema, Entry entry )
+    {
+        AttributeType ocType = ldapSchema.getAttributeType( SchemaConstants.OBJECT_CLASS_AT );
+        
+        AttributeType memberType = null;
+        
+        if( entry.contains( ocType, SchemaConstants.GROUP_OF_NAMES_OC ) )
+        {
+            memberType = ldapSchema.getAttributeType( SchemaConstants.MEMBER_AT );
+        }
+        else if( entry.contains( ocType, SchemaConstants.GROUP_OF_UNIQUE_NAMES_OC ) )
+        {
+            memberType = ldapSchema.getAttributeType( SchemaConstants.UNIQUE_MEMBER_AT );
+        }
+        
+        return memberType;
+    }
+    
     private SimpleAttributeGroup getMemberDetails( String dn, RequestContext ctx )
     {
         LdapResourceProvider provider = ( LdapResourceProvider ) ctx.getProviderService();

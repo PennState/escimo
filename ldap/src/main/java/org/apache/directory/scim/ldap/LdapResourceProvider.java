@@ -42,8 +42,6 @@ import org.apache.directory.api.ldap.model.entry.DefaultEntry;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.entry.Value;
 import org.apache.directory.api.ldap.model.exception.LdapException;
-import org.apache.directory.api.ldap.model.ldif.LdifEntry;
-import org.apache.directory.api.ldap.model.ldif.LdifReader;
 import org.apache.directory.api.ldap.model.message.LdapResult;
 import org.apache.directory.api.ldap.model.message.ModifyRequest;
 import org.apache.directory.api.ldap.model.message.ModifyRequestImpl;
@@ -78,6 +76,7 @@ import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
 import org.apache.directory.scim.UserResource;
+import org.apache.directory.scim.ldap.handlers.MembersAttributeHandler;
 import org.apache.directory.scim.ldap.schema.ComplexType;
 import org.apache.directory.scim.ldap.schema.GroupSchema;
 import org.apache.directory.scim.ldap.schema.MultiValType;
@@ -436,6 +435,7 @@ public class LdapResourceProvider implements ProviderService
             _resourceToEntry( entry, obj, ctx, groupSchema );
             
             entry.setDn( dn );
+            
             connection.add( entry );
             
             entry = connection.lookup( entry.getDn(), SchemaConstants.ALL_ATTRIBUTES_ARRAY );
@@ -460,6 +460,15 @@ public class LdapResourceProvider implements ProviderService
     private void _resourceToEntry( Entry entry, JsonObject obj, RequestContext ctx, ResourceSchema resourceSchema ) throws Exception
     {
 
+        // add the objectClasses first so a handler will get a chance to
+        // inspect what attributes can the entry hold
+        // e.x it is useful for handling Groups, where the handler can
+        // find if the attribute name is 'member' or 'uniqueMember'
+        for( String oc : resourceSchema.getObjectClasses() )
+        {
+            entry.add( SchemaConstants.OBJECT_CLASS, oc );
+        }
+
         // process the core attributes first
         addAttributes( entry, obj, ctx, resourceSchema );
         
@@ -474,10 +483,6 @@ public class LdapResourceProvider implements ProviderService
             }
         }
 
-        for( String oc : resourceSchema.getObjectClasses() )
-        {
-            entry.add( SchemaConstants.OBJECT_CLASS, oc );
-        }
     }
     
     
@@ -640,8 +645,6 @@ public class LdapResourceProvider implements ProviderService
         ModifyRequest modReq = new ModifyRequestImpl();
         modReq.setName( existingEntry.getDn() );
         
-        List<String> deleteModAtOids = new ArrayList<String>();
-        
         boolean hasAttributesInMeta = false;
         
         JsonObject metaObj = ( JsonObject ) obj.get( "meta" );
@@ -662,21 +665,14 @@ public class LdapResourceProvider implements ProviderService
                         throw new AttributeNotFoundException( "No definition found for the attribute " + name );
                     }
                     
-                    if( bt.isReadOnly() || ( ! ( bt instanceof SimpleType ) ) )
+                    AttributeHandler handler = resourceSchema.getHandler( bt.getAtHandlerName() );
+                    if( handler != null )
                     {
+                        handler.deleteAttribute( bt, existingEntry, ctx, modReq );
                         continue;
                     }
                     
-                    SimpleType st = ( SimpleType ) bt;
-                    
-                    name = st.getMappedTo();
-                    
-                    if( !Strings.isEmpty( name ) )
-                    {
-                        Attribute ldapAt = existingEntry.get( name );
-                        modReq.remove( ldapAt );
-                        deleteModAtOids.add( ldapAt.getAttributeType().getOid() );
-                    }
+                    LdapUtil.deleteAttribute( bt, existingEntry, modReq );
                 }
             }
         }
@@ -1100,39 +1096,22 @@ public class LdapResourceProvider implements ProviderService
     {
         return ldapSchema;
     }
-    
-    private static String HPD_PROVIDER_DN = "m-oid=1.3.6.1.4.1.19376.1.2.4.1,ou=objectClasses,cn=hpd,ou=schema";
 
-    public static void main( String[] args ) throws Exception
+
+    /**
+     * @return the userSchema
+     */
+    public UserSchema getUserSchema()
     {
-//        System.setProperty( StandaloneLdapApiService.CONTROLS_LIST,
-//            "org.apache.directory.api.ldap.codec.controls.cascade.CascadeFactory," +
-//                "org.apache.directory.api.ldap.codec.controls.manageDsaIT.ManageDsaITFactory," +
-//                "org.apache.directory.api.ldap.codec.controls.search.entryChange.EntryChangeFactory," +
-//                "org.apache.directory.api.ldap.codec.controls.search.pagedSearch.PagedResultsFactory," +
-//                "org.apache.directory.api.ldap.codec.controls.search.persistentSearch.PersistentSearchFactory," +
-//                "org.apache.directory.api.ldap.codec.controls.search.subentries.SubentriesFactory" );
+        return userSchema;
+    }
 
-        LdapNetworkConnection c = new LdapNetworkConnection( "localhost", 10389 );
-        c.setTimeOut( Long.MAX_VALUE );
-        c.bind( "uid=admin,ou=system", "secret" );
-//        c.loadSchema();
-        //c.loadSchema( new JarLdifSchemaLoader() );
 
-        Entry hpdProviderEntry = c.lookup(HPD_PROVIDER_DN);
-        boolean hasBeenApplied = hpdProviderEntry.contains( "m-may", "hpdProviderLegalAddress1");
-        System.out.println(hasBeenApplied);
-        String ldif = "dn: m-oid=1.3.6.1.4.1.19376.1.2.4.1,ou=objectClasses,cn=hpd,ou=schema\n"+
-                      "changetype: modify\n"+
-                      "delete: m-may\n" +
-                      "m-may: hpdProviderLegalAddress\n" +
-                      "-\n";
-        LdifReader reader = new LdifReader( ldif );
-        
-        LdifEntry entry = reader.next();
-        
-        c.add( entry.getEntry() );
-        
-        c.close();
+    /**
+     * @return the groupSchema
+     */
+    public GroupSchema getGroupSchema()
+    {
+        return groupSchema;
     }
 }

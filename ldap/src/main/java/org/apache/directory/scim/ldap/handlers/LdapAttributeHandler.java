@@ -62,4 +62,10 @@ public abstract class LdapAttributeHandler extends AttributeHandler
     {
         LdapUtil.patchLdapAttribute( atType, jsonData, ( Entry ) entry, ctx, ( ModifyRequest ) patchCtx );
     }
+
+    @Override
+    public void deleteAttribute( BaseType atType, Object targetEntry, RequestContext ctx, Object patchCtx ) throws Exception
+    {
+        LdapUtil.deleteAttribute( atType, (Entry) targetEntry, ( ModifyRequest ) patchCtx );
+    }
 }
