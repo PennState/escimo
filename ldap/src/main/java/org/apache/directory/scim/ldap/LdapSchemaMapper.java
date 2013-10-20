@@ -161,7 +161,7 @@ public class LdapSchemaMapper implements SchemaMapper
             String groupFilter = elmGroup.attributeValue( "filter" );
 
             groupSchema = new GroupSchema( groupBaseDn, groupFilter );
-            List<Element> lstGroupRef = elmGroup.elements( "schemaRef" );
+            groupSchema.setAtHandlers( atHandlersMap );
             parseResourceSchema( elmGroup, lstSchema, groupSchema );
         }
         catch ( Exception e )
