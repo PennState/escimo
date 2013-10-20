@@ -108,11 +108,10 @@
         </objectClasses>
     </userType>
 
-    <groupType baseDn="" filter="(objectClass = inetOrgPerson)">
+    <groupType baseDn="ou=system" filter="(objectClass = groupOfNames)">
         <schemaRef id="group" />
         <objectClasses>
          <objectClass>groupOfNames</objectClass>
-         <objectClass>groupOfUniqueNames</objectClass>
         </objectClasses>
     </groupType>
 
