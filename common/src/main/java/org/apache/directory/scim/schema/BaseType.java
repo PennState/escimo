@@ -19,6 +19,7 @@
  */
 package org.apache.directory.scim.schema;
 
+import org.apache.directory.scim.ScimUtil;
 import org.apache.directory.scim.json.ResourceSerializer;
 import static org.apache.directory.scim.json.ResourceSerializer.*;
 
@@ -79,9 +80,7 @@ public abstract class BaseType
 
     public boolean isCoreAttribute()
     {
-        return ( CORE_USER_URI.equals( uri ) || 
-                 CORE_GROUP_URI.equals( uri ) ||
-                 CORE_EXT_USER_URI.equals( uri ) );
+        return ScimUtil.isCoreAttribute( uri );
     }
 
     /**

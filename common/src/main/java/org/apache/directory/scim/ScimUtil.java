@@ -29,6 +29,10 @@ import java.io.StringWriter;
  */
 public class ScimUtil
 {
+    public static final String CORE_USER_URI = "urn:scim:schemas:core:2.0:User";
+    public static final String CORE_GROUP_URI = "urn:scim:schemas:core:2.0:Group";
+    public static final String CORE_EXT_USER_URI = "urn:scim:schemas:extension:enterprise:2.0:User";
+
     public static String exceptionToStr( Exception e )
     {
         StringWriter sw = new StringWriter();
@@ -42,6 +46,13 @@ public class ScimUtil
         pw.close();
 
         return sw.toString();
+    }
+
+    
+    public static boolean isCoreAttribute( String uri )
+    {
+        return ( CORE_USER_URI.equals( uri ) || 
+                 CORE_GROUP_URI.equals( uri ) );
     }
 
 }
