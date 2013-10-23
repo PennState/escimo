@@ -22,7 +22,7 @@ package org.apache.directory.scim;
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNull;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -30,11 +30,15 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
+import org.apache.directory.api.ldap.model.cursor.EntryCursor;
 import org.apache.directory.api.ldap.model.entry.Entry;
+import org.apache.directory.api.ldap.model.message.SearchScope;
 import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.scim.User.Email;
 import org.apache.directory.scim.User.Name;
 import org.apache.directory.scim.schema.CoreResource;
+import org.apache.directory.server.core.api.CoreSession;
+import org.apache.directory.server.core.api.LdapCoreSessionConnection;
 import org.junit.AfterClass;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -203,20 +207,54 @@ public class UserResourceTest
         List<Group.Member> members = new ArrayList<Group.Member>();
         group.setMembers( members );
         
-        Entry entry = JettyServer.getAdminSession().lookup( new Dn( "uid=admin,ou=system" ), SchemaConstants.ENTRY_UUID_AT );
+        CoreSession session = JettyServer.getAdminSession();
+        LdapCoreSessionConnection conn = new LdapCoreSessionConnection( session );
         
-        Group.Member m1 = new Group.Member();
+        EntryCursor cursor = conn.search( "ou=system", "(objectClass=*)", SearchScope.SUBTREE, SchemaConstants.ALL_ATTRIBUTES_ARRAY );
         
-        String value = entry.get( SchemaConstants.ENTRY_UUID_AT ).getString();
-        
-        m1.setValue( value );
-        m1.set$ref( baseUrl + "/Users/" + value );
-        
-        members.add( m1 );
+        int count = 0;
+        while( cursor.next() )
+        {
+            Entry entry = cursor.get();
+            
+            Group.Member m1 = new Group.Member();
+            
+            String value = entry.get( SchemaConstants.ENTRY_UUID_AT ).getString();
+            
+            m1.setValue( value );
+            m1.set$ref( baseUrl + "/Users/" + value );
+            
+            members.add( m1 );
+            count++;
+        }
         
         Group addedGroup = ( Group ) client.addGroup( group );
         assertNotNull( addedGroup );
         assertEquals( group.getDisplayName(), addedGroup.getDisplayName() );
         assertNotNull( addedGroup.getId() );
+        assertEquals( count, addedGroup.getMembers().size() );
+        
+        Group.Member deletedMember = members.get( 0 );
+        
+        Group tobePatchedGroup = new Group();
+        tobePatchedGroup.setId( addedGroup.getId() );
+        
+        List<Group.Member> patchedMembers = new ArrayList<Group.Member>();
+        tobePatchedGroup.setMembers( patchedMembers );
+        
+        deletedMember.setOperation( "delete" );
+        patchedMembers.add( deletedMember );
+        
+        client.patchGroup( tobePatchedGroup );
+        Group patchedGroup = ( Group ) client.getGroup( addedGroup.getId() );
+        assertEquals( ( count - 1 ), patchedGroup.getMembers().size() );
+        
+        for( Group.Member gm : patchedGroup.getMembers() )
+        {
+            if( gm.getValue().equals( deletedMember.getValue() ) )
+            {
+                fail( "This member shouldn't present" );
+            }
+        }
     }
 }
