@@ -147,8 +147,9 @@ public class UserService
 
     
     @PUT
+    @Path("{id}")
     @Produces({MediaType.APPLICATION_JSON})
-    public Response putUser( String jsonData, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    public Response putUser( @PathParam("id") String userId, String jsonData, @Context UriInfo uriInfo, @Context HttpHeaders headers )
     {
         ResponseBuilder rb = null;
 
@@ -164,7 +165,7 @@ public class UserService
         {
             RequestContext ctx = new RequestContext( provider, uriInfo, headers );
             
-            ServerResource res = provider.putUser( jsonData, ctx );
+            ServerResource res = provider.putUser( userId, jsonData, ctx );
             
             String json = ResourceSerializer.serialize( res );
             
@@ -182,8 +183,9 @@ public class UserService
 
     
     @PATCH
+    @Path("{id}")
     @Produces({MediaType.APPLICATION_JSON})
-    public Response patchUser( String jsonData, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    public Response patchUser( @PathParam("id") String userId, String jsonData, @Context UriInfo uriInfo, @Context HttpHeaders headers )
     {
         ResponseBuilder rb = null;
 
@@ -199,7 +201,7 @@ public class UserService
         {
             RequestContext ctx = new RequestContext( provider, uriInfo, headers );
             
-            ServerResource resource = provider.patchUser( jsonData, ctx );
+            ServerResource resource = provider.patchUser( userId, jsonData, ctx );
             
             if( resource == null )
             {

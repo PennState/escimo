@@ -239,27 +239,27 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    public UserResource putUser( String jsonData, RequestContext ctx ) throws Exception
+    public UserResource putUser( String userId, String jsonData, RequestContext ctx ) throws Exception
     {
-        return ( UserResource ) replaceResource( jsonData, ctx, userSchema );
+        return ( UserResource ) replaceResource( userId, jsonData, ctx, userSchema );
     }
 
 
-    public GroupResource putGroup( String jsonData, RequestContext ctx ) throws Exception
+    public GroupResource putGroup( String groupId, String jsonData, RequestContext ctx ) throws Exception
     {
-        return ( GroupResource ) replaceResource( jsonData, ctx, groupSchema );
+        return ( GroupResource ) replaceResource( groupId, jsonData, ctx, groupSchema );
     }
 
 
-    public UserResource patchUser( String jsonData, RequestContext ctx ) throws Exception
+    public UserResource patchUser( String userId, String jsonData, RequestContext ctx ) throws Exception
     {
-        return ( UserResource ) patchResource( jsonData, ctx, userSchema );
+        return ( UserResource ) patchResource( userId, jsonData, ctx, userSchema );
     }
 
 
-    public GroupResource patchGroup( String jsonData, RequestContext ctx ) throws Exception
+    public GroupResource patchGroup( String groupId, String jsonData, RequestContext ctx ) throws Exception
     {
-        return ( GroupResource ) patchResource( jsonData, ctx, groupSchema );
+        return ( GroupResource ) patchResource( groupId, jsonData, ctx, groupSchema );
     }
 
     
@@ -487,12 +487,10 @@ public class LdapResourceProvider implements ProviderService
     
     
     // TODO can userName be changed for a user?? likewise displayName for a Group
-    public ServerResource replaceResource( String jsonData, RequestContext ctx, ResourceSchema resourceSchema ) throws Exception
+    public ServerResource replaceResource( String resourceId, String jsonData, RequestContext ctx, ResourceSchema resourceSchema ) throws Exception
     {
         JsonParser parser = new JsonParser();
         JsonObject obj = ( JsonObject ) parser.parse( jsonData );
-        
-        String resourceId = obj.get( "id" ).getAsString();
         
         Entry entry = new DefaultEntry( ldapSchema );
         
@@ -627,13 +625,11 @@ public class LdapResourceProvider implements ProviderService
     }
     
     
-    public ServerResource patchResource( String jsonData, RequestContext ctx, ResourceSchema resourceSchema ) throws Exception
+    public ServerResource patchResource( String resourceId, String jsonData, RequestContext ctx, ResourceSchema resourceSchema ) throws Exception
     {
         JsonParser parser = new JsonParser();
         JsonObject obj = ( JsonObject ) parser.parse( jsonData );
 
-        String resourceId = obj.get( "id" ).getAsString();
-        
         Entry existingEntry = fetchEntryById( resourceId, resourceSchema );
         
         if( existingEntry == null )

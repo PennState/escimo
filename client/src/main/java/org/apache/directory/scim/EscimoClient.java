@@ -113,26 +113,26 @@ public class EscimoClient
         return deleteResource( id, GROUPS_URI );
     }
 
-    public CoreResource putUser( CoreResource resource ) throws Exception
+    public CoreResource putUser( String userId, CoreResource resource ) throws Exception
     {
-        return putResource( resource, USERS_URI );
+        return putResource( userId, resource, USERS_URI );
     }
 
     
-    public CoreResource putGroup( CoreResource resource ) throws Exception
+    public CoreResource putGroup( String groupId, CoreResource resource ) throws Exception
     {
-        return putResource( resource, GROUPS_URI );
+        return putResource( groupId, resource, GROUPS_URI );
     }
 
-    public CoreResource patchUser( CoreResource resource ) throws Exception
+    public CoreResource patchUser( String userId, CoreResource resource ) throws Exception
     {
-        return patchResource( resource, USERS_URI );
+        return patchResource( userId, resource, USERS_URI );
     }
 
     
-    public CoreResource patchGroup( CoreResource resource ) throws Exception
+    public CoreResource patchGroup( String groupId, CoreResource resource ) throws Exception
     {
-        return patchResource( resource, GROUPS_URI );
+        return patchResource( groupId, resource, GROUPS_URI );
     }
 
     
@@ -244,13 +244,15 @@ public class EscimoClient
     }
 
 
-    private CoreResource putResource( CoreResource resource, String uri ) throws Exception
+    private CoreResource putResource( String resourceId, CoreResource resource, String uri ) throws Exception
     {
         if ( resource == null )
         {
             throw new IllegalArgumentException( "resource cannot be null" );
         }
 
+        uri = uri + "/" + resourceId;
+        
         HttpPut put = new HttpPut( providerUrl + uri );
 
         String payload = serialize( resource ).toString();
@@ -283,13 +285,15 @@ public class EscimoClient
     }
 
     
-    private CoreResource patchResource( CoreResource resource, String uri ) throws Exception
+    private CoreResource patchResource( String resourceId, CoreResource resource, String uri ) throws Exception
     {
         if ( resource == null )
         {
             throw new IllegalArgumentException( "resource cannot be null" );
         }
 
+        uri = uri + "/" + resourceId;
+        
         HttpPatch put = new HttpPatch( providerUrl + uri );
 
         String payload = serialize( resource ).toString();

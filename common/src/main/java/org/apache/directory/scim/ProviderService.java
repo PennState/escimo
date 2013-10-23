@@ -48,11 +48,11 @@ public interface ProviderService
     
     void deleteGroup( String id ) throws Exception;
     
-    UserResource putUser( String jsonData, RequestContext ctx ) throws Exception;
+    UserResource putUser( String userId, String jsonData, RequestContext ctx ) throws Exception;
     
-    GroupResource putGroup( String jsonData, RequestContext ctx ) throws Exception;
+    GroupResource putGroup( String groupId, String jsonData, RequestContext ctx ) throws Exception;
 
-    UserResource patchUser( String jsonData, RequestContext ctx ) throws Exception;
+    UserResource patchUser( String userId, String jsonData, RequestContext ctx ) throws Exception;
     
-    GroupResource patchGroup( String jsonData, RequestContext ctx ) throws Exception;
+    GroupResource patchGroup( String groupId, String jsonData, RequestContext ctx ) throws Exception;
 }

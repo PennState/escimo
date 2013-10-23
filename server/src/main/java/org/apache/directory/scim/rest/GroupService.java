@@ -87,13 +87,13 @@ public class GroupService
     
     @DELETE
     @Path("{id}")
-    public Response deleteGroup( @PathParam("id") String userId, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    public Response deleteGroup( @PathParam("id") String groupId, @Context UriInfo uriInfo, @Context HttpHeaders headers )
     {
         ResponseBuilder rb = Response.ok();
         
         try
         {
-            provider.deleteGroup( userId );
+            provider.deleteGroup( groupId );
         }
         catch( Exception e )
         {
@@ -142,8 +142,9 @@ public class GroupService
 
     
     @PUT
+    @Path("{id}")
     @Produces({MediaType.APPLICATION_JSON})
-    public Response putGroup( String jsonData, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    public Response putGroup( @PathParam("id") String groupId, String jsonData, @Context UriInfo uriInfo, @Context HttpHeaders headers )
     {
         ResponseBuilder rb = null;
 
@@ -159,7 +160,7 @@ public class GroupService
         {
             RequestContext ctx = new RequestContext( provider, uriInfo, headers );
             
-            ServerResource res = provider.putGroup( jsonData, ctx );
+            ServerResource res = provider.putGroup( groupId, jsonData, ctx );
             
             String json = ResourceSerializer.serialize( res );
             
@@ -176,8 +177,9 @@ public class GroupService
     }
 
     @PATCH
+    @Path("{id}")
     @Produces({MediaType.APPLICATION_JSON})
-    public Response patchGroup( String jsonData, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    public Response patchGroup( @PathParam("id") String groupId, String jsonData, @Context UriInfo uriInfo, @Context HttpHeaders headers )
     {
         ResponseBuilder rb = null;
 
@@ -193,7 +195,7 @@ public class GroupService
         {
             RequestContext ctx = new RequestContext( provider, uriInfo, headers );
             
-            ServerResource resource = provider.patchGroup( jsonData, ctx );
+            ServerResource resource = provider.patchGroup( groupId, jsonData, ctx );
             
             if( resource == null )
             {

@@ -138,7 +138,7 @@ public class UserResourceTest
         newEmail.setValue( "newemail@example.com" );
         addedUser.getEmails().add( newEmail );
         
-        User replacedUser = ( User ) client.putUser( addedUser );
+        User replacedUser = ( User ) client.putUser( addedUser.getId(), addedUser );
 
         assertNotNull( replacedUser );
         assertEquals( 1, replacedUser.getEmails().size() );
@@ -181,7 +181,7 @@ public class UserResourceTest
             addedUser.getEmails().add( newEmail );
         }
         
-        User patchedUser = ( User ) client.patchUser( addedUser );
+        User patchedUser = ( User ) client.patchUser( addedUser.getId(), addedUser );
 
         assertNull( patchedUser );
         
@@ -237,7 +237,6 @@ public class UserResourceTest
         Group.Member deletedMember = members.get( 0 );
         
         Group tobePatchedGroup = new Group();
-        tobePatchedGroup.setId( addedGroup.getId() );
         
         List<Group.Member> patchedMembers = new ArrayList<Group.Member>();
         tobePatchedGroup.setMembers( patchedMembers );
@@ -245,7 +244,7 @@ public class UserResourceTest
         deletedMember.setOperation( "delete" );
         patchedMembers.add( deletedMember );
         
-        client.patchGroup( tobePatchedGroup );
+        client.patchGroup( addedGroup.getId(), tobePatchedGroup );
         Group patchedGroup = ( Group ) client.getGroup( addedGroup.getId() );
         assertEquals( ( count - 1 ), patchedGroup.getMembers().size() );
         
