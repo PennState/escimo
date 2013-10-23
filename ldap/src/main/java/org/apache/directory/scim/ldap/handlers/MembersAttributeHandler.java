@@ -283,7 +283,7 @@ public class MembersAttributeHandler extends LdapAttributeHandler
         {
             List<SimpleAttribute> lst = new ArrayList<SimpleAttribute>();
 
-            SimpleAttribute id = new SimpleAttribute( "id", memberEntry.get( SchemaConstants.ENTRY_UUID_AT )
+            SimpleAttribute id = new SimpleAttribute( "value", memberEntry.get( SchemaConstants.ENTRY_UUID_AT )
                 .getString() );
             lst.add( id );
 
