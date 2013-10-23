@@ -37,6 +37,7 @@ import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.scim.User.Email;
 import org.apache.directory.scim.User.Name;
 import org.apache.directory.scim.schema.CoreResource;
+import org.apache.directory.scim.schema.MetaData;
 import org.apache.directory.server.core.api.CoreSession;
 import org.apache.directory.server.core.api.LdapCoreSessionConnection;
 import org.junit.AfterClass;
@@ -255,5 +256,15 @@ public class UserResourceTest
                 fail( "This member shouldn't present" );
             }
         }
+        
+        Group deleteMemGroup = new Group();
+        MetaData meta = new MetaData();
+        List<String> attributes = new ArrayList<String>();
+        attributes.add( "members" );
+        meta.setAttributes( attributes );
+        deleteMemGroup.setMeta( meta );
+        
+        patchedGroup = ( Group ) client.patchGroup( addedGroup.getId(), deleteMemGroup );
+        assertNull( patchedGroup.getMembers() );
     }
 }
