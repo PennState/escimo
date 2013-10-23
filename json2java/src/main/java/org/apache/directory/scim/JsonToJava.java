@@ -316,7 +316,6 @@ public class JsonToJava extends AbstractMojo
 
             AttributeDetail ad = new AttributeDetail( name, javaType );
             ad.setMultiValued( multiValued );
-            ad.setReadOnly( readOnly );
 
             simpleAttributes.add( ad );
         }
