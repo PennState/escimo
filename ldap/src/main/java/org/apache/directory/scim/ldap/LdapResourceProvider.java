@@ -41,6 +41,7 @@ import org.apache.directory.api.ldap.model.entry.Attribute;
 import org.apache.directory.api.ldap.model.entry.DefaultEntry;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.entry.Value;
+import org.apache.directory.api.ldap.model.exception.LdapEntryAlreadyExistsException;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.message.LdapResult;
 import org.apache.directory.api.ldap.model.message.ModifyRequest;
@@ -69,8 +70,10 @@ import org.apache.directory.scim.ComplexAttribute;
 import org.apache.directory.scim.GroupResource;
 import org.apache.directory.scim.MissingParameterException;
 import org.apache.directory.scim.MultiValAttribute;
+import org.apache.directory.scim.OperationException;
 import org.apache.directory.scim.ProviderService;
 import org.apache.directory.scim.RequestContext;
+import org.apache.directory.scim.ResourceConflictException;
 import org.apache.directory.scim.ResourceNotFoundException;
 import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.SimpleAttribute;
@@ -267,12 +270,12 @@ public class LdapResourceProvider implements ProviderService
     {
         if ( Strings.isEmpty( id ) )
         {
-            throw new MissingParameterException( "id cannot be null or empty" );
+            throw new MissingParameterException( "parameter 'id' cannot be null or empty" );
         }
 
         if ( Strings.isEmpty( atName ) )
         {
-            throw new MissingParameterException( "atName cannot be null or empty" );
+            throw new MissingParameterException( "parameter 'atName' cannot be null or empty" );
         }
 
         Entry entry = fetchEntryById( id, userSchema );
@@ -358,6 +361,8 @@ public class LdapResourceProvider implements ProviderService
     
     public UserResource addUser( String json, RequestContext ctx ) throws Exception
     {
+        String userName = null;
+        
         try
         {
             JsonParser parser = new JsonParser();
@@ -377,7 +382,7 @@ public class LdapResourceProvider implements ProviderService
             
             if( dn == null )
             {
-                String userName = obj.get( "userName" ).getAsString();
+                userName = obj.get( "userName" ).getAsString();
                 
                 dn = userIdName + "=" + userName + "," + userSchema.getBaseDn();
             }
@@ -398,6 +403,11 @@ public class LdapResourceProvider implements ProviderService
             return addedUser;
 
         }
+        catch( LdapEntryAlreadyExistsException e )
+        {
+            String message = "Resource already exists, conflicting attribute userName : " + userName;
+            throw new ResourceConflictException( message );
+        }
         catch( Exception e )
         {
             LOG.warn( "Failed to create User resource", e );
@@ -408,6 +418,8 @@ public class LdapResourceProvider implements ProviderService
     
     public GroupResource addGroup( String jsonData, RequestContext ctx ) throws Exception
     {
+        String groupName = null;
+        
         try
         {
             JsonParser parser = new JsonParser();
@@ -427,7 +439,7 @@ public class LdapResourceProvider implements ProviderService
             
             if( dn == null )
             {
-                String groupName = obj.get( "displayName" ).getAsString();
+                groupName = obj.get( "displayName" ).getAsString();
                 
                 dn = groupNameAt + "=" + groupName + "," + groupSchema.getBaseDn();
             }
@@ -448,6 +460,11 @@ public class LdapResourceProvider implements ProviderService
             
             return addedGroup;
 
+        }
+        catch( LdapEntryAlreadyExistsException e )
+        {
+            String message = "Resource already exists, conflicting attribute displayName : " + groupName;
+            throw new ResourceConflictException( message );
         }
         catch( Exception e )
         {
@@ -772,8 +789,7 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    private void _loadAttributes( RequestContext ctx, Entry entry, Collection<BaseType> types, SimpleType idType )
-        throws Exception
+    private void _loadAttributes( RequestContext ctx, Entry entry, Collection<BaseType> types, SimpleType idType ) throws Exception
     {
         ServerResource user = ctx.getCoreResource();
 
@@ -860,7 +876,7 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    private List<SimpleAttributeGroup> getValuesFor( SimpleTypeGroup stg, Entry entry ) throws LdapException
+    private List<SimpleAttributeGroup> getValuesFor( SimpleTypeGroup stg, Entry entry )
     {
         if ( stg == null )
         {
@@ -918,7 +934,7 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    public SimpleAttribute getValueForSimpleType( SimpleType st, Entry entry, RequestContext ctx ) throws LdapException
+    public SimpleAttribute getValueForSimpleType( SimpleType st, Entry entry, RequestContext ctx ) throws Exception
     {
         String atHandler = st.getAtHandlerName();
 
@@ -935,7 +951,7 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    public SimpleAttribute getValueForSimpleType( SimpleType st, Entry entry ) throws LdapException
+    public SimpleAttribute getValueForSimpleType( SimpleType st, Entry entry )
     {
         String name = st.getName();
         Attribute at = entry.get( st.getMappedTo() );
@@ -950,13 +966,13 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    private Object getScimValFrom( Attribute at ) throws LdapException
+    private Object getScimValFrom( Attribute at )
     {
         return getScimValFrom( at.get() );
     }
 
 
-    private Object getScimValFrom( Value<?> ldapValue ) throws LdapException
+    private Object getScimValFrom( Value<?> ldapValue )
     {
         if ( !ldapValue.isHumanReadable() )
         {
@@ -985,12 +1001,7 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    //    public List<SimpleAttribute> getValuesInto( SimpleTypeGroup stg, RequestContext ctx ) throws LdapException
-    //    {
-    //        
-    //    }
-
-    public List<SimpleAttribute> getValuesInto( SimpleTypeGroup stg, Entry entry ) throws LdapException
+    public List<SimpleAttribute> getValuesInto( SimpleTypeGroup stg, Entry entry )
     {
         List<SimpleAttribute> lstAts = new ArrayList<SimpleAttribute>();
 

@@ -37,6 +37,7 @@ import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.scim.User.Email;
 import org.apache.directory.scim.User.Name;
 import org.apache.directory.scim.schema.CoreResource;
+import org.apache.directory.scim.schema.ErrorCode;
 import org.apache.directory.scim.schema.MetaData;
 import org.apache.directory.server.core.api.CoreSession;
 import org.apache.directory.server.core.api.LdapCoreSessionConnection;
@@ -94,19 +95,30 @@ public class UserResourceTest
         emails.add( mail );
         user.setEmails( emails );
         
-        User addedUser = ( User ) client.addUser( user );
+        EscimoResult result = client.addUser( user );
+        assertTrue( result.isSuccess() );
+        
+        User addedUser = ( User ) result.getResource(); 
         
         assertNotNull( addedUser );
         
         assertEquals( user.getUserName(), addedUser.getUserName() );
         
-        User fetchedUser = ( User ) client.getUser( addedUser.getId() );
+        result = client.getUser( addedUser.getId() );
+        User fetchedUser = result.getResourceAs( User.class );
         
         assertEquals( addedUser.getUserName(), fetchedUser.getUserName() );
         assertEquals( addedUser.getId(), fetchedUser.getId() );
         
-        client.deleteUser( fetchedUser.getId() );
-        fetchedUser = ( User ) client.getUser( addedUser.getId() );
+        result = client.addUser( user );
+        assertFalse( result.isSuccess() );
+        assertEquals( ErrorCode.CONFLICT.getVal(), result.getErrorResponse().getFirstErrorCode() );
+        
+        result = client.deleteUser( fetchedUser.getId() );
+        assertTrue( result.isSuccess() );
+        
+        result = client.getUser( addedUser.getId() );
+        fetchedUser = result.getResourceAs( User.class );
         assertNull( fetchedUser );
     }
     
@@ -130,7 +142,11 @@ public class UserResourceTest
         emails.add( mail );
         user.setEmails( emails );
 
-        User addedUser = ( User ) client.addUser( user );
+        EscimoResult result = client.addUser( user );
+        assertTrue( result.isSuccess() );
+        
+        User addedUser = ( User ) result.getResource(); 
+
         assertNotNull( addedUser );
 
         addedUser.getEmails().clear();
@@ -139,7 +155,8 @@ public class UserResourceTest
         newEmail.setValue( "newemail@example.com" );
         addedUser.getEmails().add( newEmail );
         
-        User replacedUser = ( User ) client.putUser( addedUser.getId(), addedUser );
+        result = client.putUser( addedUser.getId(), addedUser );
+        User replacedUser = result.getResourceAs( User.class );
 
         assertNotNull( replacedUser );
         assertEquals( 1, replacedUser.getEmails().size() );
@@ -167,7 +184,11 @@ public class UserResourceTest
         emails.add( mail );
         user.setEmails( emails );
 
-        User addedUser = ( User ) client.addUser( user );
+        EscimoResult result = client.addUser( user );
+        assertTrue( result.isSuccess() );
+        
+        User addedUser = ( User ) result.getResource(); 
+
         assertNotNull( addedUser );
 
         addedUser.getEmails().get( 0 ).setOperation( "delete" );
@@ -182,11 +203,13 @@ public class UserResourceTest
             addedUser.getEmails().add( newEmail );
         }
         
-        User patchedUser = ( User ) client.patchUser( addedUser.getId(), addedUser );
+        result = client.patchUser( addedUser.getId(), addedUser );
+        User patchedUser = result.getResourceAs( User.class );
 
         assertNull( patchedUser );
         
-        patchedUser = ( User ) client.getUser( addedUser.getId() );
+        result = client.getUser( addedUser.getId() );
+        patchedUser = result.getResourceAs( User.class ); 
         assertNotNull( patchedUser );
         
         for( Email e : patchedUser.getEmails() )
@@ -229,7 +252,11 @@ public class UserResourceTest
             count++;
         }
         
-        Group addedGroup = ( Group ) client.addGroup( group );
+        EscimoResult result = client.addGroup( group );
+        assertTrue( result.isSuccess() );
+        
+        Group addedGroup = result.getResourceAs( Group.class );
+        
         assertNotNull( addedGroup );
         assertEquals( group.getDisplayName(), addedGroup.getDisplayName() );
         assertNotNull( addedGroup.getId() );
@@ -246,7 +273,10 @@ public class UserResourceTest
         patchedMembers.add( deletedMember );
         
         client.patchGroup( addedGroup.getId(), tobePatchedGroup );
-        Group patchedGroup = ( Group ) client.getGroup( addedGroup.getId() );
+        
+        result = client.getGroup( addedGroup.getId() );
+        Group patchedGroup = result.getResourceAs( Group.class );
+
         assertEquals( ( count - 1 ), patchedGroup.getMembers().size() );
         
         for( Group.Member gm : patchedGroup.getMembers() )
@@ -264,7 +294,8 @@ public class UserResourceTest
         meta.setAttributes( attributes );
         deleteMemGroup.setMeta( meta );
         
-        patchedGroup = ( Group ) client.patchGroup( addedGroup.getId(), deleteMemGroup );
+        result = client.patchGroup( addedGroup.getId(), deleteMemGroup );
+        patchedGroup = result.getResourceAs( Group.class ); 
         assertNull( patchedGroup.getMembers() );
     }
 }

@@ -62,7 +62,7 @@ public class GroupsAttributeHandler extends LdapAttributeHandler
 
 
     @Override
-    public void read( BaseType bt, Object srcResource, RequestContext ctx )
+    public void read( BaseType bt, Object srcResource, RequestContext ctx ) throws Exception
     {
         if ( !bt.getName().equals( "groups" ) )
         {
@@ -119,6 +119,7 @@ public class GroupsAttributeHandler extends LdapAttributeHandler
                 catch ( LdapException ex )
                 {
                     LOG.warn( "Failed to get attributes from entry {}", memberEntry.getDn() );
+                    throw ex;
                 }
             }
 
@@ -147,7 +148,7 @@ public class GroupsAttributeHandler extends LdapAttributeHandler
 
 
     private List<Entry> getMemberEntriesUsingFilter( String filter, String baseDn, Entry userEntry,
-        LdapResourceProvider provider )
+        LdapResourceProvider provider ) throws Exception
     {
         if ( Strings.isEmpty( baseDn ) )
         {
@@ -182,6 +183,7 @@ public class GroupsAttributeHandler extends LdapAttributeHandler
         {
             LOG.warn( "Failed to get the groups using the filter {} and base DN {}", filter, baseDn );
             LOG.warn( "", e );
+            throw e;
         }
 
         return lst;
@@ -263,6 +265,7 @@ public class GroupsAttributeHandler extends LdapAttributeHandler
                             catch ( LdapException e )
                             {
                                 LOG.warn( "Failed to set the value for the attribute {} in the filter", at );
+                                throw new RuntimeException( e );
                             }
                         }
                     }

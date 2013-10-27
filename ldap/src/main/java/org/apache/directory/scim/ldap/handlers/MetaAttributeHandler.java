@@ -47,7 +47,7 @@ public class MetaAttributeHandler extends LdapAttributeHandler
     private static final Logger LOG = LoggerFactory.getLogger( ActiveAttributeHandler.class );
     
     @Override
-    public void read( BaseType bt, Object srcResource, RequestContext ctx )
+    public void read( BaseType bt, Object srcResource, RequestContext ctx ) throws Exception
     {
         Entry entry = ( Entry ) srcResource;
 
@@ -108,6 +108,7 @@ public class MetaAttributeHandler extends LdapAttributeHandler
         catch( LdapException e )
         {
             LOG.warn( "Failed while creating meta attribute", e );
+            throw e;
         }
         
     }

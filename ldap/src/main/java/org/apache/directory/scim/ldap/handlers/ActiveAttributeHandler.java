@@ -40,7 +40,7 @@ public class ActiveAttributeHandler extends LdapAttributeHandler
     private static final Logger LOG = LoggerFactory.getLogger( ActiveAttributeHandler.class );
     
     @Override
-    public void read( BaseType bt, Object srcResource, RequestContext ctx )
+    public void read( BaseType bt, Object srcResource, RequestContext ctx ) throws Exception
     {
         if( !bt.getName().equals( "active" ) )
         {
@@ -66,6 +66,7 @@ public class ActiveAttributeHandler extends LdapAttributeHandler
             catch( LdapException e )
             {
                 LOG.warn( "Failed to get the value for the attribute {}", bt.getName(), e );
+                throw e;
             }
         }
         

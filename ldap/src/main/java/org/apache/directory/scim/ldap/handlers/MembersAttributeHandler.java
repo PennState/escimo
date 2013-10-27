@@ -70,7 +70,7 @@ public class MembersAttributeHandler extends LdapAttributeHandler
 
 
     @Override
-    public void read( BaseType bt, Object srcResource, RequestContext ctx )
+    public void read( BaseType bt, Object srcResource, RequestContext ctx ) throws Exception
     {
         checkHandler( bt, "members", this );
         
@@ -266,7 +266,7 @@ public class MembersAttributeHandler extends LdapAttributeHandler
         return memberType;
     }
     
-    private SimpleAttributeGroup getMemberDetails( String dn, RequestContext ctx )
+    private SimpleAttributeGroup getMemberDetails( String dn, RequestContext ctx ) throws Exception
     {
         LdapResourceProvider provider = ( LdapResourceProvider ) ctx.getProviderService();
 
@@ -302,6 +302,7 @@ public class MembersAttributeHandler extends LdapAttributeHandler
         catch ( LdapException ex )
         {
             LOG.warn( "Failed to get attributes from entry {}", memberEntry.getDn() );
+            throw ex;
         }
 
         return sg;
@@ -309,7 +310,7 @@ public class MembersAttributeHandler extends LdapAttributeHandler
 
 
     private List<Entry> getMemberEntriesUsingFilter( String filter, String baseDn, Entry userEntry,
-        LdapResourceProvider provider )
+        LdapResourceProvider provider ) throws Exception
     {
         if ( Strings.isEmpty( baseDn ) )
         {
@@ -344,6 +345,7 @@ public class MembersAttributeHandler extends LdapAttributeHandler
         {
             LOG.warn( "Failed to get the groups using the filter {} and base DN {}", filter, baseDn );
             LOG.warn( "", e );
+            throw e;
         }
 
         return lst;
@@ -425,6 +427,7 @@ public class MembersAttributeHandler extends LdapAttributeHandler
                             catch ( LdapException e )
                             {
                                 LOG.warn( "Failed to set the value for the attribute {} in the filter", at );
+                                throw new RuntimeException( e );
                             }
                         }
                     }

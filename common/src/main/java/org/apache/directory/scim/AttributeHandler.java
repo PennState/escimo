@@ -32,7 +32,7 @@ import com.google.gson.JsonElement;
  */
 public abstract class AttributeHandler
 {
-    public abstract void read( BaseType bt, Object srcResource, RequestContext ctx );
+    public abstract void read( BaseType bt, Object srcResource, RequestContext ctx ) throws Exception;
     
     public abstract void write( BaseType atType, JsonElement jsonData, Object targetEntry, RequestContext ctx ) throws Exception;
     

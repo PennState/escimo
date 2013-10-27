@@ -18,8 +18,6 @@
  */
 package org.apache.directory.scim.rest;
 
-import static org.apache.directory.scim.ScimUtil.exceptionToStr;
-
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -43,11 +41,10 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
 
-import org.apache.directory.scim.AttributeNotFoundException;
 import org.apache.directory.scim.MissingParameterException;
 import org.apache.directory.scim.ProviderService;
 import org.apache.directory.scim.RequestContext;
-import org.apache.directory.scim.ResourceNotFoundException;
+import org.apache.directory.scim.ScimUtil;
 import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.UserResource;
 import org.apache.directory.scim.json.ResourceSerializer;
@@ -81,9 +78,9 @@ public class UserService
             String json = ResourceSerializer.serialize( user );
             rb = Response.ok( json, MediaType.APPLICATION_JSON );
         }
-        catch( ResourceNotFoundException e )
+        catch( Exception e )
         {
-            rb = Response.status( Status.INTERNAL_SERVER_ERROR ).entity( exceptionToStr( e ) );
+            rb = ScimUtil.buildError( e );
         }
         
         return rb.build();
@@ -102,7 +99,7 @@ public class UserService
         }
         catch( Exception e )
         {
-            rb = Response.status( Status.INTERNAL_SERVER_ERROR ).entity( exceptionToStr( e ) );
+            rb = ScimUtil.buildError( e );
         }
         
         return rb.build();
@@ -139,7 +136,7 @@ public class UserService
         }
         catch( Exception e )
         {
-            rb = Response.status( Status.INTERNAL_SERVER_ERROR ).entity( exceptionToStr( e ) );
+            rb = ScimUtil.buildError( e );
         }
         
         return rb.build();
@@ -175,7 +172,7 @@ public class UserService
         }
         catch( Exception e )
         {
-            rb = Response.status( Status.INTERNAL_SERVER_ERROR ).entity( exceptionToStr( e ) );
+            rb = ScimUtil.buildError( e );
         }
         
         return rb.build();
@@ -213,13 +210,9 @@ public class UserService
                 rb = Response.ok().entity( json );
             }
         }
-        catch( AttributeNotFoundException e )
-        {
-            rb = Response.status( Status.NOT_FOUND ).entity( exceptionToStr( e ) );
-        }
         catch( Exception e )
         {
-            rb = Response.status( Status.INTERNAL_SERVER_ERROR ).entity( exceptionToStr( e ) );
+            rb = ScimUtil.buildError( e );
         }
         
         return rb.build();
@@ -231,14 +224,14 @@ public class UserService
     @Path("photo")
     public Response getPhoto( @QueryParam("atName") String atName, @QueryParam("id") String id )
     {
-        final ResponseBuilder rb = Response.ok();
+        ResponseBuilder rb = Response.ok();
         
         try
         {
             final InputStream in = provider.getUserPhoto( id, atName );
             if( in == null )
             {
-                rb.status( Status.NOT_FOUND );
+                rb.status( Status.NOT_FOUND ).entity( "No photo found for the resource with ID " + id + " and attribute name " + atName );
             }
             else
             {
@@ -262,10 +255,6 @@ public class UserService
                                 output.write( buf, 0, read );
                             }
                         }
-                        catch( IOException e )
-                        {
-                            rb.status( Status.INTERNAL_SERVER_ERROR ).entity( exceptionToStr( e ) );
-                        }
                         finally
                         {
                             in.close();
@@ -278,7 +267,7 @@ public class UserService
         }
         catch( MissingParameterException e )
         {
-            rb.status( Status.BAD_REQUEST ).entity( exceptionToStr( e ) );
+            rb = ScimUtil.buildError( e );
         }
         
         return rb.build();

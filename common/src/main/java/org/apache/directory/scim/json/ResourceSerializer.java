@@ -30,7 +30,9 @@ import org.apache.directory.scim.ScimUtil;
 import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
+import org.apache.directory.scim.schema.ErrorResponse;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
@@ -43,6 +45,13 @@ import com.google.gson.JsonPrimitive;
  */
 public class ResourceSerializer
 {
+
+    private static final JsonArray ERROR_RESPONSE_SCHEMAS = new JsonArray();
+    
+    static
+    {
+        ERROR_RESPONSE_SCHEMAS.add( new JsonPrimitive( ErrorResponse.SCHEMA_ID ) );
+    }
 
     public static String serialize( ServerResource resource )
     {
@@ -137,5 +146,15 @@ public class ResourceSerializer
         {
             parent.addProperty( at.getName(), ( Boolean ) obj );
         }
+    }
+    
+    public static String serialize( ErrorResponse err )
+    {
+        Gson gson = new Gson();
+        JsonObject jo = ( JsonObject ) gson.toJsonTree( err );
+        
+        jo.add( "schemas", ERROR_RESPONSE_SCHEMAS );
+        
+        return jo.toString();
     }
 }

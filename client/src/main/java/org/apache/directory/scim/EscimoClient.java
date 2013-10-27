@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.apache.directory.scim.schema.CoreResource;
+import org.apache.directory.scim.schema.ErrorResponse;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
@@ -80,63 +81,63 @@ public class EscimoClient
         serializer = gb.create();
     }
 
-    public CoreResource addUser( CoreResource resource ) throws Exception
+    public EscimoResult addUser( CoreResource resource )
     {
         return addResource( resource, USERS_URI );
     }
 
     
-    public CoreResource addGroup( CoreResource resource ) throws Exception
+    public EscimoResult addGroup( CoreResource resource )
     {
         return addResource( resource, GROUPS_URI );
     }
 
     
-    public CoreResource getUser( String id ) throws Exception
+    public EscimoResult getUser( String id )
     {
         return getResource( id, USERS_URI );
     }
 
     
-    public CoreResource getGroup( String id ) throws Exception
+    public EscimoResult getGroup( String id )
     {
         return getResource( id, GROUPS_URI );
     }
 
-    public boolean deleteUser( String id ) throws Exception
+    public EscimoResult deleteUser( String id )
     {
         return deleteResource( id, USERS_URI );
     }
 
-    public boolean deleteGroup( String id ) throws Exception
+    public EscimoResult deleteGroup( String id )
     {
         return deleteResource( id, GROUPS_URI );
     }
 
-    public CoreResource putUser( String userId, CoreResource resource ) throws Exception
+    public EscimoResult putUser( String userId, CoreResource resource )
     {
         return putResource( userId, resource, USERS_URI );
     }
 
     
-    public CoreResource putGroup( String groupId, CoreResource resource ) throws Exception
+    public EscimoResult putGroup( String groupId, CoreResource resource )
     {
         return putResource( groupId, resource, GROUPS_URI );
     }
 
-    public CoreResource patchUser( String userId, CoreResource resource ) throws Exception
+    public EscimoResult patchUser( String userId, CoreResource resource )
     {
         return patchResource( userId, resource, USERS_URI );
     }
 
     
-    public CoreResource patchGroup( String groupId, CoreResource resource ) throws Exception
+    public EscimoResult patchGroup( String groupId, CoreResource resource )
     {
         return patchResource( groupId, resource, GROUPS_URI );
     }
 
     
-    private boolean deleteResource( String id, String uri ) throws Exception
+    private EscimoResult deleteResource( String id, String uri )
     {
 
         if ( id == null )
@@ -144,7 +145,7 @@ public class EscimoClient
             throw new IllegalArgumentException( "resource ID cannot be null" );
         }
 
-        HttpDelete get = new HttpDelete( providerUrl + uri + "/" + id );
+        HttpDelete delete = new HttpDelete( providerUrl + uri + "/" + id );
         
         LOG.debug( "Trying to delete resource with ID {} at URI {}", id, uri );
 
@@ -152,25 +153,32 @@ public class EscimoClient
 
         try
         {
-            HttpResponse resp = client.execute( get );
+            HttpResponse resp = client.execute( delete );
             StatusLine sl = resp.getStatusLine();
+            
+            EscimoResult result = new EscimoResult( sl.getStatusCode(), resp.getAllHeaders() );
             
             if ( sl.getStatusCode() == 200 )
             {
-                return true;
+                return result;
             }
+            else
+            {
+                String retVal = EntityUtils.toString( resp.getEntity() );
+                result.setErrorResponse( deserializeError( retVal ) );
+            }
+            
+            return result;
         }
         catch ( Exception e )
         {
-            LOG.warn( "", e );
-            throw e;
+            LOG.warn( "Failed while deleting the resource at {}", delete.getURI() );
+            throw new RuntimeException( e );
         }
-        
-        return false;
     }
     
     
-    private CoreResource getResource( String id, String uri ) throws Exception
+    private EscimoResult getResource( String id, String uri )
     {
         if ( id == null )
         {
@@ -187,25 +195,31 @@ public class EscimoClient
         {
             HttpResponse resp = client.execute( get );
             StatusLine sl = resp.getStatusLine();
+
+            EscimoResult result = new EscimoResult( sl.getStatusCode(), resp.getAllHeaders() );
             
+            String retVal = EntityUtils.toString( resp.getEntity() );
+
             if ( sl.getStatusCode() == 200 )
             {
-                String retVal = EntityUtils.toString( resp.getEntity() );
-                
-                return deserialize( retVal );
+                result.setResource( deserialize( retVal ) );
             }
+            else
+            {
+                result.setErrorResponse( deserializeError( retVal ) );
+            }
+            
+            return result;
         }
         catch ( Exception e )
         {
-            LOG.warn( "", e );
-            throw e;
+            LOG.warn( "Failed while retrieving resource from {}", get.getURI() );
+            throw new RuntimeException( e );
         }
-        
-        return null;
     }
 
     
-    private CoreResource addResource( CoreResource resource, String uri ) throws Exception
+    private EscimoResult addResource( CoreResource resource, String uri )
     {
         if ( resource == null )
         {
@@ -227,24 +241,30 @@ public class EscimoClient
             HttpResponse resp = client.execute( post );
             StatusLine sl = resp.getStatusLine();
             
+            EscimoResult result = new EscimoResult( sl.getStatusCode(), resp.getAllHeaders() );
+            
+            String retVal = EntityUtils.toString( resp.getEntity() );
+            
             if ( sl.getStatusCode() == 201 )
             {
-                String retVal = EntityUtils.toString( resp.getEntity() );
-                
-                return deserialize( retVal );
+                result.setResource( deserialize( retVal ) );
             }
+            else
+            {
+                result.setErrorResponse( deserializeError( retVal ) );
+            }
+            
+            return result;
         }
-        catch ( Exception e )
+        catch( Exception e )
         {
-            LOG.warn( "", e );
-            throw e;
+            LOG.warn( "Failed while trying to add a resource at {}", post.getURI() );
+            throw new RuntimeException( e );
         }
-        
-        return null;
     }
 
 
-    private CoreResource putResource( String resourceId, CoreResource resource, String uri ) throws Exception
+    private EscimoResult putResource( String resourceId, CoreResource resource, String uri )
     {
         if ( resource == null )
         {
@@ -267,25 +287,31 @@ public class EscimoClient
         {
             HttpResponse resp = client.execute( put );
             StatusLine sl = resp.getStatusLine();
+
+            EscimoResult result = new EscimoResult( sl.getStatusCode(), resp.getAllHeaders() );
+            
+            String retVal = EntityUtils.toString( resp.getEntity() );
             
             if ( sl.getStatusCode() == 200 )
             {
-                String retVal = EntityUtils.toString( resp.getEntity() );
-                
-                return deserialize( retVal );
+                result.setResource( deserialize( retVal ) );
             }
+            else
+            {
+                result.setErrorResponse( deserializeError( retVal ) );
+            }
+            
+            return result;
         }
         catch ( Exception e )
         {
-            LOG.warn( "", e );
-            throw e;
+            LOG.warn( "Failed while trying to replace a resource at {}", put.getURI() );
+            throw new RuntimeException( e );
         }
-        
-        return null;
     }
 
     
-    private CoreResource patchResource( String resourceId, CoreResource resource, String uri ) throws Exception
+    private EscimoResult patchResource( String resourceId, CoreResource resource, String uri )
     {
         if ( resource == null )
         {
@@ -309,28 +335,40 @@ public class EscimoClient
             HttpResponse resp = client.execute( put );
             StatusLine sl = resp.getStatusLine();
             
+            EscimoResult result = new EscimoResult( sl.getStatusCode(), resp.getAllHeaders() );
+            
+            
             if ( sl.getStatusCode() == 200 )
             {
                 String retVal = EntityUtils.toString( resp.getEntity() );
-                
-                return deserialize( retVal );
+                result.setResource( deserialize( retVal ) );
             }
-            else if ( sl.getStatusCode() == 209 )
+            else if ( sl.getStatusCode() == 204 )
             {
-                return null;
+                // do nothing
             }
+            else // everything else is an error
+            {
+                String retVal = EntityUtils.toString( resp.getEntity() );
+                result.setErrorResponse( deserializeError( retVal ) );
+            }
+            
+            return result;
         }
         catch ( Exception e )
         {
-            LOG.warn( "", e );
-            throw e;
+            LOG.warn( "Failed while trying to patch a resource at {}", put.getURI() );
+            throw new RuntimeException( e );
         }
-        
-        return null;
     }
 
     private CoreResource deserialize( String json )
     {
+        if( json == null )
+        {
+            return null;
+        }
+        
         JsonParser parser = new JsonParser();
         JsonObject obj = ( JsonObject ) parser.parse( json );
 
@@ -366,7 +404,16 @@ public class EscimoClient
         return top;
     }
 
-
+    private ErrorResponse deserializeError( String json )
+    {
+        if( json == null )
+        {
+            return null;
+        }
+        
+        return serializer.fromJson( json, ErrorResponse.class );
+    }
+    
     private JsonObject serialize( CoreResource resource )
     {
         JsonObject json = ( JsonObject ) serializer.toJsonTree( resource );

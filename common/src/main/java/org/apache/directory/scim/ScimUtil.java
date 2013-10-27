@@ -19,9 +19,20 @@
 package org.apache.directory.scim;
 
 
+import static org.apache.directory.scim.schema.ErrorCode.BAD_REQUEST;
+import static org.apache.directory.scim.schema.ErrorCode.CONFLICT;
+import static org.apache.directory.scim.schema.ErrorCode.INTERNAL_SERVER_ERROR;
+import static org.apache.directory.scim.schema.ErrorCode.NOT_FOUND;
+
 import java.io.PrintWriter;
 import java.io.StringWriter;
 
+import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
+
+import org.apache.directory.scim.json.ResourceSerializer;
+import org.apache.directory.scim.schema.ErrorCode;
+import org.apache.directory.scim.schema.ErrorResponse;
 
 /**
  * 
@@ -55,4 +66,36 @@ public class ScimUtil
                  CORE_GROUP_URI.equals( uri ) );
     }
 
+    
+    public static ResponseBuilder buildError( Exception e )
+    {
+        // set the default type to server error
+        ErrorCode ec = INTERNAL_SERVER_ERROR;
+        String desc = e.getMessage();
+        
+        if( ( e instanceof AttributeNotFoundException ) || ( e instanceof ResourceNotFoundException ) )
+        {
+            ec = NOT_FOUND;
+        }
+        else if ( e instanceof IllegalArgumentException )
+        {
+            ec = BAD_REQUEST;
+        }
+        else if ( e instanceof ResourceConflictException )
+        {
+            ec = CONFLICT;
+        }
+        
+        ErrorResponse.Error error = new ErrorResponse.Error( ec.getVal(), desc );
+        
+        error.setStackTrace( exceptionToStr( e ) );
+        
+        ErrorResponse erResp = new ErrorResponse( error );
+        
+        String json = ResourceSerializer.serialize( erResp );
+        
+        ResponseBuilder rb = Response.status( ec.getVal() ).entity( json );
+        
+        return rb;
+    }
 }

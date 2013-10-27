@@ -27,12 +27,9 @@ package org.apache.directory.scim;
  */
 public class ResourceNotFoundException extends Exception
 {
-    String message;
-
-
     public ResourceNotFoundException( String message )
     {
-        this.message = message;
+        super( message );
     }
 
 
@@ -44,20 +41,7 @@ public class ResourceNotFoundException extends Exception
 
     public ResourceNotFoundException( String message, Throwable t )
     {
-        super( t );
-        this.message = message;
-    }
-
-
-    @Override
-    public String getMessage()
-    {
-        if ( message == null )
-        {
-            return super.getMessage();
-        }
-
-        return message;
+        super( message, t );
     }
 
 }

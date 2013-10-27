@@ -59,7 +59,7 @@ public class PhotosAttributeHandler extends LdapAttributeHandler
 
 
     @Override
-    public void read( BaseType bt, Object srcResource, RequestContext ctx )
+    public void read( BaseType bt, Object srcResource, RequestContext ctx ) throws Exception
     {
         checkHandler( bt, "photos", this );
 
@@ -95,7 +95,7 @@ public class PhotosAttributeHandler extends LdapAttributeHandler
     }
 
 
-    private SimpleAttribute getPhotoUrlValue( SimpleTypeGroup stg, Entry entry, String photoUrlBase, ServerResource user )
+    private SimpleAttribute getPhotoUrlValue( SimpleTypeGroup stg, Entry entry, String photoUrlBase, ServerResource user ) throws Exception
     {
         SimpleType valType = stg.getValueType();
         if ( valType != null )
@@ -114,21 +114,14 @@ public class PhotosAttributeHandler extends LdapAttributeHandler
     }
 
 
-    private String formatPhotoUrl( String url, String atName, String userId, byte[] photoBytes )
+    private String formatPhotoUrl( String url, String atName, String userId, byte[] photoBytes ) throws Exception
     {
         String enc = "UTF-8";
-        try
-        {
-            atName = URLEncoder.encode( atName, enc );
-            userId = URLEncoder.encode( userId, enc );
 
-            return String.format( url, atName, userId );
-        }
-        catch ( Exception e )
-        {
-            // if happens blow up 
-            throw new RuntimeException( e );
-        }
+        atName = URLEncoder.encode( atName, enc );
+        userId = URLEncoder.encode( userId, enc );
+        
+        return String.format( url, atName, userId );
     }
 
 

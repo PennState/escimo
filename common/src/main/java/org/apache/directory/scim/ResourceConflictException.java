@@ -19,27 +19,28 @@
  */
 package org.apache.directory.scim;
 
+
 /**
- * TODO AttributeNotFoundException.
+ * TODO ResourceNotFoundException.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class AttributeNotFoundException extends ResourceNotFoundException
+public class ResourceConflictException extends Exception
 {
-    public AttributeNotFoundException( String message )
+    public ResourceConflictException( String message )
     {
         super( message );
     }
-    
-    public AttributeNotFoundException( Throwable t )
+
+
+    public ResourceConflictException( Throwable t )
     {
         super( t );
     }
 
 
-    public AttributeNotFoundException( String message, Throwable t )
+    public ResourceConflictException( String message, Throwable t )
     {
         super( message, t );
     }
-
 }
