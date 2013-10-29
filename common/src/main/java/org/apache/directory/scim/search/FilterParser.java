@@ -21,6 +21,8 @@ package org.apache.directory.scim.search;
 
 import static org.apache.directory.scim.search.Operator.*;
 
+import java.util.Stack;
+
 /**
  * TODO FilterParser.
  *
@@ -32,6 +34,12 @@ public class FilterParser
     private static class Position
     {
         int val;
+        
+        private Position()
+        {
+            this( 0 );
+        }
+        
         private Position( int pos )
         {
             this.val = pos;
@@ -67,34 +75,40 @@ public class FilterParser
         {
             char c = filter.charAt( pos.val );
             
+            FilterNode next = null;
+            
             switch( c )
             {
                 case '(':
                     //FIXME handle groupings
+                    String group = getWithinParenthesis( pos, filter );
+                    next = parse( group );
                     break;
                 
                 default:
-                    FilterNode next = parseNode( pos, filter );
-                    if( next instanceof BranchNode )
-                    {
-                        if( node != null )
-                        {
-                            ( ( BranchNode ) next ).addNode( node );
-                        }
-                        
-                        node = next;
-                    }
-                    else if ( node instanceof BranchNode )
-                    {
-                        ( ( BranchNode ) node ).addNode( next );
-                    }
-                    else
-                    {
-                        node = next;
-                    }
+                    next = parseNode( pos, filter );
+            }
+            
+            if( next instanceof BranchNode )
+            {
+                if( node != null )
+                {
+                    ( ( BranchNode ) next ).addNode( node );
+                }
+                
+                node = next;
+            }
+            else if ( node instanceof BranchNode )
+            {
+                ( ( BranchNode ) node ).addNode( next );
+            }
+            else if( next != null )
+            {
+                node = next;
             }
             
             prevChar = c;
+            pos.increment();
         }
         
         return node;
@@ -227,11 +241,90 @@ public class FilterParser
         return sb.toString();
     }
     
+    
+    private static String getWithinParenthesis( Position pos, String filter )
+    {
+        int start = -1;
+        int end = -1;
+
+        Stack<Integer> stack = new Stack<Integer>();
+        
+        char prevChar = ' ';
+        
+        boolean startQuote = false;
+        
+        boolean endQuote = false;
+        
+        boolean stop = false;
+        
+        while( !stop && ( pos.val < filter.length() ) )
+        {
+            char c = filter.charAt( pos.val );
+            
+            switch( c )
+            {
+                case '"':
+                    if( startQuote && prevChar != '\\')
+                    {
+                        endQuote = true;
+                    }
+                    else if( !startQuote )
+                    {
+                        startQuote = true;
+                    }
+                    break;
+                    
+                case '(':
+                    if( !startQuote )
+                    {
+                        if( start == -1 )
+                        {
+                            start = pos.val + 1;
+                        }
+                        
+                        stack.push( pos.val );
+                    }
+                    break;
+                    
+                case ')':
+                    if( !startQuote )
+                    {
+                        if( stack.size() == 1 )
+                        {
+                            end = pos.val;
+                            stop = true;
+                        }
+                        else
+                        {
+                            stack.pop();
+                        }
+                    }
+                    break;
+            }
+            
+            if( endQuote )
+            {
+                startQuote = false;
+                endQuote = false;
+            }
+            
+            prevChar = c;
+            pos.increment();
+        }
+        
+        return filter.substring( start, end );
+    }
+    
+    
     public static void main( String[] args )
     {
+        String s = "((( x eq \"(y)\" ))) and (y eq \"x\\\"\" )";
+//        Position pos = new Position( 0 );
+//        System.out.println(getWithinParenthesis( pos, s ));
+
         String filter = "(x eq y) and userName   eq \"bjensen\"";
         
-        FilterNode node = parse( filter );
+        FilterNode node = parse( s );
         System.out.println( node );
     }
 }
