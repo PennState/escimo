@@ -80,9 +80,22 @@ public abstract class ResourceSchema
 
     public BaseType getAttribute( String name )
     {
+        if( name == null )
+        {
+            return null;
+        }
+        
+        name = name.trim();
+        
+        int colonPos = name.lastIndexOf( ":" );
+        if( colonPos > 0 )
+        {
+            name = name.substring( colonPos + 1 );
+        }
+
         if( name.contains( "." ) )
         {
-            String[] atPath = name.split( "." );
+            String[] atPath = name.split( "\\." );
             
             BaseType b = _findAtType( atPath[0] );
             
