@@ -113,9 +113,6 @@ public class FilterParser
             {
                 node = next;
             }
-
-            prevChar = c;
-            pos.increment();
         }
 
         return node;
