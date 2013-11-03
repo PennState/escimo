@@ -368,17 +368,9 @@ public class LdapSchemaMapper implements SchemaMapper
                 }
             }
 
-            String format = null;
-
-            Element elmFormat = elmAtGroup.element( "formatted" );
-            if ( elmFormat != null )
-            {
-                format = elmFormat.attributeValue( "format" );
-            }
-
             if ( !lstSTypes.isEmpty() )
             {
-                stg = new SimpleTypeGroup( lstSTypes, format );
+                stg = new SimpleTypeGroup( lstSTypes );
             }
         }
 

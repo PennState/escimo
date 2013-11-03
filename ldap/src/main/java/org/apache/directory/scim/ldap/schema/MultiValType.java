@@ -36,10 +36,6 @@ public class MultiValType extends BaseType
 
     private String filter;
 
-    /** used for setting the value of "formatted" attribute */
-    private String format;
-
-
     public MultiValType( String uri, String name, boolean show, SimpleTypeGroup atGroup, String baseDn, String filter )
     {
         super( uri, name, show );
@@ -73,15 +69,6 @@ public class MultiValType extends BaseType
     public String getFilter()
     {
         return filter;
-    }
-
-
-    /**
-     * @return the format
-     */
-    public String getFormat()
-    {
-        return format;
     }
 
 

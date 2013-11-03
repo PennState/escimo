@@ -310,7 +310,24 @@ public class LdapResourceProvider implements ProviderService
         sr.setBase( new Dn( scimSchema.getBaseDn() ) );
         sr.setFilter( ldapFilter );
         sr.setScope( SearchScope.SUBTREE );
-        sr.addAttributes( ALL_ATTRIBUTES_ARRAY );
+        
+        List<String> ldapAtNames = new ArrayList<String>();
+        ldapAtNames.add( SchemaConstants.ENTRY_UUID_AT );
+        
+        if( Strings.isNotEmpty( attributes ) )
+        {
+            String[] names = attributes.split( "," );
+            for( String n : names )
+            {
+                AttributeType at = getLdapType( n, scimSchema );
+                if( at != null )
+                {
+                    ldapAtNames.add( at.getName() );
+                }
+            }
+        }
+        
+        sr.addAttributes( ldapAtNames.toArray( new String[1] ) );
         
         SearchCursor cursor = connection.search( sr );
         
@@ -1127,34 +1144,17 @@ public class LdapResourceProvider implements ProviderService
     {
         List<SimpleAttribute> lstAts = new ArrayList<SimpleAttribute>();
 
-        // format="$givenName $familyName"
-        boolean hasFormat = !Strings.isEmpty( stg.getFormat() );
-
-        String format = stg.getFormat();
-
         for ( SimpleType st : stg.getSubTypes() )
         {
             SimpleAttribute at = getValueForSimpleType( st, entry );
             if ( at != null )
             {
                 lstAts.add( at );
-
-                if ( hasFormat )
-                {
-                    format = format.replaceAll( "\\$" + st.getName(), String.valueOf( at.getValue() ) );
-                }
             }
 
         }
 
-        if ( hasFormat )
-        {
-            SimpleAttribute atFormat = new SimpleAttribute( "formatted", format );
-            lstAts.add( atFormat );
-        }
-
         return lstAts;
-
     }
 
 

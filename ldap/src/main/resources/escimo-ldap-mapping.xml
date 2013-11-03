@@ -22,7 +22,6 @@
                 <attribute name="middleName" mappedTo="" />
                 <attribute name="honorificPrefix" mappedTo="title" />
                 <attribute name="honorificSuffix" mappedTo="" />
-                <formatted format="$givenName $familyName" />
             </at-group>
         </complex-attribute>
 
