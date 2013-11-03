@@ -247,10 +247,12 @@ public class LdapResourceProvider implements ProviderService
 //            throw new IllegalArgumentException( "No resource schema exists with the URI " + schemaUri );
 //        }
         
-        SimpleType st = ( SimpleType ) schema.getAttribute( scimAtName );
+        BaseType bt = schema.getAttribute( scimAtName );
         
-        if ( st != null  )
+        if ( bt instanceof SimpleType  )
         {
+            SimpleType st = ( SimpleType ) bt;
+            
             if( Strings.isNotEmpty( st.getMappedTo() ) )
             {
                 return ldapSchema.getAttributeType( st.getMappedTo() );
@@ -270,7 +272,7 @@ public class LdapResourceProvider implements ProviderService
                 return null;
             }
             
-            BaseType bt = schema.getAttribute( scimAtName.substring( 0, pos ) );
+            bt = schema.getAttribute( scimAtName.substring( 0, pos ) );
             
             if( bt == null )
             {
