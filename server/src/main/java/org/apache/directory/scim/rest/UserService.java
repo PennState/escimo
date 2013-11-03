@@ -41,6 +41,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
 
+import org.apache.directory.scim.ListResponse;
 import org.apache.directory.scim.MissingParameterException;
 import org.apache.directory.scim.ProviderService;
 import org.apache.directory.scim.RequestContext;
@@ -215,6 +216,39 @@ public class UserService
             rb = ScimUtil.buildError( e );
         }
         
+        return rb.build();
+    }
+
+
+    @GET
+    @Produces({MediaType.APPLICATION_JSON})
+    public Response search( @QueryParam("filter") String filter, @QueryParam("attributes") String attributes, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    {
+        ResponseBuilder rb = null;
+
+        if( ( ( filter == null ) || ( filter.trim().length() == 0 ) ) &&
+            ( ( attributes == null ) || ( attributes.trim().length() == 0 ) ) )
+        {
+            rb = Response.status( Status.BAD_REQUEST ).entity( "Neither filter nor attributes parameters are present with the call to " + uriInfo.getAbsolutePath() );
+            return rb.build();
+        }
+        
+        LOG.debug( "Filter : {}", filter );
+        LOG.debug( "Attributes : {}", attributes );
+    
+        try
+        {
+            RequestContext ctx = new RequestContext( provider, uriInfo, headers );
+            ListResponse lr = provider.search( filter, attributes, ctx );
+
+            String json = ResourceSerializer.serialize( lr );
+            rb = Response.ok().entity( json );
+        }
+        catch( Exception e )
+        {
+            rb = ScimUtil.buildError( e );
+        }
+
         return rb.build();
     }
 

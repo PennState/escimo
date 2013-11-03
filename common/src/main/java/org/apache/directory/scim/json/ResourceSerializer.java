@@ -25,6 +25,7 @@ import java.util.Map;
 
 import org.apache.directory.scim.AbstractAttribute;
 import org.apache.directory.scim.ComplexAttribute;
+import org.apache.directory.scim.ListResponse;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.ScimUtil;
 import org.apache.directory.scim.ServerResource;
@@ -55,6 +56,11 @@ public class ResourceSerializer
 
     public static String serialize( ServerResource resource )
     {
+        return _serialize( resource ).toString();
+    }
+    
+    private static JsonObject _serialize( ServerResource resource )
+    {
         JsonObject root = new JsonObject();
 
         Map<String, List<AbstractAttribute>> attributes = resource.getAttributes();
@@ -77,7 +83,7 @@ public class ResourceSerializer
             serialize( parent, attributes.get( uri ) );
         }
 
-        return root.toString();
+        return root;
     }
 
 
@@ -156,5 +162,35 @@ public class ResourceSerializer
         jo.add( "schemas", ERROR_RESPONSE_SCHEMAS );
         
         return jo.toString();
+    }
+    
+    
+    public static String serialize( ListResponse lr )
+    {
+        JsonObject json = new JsonObject();
+        json.addProperty( "totalResults", lr.getTotalResults() );
+        
+        if( lr.getItemsPerPage() > -1 )
+        {
+            json.addProperty( "itemsPerPage", lr.getItemsPerPage() );
+        }
+        
+        if( lr.getStartIndex() > -1 )
+        {
+            json.addProperty( "startIndex", lr.getStartIndex() );
+        }
+        
+        JsonArray resArray = new JsonArray();
+        
+        for( ServerResource sr : lr.getResources() )
+        {
+            JsonObject resObj = _serialize( sr );
+            resObj.remove( "schemas" );
+            resArray.add( resObj );
+        }
+        
+        json.add( "Resources", resArray );
+        
+        return json.toString();
     }
 }

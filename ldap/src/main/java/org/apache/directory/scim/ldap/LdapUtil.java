@@ -19,11 +19,22 @@
  */
 package org.apache.directory.scim.ldap;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import org.apache.directory.api.ldap.model.entry.Attribute;
 import org.apache.directory.api.ldap.model.entry.DefaultAttribute;
 import org.apache.directory.api.ldap.model.entry.Entry;
-import org.apache.directory.api.ldap.model.entry.ModificationOperation;
+import org.apache.directory.api.ldap.model.entry.StringValue;
 import org.apache.directory.api.ldap.model.exception.LdapException;
+import org.apache.directory.api.ldap.model.filter.AndNode;
+import org.apache.directory.api.ldap.model.filter.EqualityNode;
+import org.apache.directory.api.ldap.model.filter.ExprNode;
+import org.apache.directory.api.ldap.model.filter.GreaterEqNode;
+import org.apache.directory.api.ldap.model.filter.LessEqNode;
+import org.apache.directory.api.ldap.model.filter.OrNode;
+import org.apache.directory.api.ldap.model.filter.PresenceNode;
+import org.apache.directory.api.ldap.model.filter.SubstringNode;
 import org.apache.directory.api.ldap.model.message.ModifyRequest;
 import org.apache.directory.api.ldap.model.schema.AttributeType;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
@@ -37,13 +48,15 @@ import org.apache.directory.scim.ldap.schema.ResourceSchema;
 import org.apache.directory.scim.ldap.schema.SimpleType;
 import org.apache.directory.scim.ldap.schema.SimpleTypeGroup;
 import org.apache.directory.scim.schema.BaseType;
+import org.apache.directory.scim.search.BranchNode;
+import org.apache.directory.scim.search.FilterNode;
+import org.apache.directory.scim.search.TerminalNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import static org.apache.directory.api.ldap.model.entry.ModificationOperation.*;
 
 /**
  * TODO LdapUtil.
@@ -413,4 +426,105 @@ public class LdapUtil
             }
         }
     }
+    
+    
+    //------------------ search filter processing -----------------
+    
+//    public static ExprNode scimToLdapFilter( FilterNode scimFilter )
+//    {
+//        
+//    }
+    
+    
+    public static ExprNode _scimToLdapFilter( FilterNode scimFilter, ResourceSchema scimSchema, SchemaManager ldapSchema, LdapResourceProvider provider )
+    {
+        ExprNode ldapFilter = null;
+        
+        if( scimFilter instanceof TerminalNode )
+        {
+            TerminalNode tn = ( TerminalNode ) scimFilter;
+
+            AttributeType at = provider.getLdapType( tn.getAttribute(), scimSchema );
+            
+            if( at == null )
+            {
+                return null;
+            }
+            
+            switch( scimFilter.getOperator() )
+            {
+                case EQ:
+                    ldapFilter = new EqualityNode<String>( at, new StringValue( tn.getValue() ) );
+                    break;
+                  
+                case CO:
+                    List<String> anyPattern = new ArrayList<String>();
+                    anyPattern.add( tn.getValue() );
+                    ldapFilter = new SubstringNode( anyPattern, at, null, null );
+                    break;
+                
+                case GT:
+                case GE:
+                    ldapFilter = new GreaterEqNode<String>( at, new StringValue( tn.getValue() ) );
+                    break;
+                    
+                case LT:
+                case LE:
+                    ldapFilter = new LessEqNode<String>( at, new StringValue( tn.getValue() ) );
+                    break;
+                    
+                case PR:
+                    ldapFilter = new PresenceNode( at );
+                    break;
+                    
+                case SW:
+                    ldapFilter = new SubstringNode( at, tn.getValue(), null );
+                    break;
+            }
+        }
+        else if( scimFilter instanceof BranchNode )
+        {
+            BranchNode bn = ( BranchNode ) scimFilter;
+            
+            ExprNode child1 = _scimToLdapFilter( bn.getLeftNode(), scimSchema, ldapSchema, provider );
+            
+            ExprNode child2 = _scimToLdapFilter( bn.getRightNode(), scimSchema, ldapSchema, provider );
+            
+            switch( scimFilter.getOperator() )
+            {
+                case AND:
+                    AndNode andNode = new AndNode();
+                    if( child1 != null )
+                    {
+                        andNode.addNode( child1 );
+                    }
+                    
+                    if( child2 != null )
+                    {
+                        andNode.addNode( child2 );
+                    }
+                    
+                    ldapFilter = andNode;
+                    break;
+                    
+                case OR:
+                    OrNode orNode = new OrNode();
+                    if( child1 != null )
+                    {
+                        orNode.addNode( child1 );
+                    }
+                    
+                    if( child2 != null )
+                    {
+                        orNode.addNode( child2 );
+                    }
+                    
+                    ldapFilter = orNode;
+                    break;
+            }
+        }
+        
+        return ldapFilter;
+    }
+
 }

@@ -21,9 +21,13 @@ package org.apache.directory.scim.ldap.handlers;
 
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.message.ModifyRequest;
+import org.apache.directory.api.ldap.model.schema.AttributeType;
+import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.ldap.LdapUtil;
+import org.apache.directory.scim.ldap.schema.ResourceSchema;
+import org.apache.directory.scim.ldap.schema.SimpleType;
 import org.apache.directory.scim.schema.BaseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -67,5 +71,16 @@ public abstract class LdapAttributeHandler extends AttributeHandler
     public void deleteAttribute( BaseType atType, Object targetEntry, RequestContext ctx, Object patchCtx ) throws Exception
     {
         LdapUtil.deleteAttribute( atType, (Entry) targetEntry, ( ModifyRequest ) patchCtx );
+    }
+    
+    
+    public AttributeType getLdapAtType( BaseType bt, String remainingScimAttributePath, ResourceSchema schema, SchemaManager ldapSchema )
+    {
+        if( !( bt instanceof SimpleType ) )
+        {
+            return null;
+        }
+        
+        return ldapSchema.getAttributeType( ( ( SimpleType ) bt ).getMappedTo() );
     }
 }

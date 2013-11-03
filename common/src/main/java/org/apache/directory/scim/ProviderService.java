@@ -55,4 +55,6 @@ public interface ProviderService
     UserResource patchUser( String userId, String jsonData, RequestContext ctx ) throws Exception;
     
     GroupResource patchGroup( String groupId, String jsonData, RequestContext ctx ) throws Exception;
+    
+    ListResponse search( String filter, String attributes, RequestContext ctx ) throws Exception;
 }

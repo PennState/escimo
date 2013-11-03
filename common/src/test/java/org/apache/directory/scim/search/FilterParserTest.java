@@ -67,6 +67,29 @@ public class FilterParserTest
         assertEquals( ( ( TerminalNode ) bn.getRightNode() ) .getAttribute(), "id" );
         assertEquals( ( ( TerminalNode ) bn.getRightNode() ) .getValue(), "xx-yy" );
 
+        filter = "(userName eq x and ((groups.value gt xx-yy ) or (id eq y))) or active eq \"true\"";
+        node = FilterParser.parse( filter );
+        assertNotNull( node );
+        assertTrue( node instanceof BranchNode );
+        assertEquals( Operator.OR, node.getOperator() );
+        bn = ( BranchNode ) node;
+        
+        BranchNode left = ( BranchNode ) bn.getLeftNode();
+        assertEquals( ( ( TerminalNode ) left.getLeftNode() ) .getAttribute(), "userName" );
+        assertEquals( ( ( TerminalNode ) left.getLeftNode() ) .getValue(), "x" );
+        
+        BranchNode right = ( BranchNode ) left.getRightNode();
+        assertEquals( ( ( TerminalNode ) right.getLeftNode() ) .getAttribute(), "groups.value" );
+        assertEquals( ( ( TerminalNode ) right.getLeftNode() ) .getValue(), "xx-yy" );
+        
+        assertEquals( ( ( TerminalNode ) right.getRightNode() ) .getAttribute(), "id" );
+        assertEquals( ( ( TerminalNode ) right.getRightNode() ) .getValue(), "y" );
+        
+        
+        TerminalNode extremeRight = ( TerminalNode ) bn.getRightNode();
+        assertEquals( extremeRight.getAttribute(), "active" );
+        assertEquals( extremeRight.getValue(), "true" );
+
     }
     
 }

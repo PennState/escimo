@@ -67,6 +67,8 @@ public class LdapSchemaMapper implements SchemaMapper
 
     private UserSchema userSchema;
 
+    private Map<String,ResourceSchema> uriToResSchema;
+    
     private Map<String,JsonSchema> jsonSchemas;
     
     public LdapSchemaMapper( Map<String,JsonSchema> jsonSchemas, SchemaManager ldapSchema )
@@ -90,6 +92,12 @@ public class LdapSchemaMapper implements SchemaMapper
         return groupSchema;
     }
 
+    
+    public ResourceSchema getSchemaWithUri( String uri )
+    {
+        return uriToResSchema.get( uri );
+    }
+    
 
     /**
      * @return the ldapSchema
@@ -149,6 +157,8 @@ public class LdapSchemaMapper implements SchemaMapper
 
             Map<String, AttributeHandler> atHandlersMap = loadAtHandlers( root.element( "atHandlers" ) );
             
+            uriToResSchema = new HashMap<String, ResourceSchema>();
+            
             userSchema = new UserSchema( baseDn, filter );
             userSchema.setAtHandlers( atHandlersMap );
 
@@ -206,6 +216,10 @@ public class LdapSchemaMapper implements SchemaMapper
                 if ( refId.equals( schemaId ) )
                 {
                     parseSchema( elmSchema, resourceSchema );
+                    for( String uri : resourceSchema.getUris() )
+                    {
+                        uriToResSchema.put( uri, resourceSchema );
+                    }
                     break;
                 }
             }

@@ -37,17 +37,23 @@ import java.util.Properties;
 
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.cursor.EntryCursor;
+import org.apache.directory.api.ldap.model.cursor.SearchCursor;
 import org.apache.directory.api.ldap.model.entry.Attribute;
 import org.apache.directory.api.ldap.model.entry.DefaultEntry;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.entry.Value;
 import org.apache.directory.api.ldap.model.exception.LdapEntryAlreadyExistsException;
 import org.apache.directory.api.ldap.model.exception.LdapException;
+import org.apache.directory.api.ldap.model.filter.ExprNode;
 import org.apache.directory.api.ldap.model.message.LdapResult;
 import org.apache.directory.api.ldap.model.message.ModifyRequest;
 import org.apache.directory.api.ldap.model.message.ModifyRequestImpl;
 import org.apache.directory.api.ldap.model.message.ModifyResponse;
 import org.apache.directory.api.ldap.model.message.ResultCodeEnum;
+import org.apache.directory.api.ldap.model.message.SearchRequest;
+import org.apache.directory.api.ldap.model.message.SearchRequestImpl;
+import org.apache.directory.api.ldap.model.message.SearchScope;
+import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.api.ldap.model.schema.AttributeType;
 import org.apache.directory.api.ldap.model.schema.LdapSyntax;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
@@ -68,18 +74,19 @@ import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.AttributeNotFoundException;
 import org.apache.directory.scim.ComplexAttribute;
 import org.apache.directory.scim.GroupResource;
+import org.apache.directory.scim.ListResponse;
 import org.apache.directory.scim.MissingParameterException;
 import org.apache.directory.scim.MultiValAttribute;
-import org.apache.directory.scim.OperationException;
 import org.apache.directory.scim.ProviderService;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.ResourceConflictException;
 import org.apache.directory.scim.ResourceNotFoundException;
+import org.apache.directory.scim.ScimUtil;
 import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
 import org.apache.directory.scim.UserResource;
-import org.apache.directory.scim.ldap.handlers.MembersAttributeHandler;
+import org.apache.directory.scim.ldap.handlers.LdapAttributeHandler;
 import org.apache.directory.scim.ldap.schema.ComplexType;
 import org.apache.directory.scim.ldap.schema.GroupSchema;
 import org.apache.directory.scim.ldap.schema.MultiValType;
@@ -90,6 +97,8 @@ import org.apache.directory.scim.ldap.schema.UserSchema;
 import org.apache.directory.scim.schema.BaseType;
 import org.apache.directory.scim.schema.JsonSchema;
 import org.apache.directory.scim.schema.SchemaUtil;
+import org.apache.directory.scim.search.FilterNode;
+import org.apache.directory.scim.search.FilterParser;
 import org.apache.directory.scim.util.ResourceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -219,6 +228,119 @@ public class LdapResourceProvider implements ProviderService
 
         connection = new LdapNetworkConnection( config );
         connection.bind();
+    }
+
+
+    public AttributeType getLdapType( String scimAtName, ResourceSchema schema )
+    {
+        scimAtName = scimAtName.trim();
+        int colonPos = scimAtName.lastIndexOf( ":" );
+        if( colonPos > 0 )
+        {
+            scimAtName = scimAtName.substring( colonPos + 1 );
+        }
+
+        
+//        String schemaUri = scimAtName.substring( 0, colonPos );
+//        if( schema == null )
+//        {
+//            throw new IllegalArgumentException( "No resource schema exists with the URI " + schemaUri );
+//        }
+        
+        SimpleType st = ( SimpleType ) schema.getAttribute( scimAtName );
+        
+        if ( st != null  )
+        {
+            if( Strings.isNotEmpty( st.getMappedTo() ) )
+            {
+                return ldapSchema.getAttributeType( st.getMappedTo() );
+            }
+            else if ( st.getAtHandlerName() != null )
+            {
+                LdapAttributeHandler atHandler = ( LdapAttributeHandler ) schema.getHandler( st.getAtHandlerName() );
+                return atHandler.getLdapAtType( st, "", schema, ldapSchema );
+            }
+        }
+        else // a complex or multivalued attribute with a handler
+        {
+            int pos = scimAtName.indexOf( '.' );
+            
+            if( pos <= 0 )
+            {
+                return null;
+            }
+            
+            BaseType bt = schema.getAttribute( scimAtName.substring( 0, pos ) );
+            
+            if( bt == null )
+            {
+                return null;
+            }
+            
+            LdapAttributeHandler atHandler = ( LdapAttributeHandler ) schema.getHandler( bt.getAtHandlerName() );
+            
+            if( atHandler != null )
+            {
+                String remainingScimAttributePath = scimAtName.substring( pos + 1 );
+                return atHandler.getLdapAtType( bt, remainingScimAttributePath, schema, ldapSchema );
+            }
+        }
+        
+        return null;
+    }
+    
+    
+    public ListResponse search( String scimFilter, String attributes, RequestContext ctx ) throws Exception
+    {
+        FilterNode filter = FilterParser.parse( scimFilter );
+        
+        String path = ctx.getUriInfo().getPath();
+        String uri = ScimUtil.CORE_USER_URI;
+        if( path.endsWith( "/Groups" ) )
+        {
+            uri = ScimUtil.CORE_GROUP_URI;
+        }
+        
+        ResourceSchema scimSchema = schemaMapper.getSchemaWithUri( uri );
+        
+        ExprNode ldapFilter = LdapUtil._scimToLdapFilter( filter, scimSchema, ldapSchema, this );
+        LOG.debug( "LDAP filter {}", ldapFilter );
+        
+        SearchRequest sr = new SearchRequestImpl();
+        sr.setBase( new Dn( scimSchema.getBaseDn() ) );
+        sr.setFilter( ldapFilter );
+        sr.setScope( SearchScope.SUBTREE );
+        sr.addAttributes( ALL_ATTRIBUTES_ARRAY );
+        
+        SearchCursor cursor = connection.search( sr );
+        
+        ListResponse lr = new ListResponse();
+        
+        while( cursor.next() )
+        {
+            Entry entry = cursor.getEntry();
+            
+            ServerResource res = null;
+            
+            if( uri.equals( ScimUtil.CORE_USER_URI ) )
+            {
+                res = new UserResource();
+            }
+            else
+            {
+                res = new GroupResource();
+            }
+            
+            ctx.setCoreResource( res );
+
+            _loadCoreResource( ctx, entry, scimSchema );
+
+            lr.addResource( res );
+        }
+        
+        cursor.close();
+        
+        return lr;
     }
 
 
@@ -1120,5 +1242,25 @@ public class LdapResourceProvider implements ProviderService
     public GroupSchema getGroupSchema()
     {
         return groupSchema;
+    }
+    
+    public static void main( String[] args ) throws Exception
+    {
+        LdapResourceProvider provider = new LdapResourceProvider();
+        
+        try
+        {
+            provider.init();
+            
+            FilterNode scimFilter = FilterParser.parse( "(userName eq x and ((userName gt xx-yy ) or (id eq y))) or userName eq \"true\"" );
+            System.out.println("SCIM filter: " + scimFilter);
+            
+            ExprNode ldapFilter = LdapUtil._scimToLdapFilter( scimFilter, provider.getUserSchema(), provider.getLdapSchema(), provider );
+            System.out.println("LDAP filter: " + ldapFilter);
+        }
+        finally
+        {
+            provider.connection.close();
+        }
     }
 }

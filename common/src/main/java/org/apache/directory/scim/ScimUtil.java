@@ -50,7 +50,11 @@ public class ScimUtil
 
         PrintWriter pw = new PrintWriter( sw );
 
-        pw.write( e.getMessage() );
+        String msg = e.getMessage();
+        if( msg != null )
+        {
+            pw.write( msg );
+        }
         
         e.printStackTrace( pw );
 
