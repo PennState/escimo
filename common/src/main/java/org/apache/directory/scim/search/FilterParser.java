@@ -20,19 +20,22 @@
 package org.apache.directory.scim.search;
 
 
-import static org.apache.directory.scim.search.Operator.*;
+import static org.apache.directory.scim.search.Operator.UNKNOWN;
 
 import java.util.Stack;
 
 
 /**
- * TODO FilterParser.
+ * A Parser for converting a search filter string into a FilterNode tree.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
 public class FilterParser
 {
 
+    /**
+     * Internal class for keeping track of the index position while parsing the filter.
+     */
     private static class Position
     {
         int val;
@@ -69,6 +72,11 @@ public class FilterParser
     }
 
 
+    /**
+     * parses the given filter string and converts into a FilterNode tree
+     * @param filter the filter string
+     * @return
+     */
     public static FilterNode parse( String filter )
     {
         Position pos = new Position( 0 );
@@ -88,7 +96,7 @@ public class FilterParser
                 case ' ':
                     pos.increment();
                     continue outer;
-                    
+
                 case '(':
                     String group = getWithinParenthesis( pos, filter );
                     next = parse( group );
@@ -98,48 +106,63 @@ public class FilterParser
                     next = parseNode( pos, filter );
             }
 
-            
             //System.out.println("====\n" + next + "\n======");
-            
+
             node = addChildNode( node, next );
         }
 
         return node;
     }
 
+
+    /**
+     * adds the given child node to the parent and returns the
+     * newly created FilterNode
+     * 
+     * @param parent the parent node (will be null if the child is the first parsed node)
+     * @param child the current node
+     * @return
+     */
     private static FilterNode addChildNode( FilterNode parent, FilterNode child )
     {
-        if( parent == null )
+        if ( parent == null )
         {
             return child;
         }
-        
+
         if ( parent instanceof BranchNode )
         {
             BranchNode bn = ( BranchNode ) parent;
-            
+
             if ( !bn.hasBothChildren() )
             {
                 bn.addNode( child );
                 return parent;
             }
-            else if( ( child != null ) && ( child instanceof BranchNode ) )
+            else if ( ( child != null ) && ( child instanceof BranchNode ) )
             {
                 ( ( BranchNode ) child ).addNode( parent );
                 return child;
             }
         }
-        
-        if( child instanceof BranchNode )
+
+        if ( child instanceof BranchNode )
         {
             ( ( BranchNode ) child ).addNode( parent );
             return child;
         }
-        
+
         return null;
     }
 
-    
+
+    /**
+     * parses a single terminal node expression, e.x userName eq 'bjensen' or userName pr
+     *
+     * @param pos the current position of the index in filter string
+     * @param filter the terminal node expression
+     * @return
+     */
     private static FilterNode parseNode( Position pos, String filter )
     {
         FilterNode node = null;
@@ -201,6 +224,13 @@ public class FilterParser
     }
 
 
+    /**
+     * parses a string delimited by spaces (excluding the ones present inside the double quotes)
+     * 
+     * @param pos the current position of the filter
+     * @param filter the filter expression
+     * @return
+     */
     private static String parseToken( Position pos, String filter )
     {
         boolean foundNonSpace = false;
@@ -267,6 +297,13 @@ public class FilterParser
     }
 
 
+    /**
+     * gives the complete string present inside the open and end parentheses
+     * 
+     * @param pos the current position in filter
+     * @param filter the filter expression
+     * @return
+     */
     private static String getWithinParenthesis( Position pos, String filter )
     {
         int start = -1;
