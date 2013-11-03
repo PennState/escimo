@@ -67,6 +67,11 @@ public class BranchNode extends FilterNode
         return rightNode;
     }
 
+    public boolean hasBothChildren()
+    {
+        return ( ( leftNode != null ) && ( rightNode != null ) );
+    }
+    
     @Override
     public String toString()
     {
@@ -77,7 +82,14 @@ public class BranchNode extends FilterNode
             sb.append( leftNode );
         }
         
-        sb.append( " AND " );
+        if( super.getOperator() == Operator.AND )
+        {
+            sb.append( " AND " );
+        }
+        else
+        {
+            sb.append( " OR " );
+        }
         
         if( rightNode != null )
         {

@@ -77,9 +77,7 @@ public class FilterParser
 
         FilterNode node = null;
 
-        char prevChar = ' ';
-
-        while ( pos.val < len )
+        outer: while ( pos.val < len )
         {
             char c = filter.charAt( pos.val );
 
@@ -87,6 +85,10 @@ public class FilterParser
 
             switch ( c )
             {
+                case ' ':
+                    pos.increment();
+                    continue outer;
+                    
                 case '(':
                     String group = getWithinParenthesis( pos, filter );
                     next = parse( group );
@@ -96,29 +98,48 @@ public class FilterParser
                     next = parseNode( pos, filter );
             }
 
-            if ( next instanceof BranchNode )
-            {
-                if ( node != null )
-                {
-                    ( ( BranchNode ) next ).addNode( node );
-                }
-
-                node = next;
-            }
-            else if ( node instanceof BranchNode )
-            {
-                ( ( BranchNode ) node ).addNode( next );
-            }
-            else if ( next != null )
-            {
-                node = next;
-            }
+            
+            //System.out.println("====\n" + next + "\n======");
+            
+            node = addChildNode( node, next );
         }
 
         return node;
     }
 
+    private static FilterNode addChildNode( FilterNode parent, FilterNode child )
+    {
+        if( parent == null )
+        {
+            return child;
+        }
+        
+        if ( parent instanceof BranchNode )
+        {
+            BranchNode bn = ( BranchNode ) parent;
+            
+            if ( !bn.hasBothChildren() )
+            {
+                bn.addNode( child );
+                return parent;
+            }
+            else if( ( child != null ) && ( child instanceof BranchNode ) )
+            {
+                ( ( BranchNode ) child ).addNode( parent );
+                return child;
+            }
+        }
+        
+        if( child instanceof BranchNode )
+        {
+            ( ( BranchNode ) child ).addNode( parent );
+            return child;
+        }
+        
+        return null;
+    }
 
+    
     private static FilterNode parseNode( Position pos, String filter )
     {
         FilterNode node = null;
