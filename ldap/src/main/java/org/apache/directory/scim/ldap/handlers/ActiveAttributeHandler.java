@@ -19,6 +19,7 @@
  */
 package org.apache.directory.scim.ldap.handlers;
 
+
 import org.apache.directory.api.ldap.model.constants.PasswordPolicySchemaConstants;
 import org.apache.directory.api.ldap.model.entry.Attribute;
 import org.apache.directory.api.ldap.model.entry.Entry;
@@ -29,6 +30,7 @@ import org.apache.directory.scim.schema.BaseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+
 /**
  * TODO ActiveAttributeHandler.
  *
@@ -38,44 +40,46 @@ public class ActiveAttributeHandler extends LdapAttributeHandler
 {
 
     private static final Logger LOG = LoggerFactory.getLogger( ActiveAttributeHandler.class );
-    
+
+
     @Override
     public void read( BaseType bt, Object srcResource, RequestContext ctx ) throws Exception
     {
-        if( !bt.getName().equals( "active" ) )
+        if ( !bt.getName().equals( "active" ) )
         {
-            LOG.debug( "ActiveAttributeHandler can  only be called on the active attribute, invalid attribute name {}", bt.getName() );
+            LOG.debug( "ActiveAttributeHandler can  only be called on the active attribute, invalid attribute name {}",
+                bt.getName() );
             return;
         }
-        
+
         Entry entry = ( Entry ) srcResource;
-        
+
         Attribute lockAt = entry.get( PasswordPolicySchemaConstants.PWD_ACCOUNT_LOCKED_TIME_AT );
-        
+
         SimpleAttribute st = null;
-        
-        if( lockAt != null )
+
+        if ( lockAt != null )
         {
             try
             {
-                if( "000001010000Z".equals( lockAt.getString() ) )
+                if ( "000001010000Z".equals( lockAt.getString() ) )
                 {
                     st = new SimpleAttribute( bt.getName(), Boolean.FALSE );
                 }
             }
-            catch( LdapException e )
+            catch ( LdapException e )
             {
                 LOG.warn( "Failed to get the value for the attribute {}", bt.getName(), e );
                 throw e;
             }
         }
-        
+
         if ( st == null )
         {
             st = new SimpleAttribute( bt.getName(), Boolean.TRUE );
         }
-        
+
         ctx.getCoreResource().addAttribute( bt.getUri(), st );
     }
 
-    }
+}
