@@ -93,4 +93,17 @@ public class RequestContext
         
         return lst.get( 0 );
     }
+    
+    
+    public String getParamAttributes()
+    {
+        List<String> attributes = uriInfo.getQueryParameters().get( "attributes" );
+        
+        if( ( attributes == null ) || attributes.isEmpty() )
+        {
+            return null;
+        }
+        
+        return attributes.get( 0 );
+    }
 }

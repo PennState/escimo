@@ -324,23 +324,8 @@ public class LdapResourceProvider implements ProviderService
         sr.setFilter( ldapFilter );
         sr.setScope( SearchScope.SUBTREE );
         
-        List<String> ldapAtNames = new ArrayList<String>();
-        ldapAtNames.add( SchemaConstants.ENTRY_UUID_AT );
-        
-        if( Strings.isNotEmpty( attributes ) )
-        {
-            String[] names = attributes.split( "," );
-            for( String n : names )
-            {
-                AttributeType at = getLdapType( n, scimSchema );
-                if( at != null )
-                {
-                    ldapAtNames.add( at.getName() );
-                }
-            }
-        }
-        
-        sr.addAttributes( ldapAtNames.toArray( new String[1] ) );
+        String[] requested = getRequestedAttributes( attributes, scimSchema );
+        sr.addAttributes( requested );
         
         SearchCursor cursor = connection.search( sr );
         
@@ -373,10 +358,33 @@ public class LdapResourceProvider implements ProviderService
         return lr;
     }
 
+    
+    private String[] getRequestedAttributes( String attributes, ResourceSchema scimSchema )
+    {
+        List<String> ldapAtNames = new ArrayList<String>();
+        ldapAtNames.add( SchemaConstants.ENTRY_UUID_AT );
+        
+        if( Strings.isNotEmpty( attributes ) )
+        {
+            String[] names = attributes.split( "," );
+            for( String n : names )
+            {
+                AttributeType at = getLdapType( n, scimSchema );
+                if( at != null )
+                {
+                    ldapAtNames.add( at.getName() );
+                }
+            }
+            
+            return ldapAtNames.toArray( new String[1] );
+        }
+        
+        return ALL_ATTRIBUTES_ARRAY;
+    }
 
     public UserResource getUser( RequestContext ctx, String id ) throws ResourceNotFoundException
     {
-        Entry entry = fetchEntryById( id, userSchema );
+        Entry entry = fetchEntryById( id, userSchema, ctx );
 
         if ( entry == null )
         {
@@ -452,7 +460,7 @@ public class LdapResourceProvider implements ProviderService
 
     public GroupResource getGroup( RequestContext ctx, String groupId ) throws ResourceNotFoundException
     {
-        Entry entry = fetchEntryById( groupId, groupSchema );
+        Entry entry = fetchEntryById( groupId, groupSchema, ctx );
 
         if ( entry == null )
         {
@@ -665,7 +673,7 @@ public class LdapResourceProvider implements ProviderService
         
         _resourceToEntry( entry, obj, ctx, resourceSchema );
         
-        Entry existingEntry = fetchEntryById( resourceId, resourceSchema );
+        Entry existingEntry = fetchEntryById( resourceId, resourceSchema, ctx );
         
         // save a reference to the existing password attribute
         Attribute existingPwdAt = existingEntry.get( SchemaConstants.USER_PASSWORD_AT );
@@ -773,7 +781,7 @@ public class LdapResourceProvider implements ProviderService
             }
         }
         
-        entry = fetchEntryById( resourceId, resourceSchema );
+        entry = fetchEntryById( resourceId, resourceSchema, ctx );
         
         ServerResource resource = null;
         
@@ -799,7 +807,7 @@ public class LdapResourceProvider implements ProviderService
         JsonParser parser = new JsonParser();
         JsonObject obj = ( JsonObject ) parser.parse( jsonData );
 
-        Entry existingEntry = fetchEntryById( resourceId, resourceSchema );
+        Entry existingEntry = fetchEntryById( resourceId, resourceSchema, ctx );
         
         if( existingEntry == null )
         {
@@ -856,7 +864,7 @@ public class LdapResourceProvider implements ProviderService
             
             if( hasAttributesInMeta )
             {
-                Entry entry = fetchEntryById( resourceId, resourceSchema );
+                Entry entry = fetchEntryById( resourceId, resourceSchema, ctx );
                 
                 ServerResource resource = null;
                 
@@ -1191,8 +1199,12 @@ public class LdapResourceProvider implements ProviderService
         return null;
     }
 
-
     public Entry fetchEntryById( String id, ResourceSchema resourceSchema )
+    {
+        return fetchEntryById( id, resourceSchema, null );
+    }
+    
+    public Entry fetchEntryById( String id, ResourceSchema resourceSchema, RequestContext ctx )
     {
         EntryCursor cursor = null;
 
@@ -1203,9 +1215,16 @@ public class LdapResourceProvider implements ProviderService
 
         Entry entry = null;
 
+        String[] attributes = ALL_ATTRIBUTES_ARRAY;
+        
+        if( ctx != null )
+        {
+            attributes = getRequestedAttributes( ctx.getParamAttributes(), resourceSchema );
+        }
+        
         try
         {
-            cursor = connection.search( resourceSchema.getBaseDn(), filter, SUBTREE, ALL_ATTRIBUTES_ARRAY );
+            cursor = connection.search( resourceSchema.getBaseDn(), filter, SUBTREE, attributes );
 
             if ( cursor.next() )
             {
