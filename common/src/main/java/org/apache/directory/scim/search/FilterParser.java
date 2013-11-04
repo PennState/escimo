@@ -79,6 +79,11 @@ public class FilterParser
      */
     public static FilterNode parse( String filter )
     {
+        if ( filter == null )
+        {
+            return null;
+        }
+        
         Position pos = new Position( 0 );
 
         int len = filter.length();

@@ -99,7 +99,7 @@
         <complex-attribute name="meta" handlerRef="metaHandler" />
     </schema>
 
-    <userType baseDn="ou=system" filter="(objectClass = inetOrgPerson)">
+    <userType baseDn="ou=system" filter="(objectClass=inetOrgPerson)">
         <schemaRef id="user-core" />
         <schemaRef id="enterprise-user" />
         <objectClasses>
@@ -107,7 +107,7 @@
         </objectClasses>
     </userType>
 
-    <groupType baseDn="ou=system" filter="(objectClass = groupOfNames)">
+    <groupType baseDn="ou=system" filter="(objectClass=groupOfNames)">
         <schemaRef id="group" />
         <objectClasses>
          <objectClass>groupOfNames</objectClass>

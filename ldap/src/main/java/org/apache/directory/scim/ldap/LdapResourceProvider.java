@@ -45,6 +45,7 @@ import org.apache.directory.api.ldap.model.entry.Value;
 import org.apache.directory.api.ldap.model.exception.LdapEntryAlreadyExistsException;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.filter.ExprNode;
+import org.apache.directory.api.ldap.model.filter.PresenceNode;
 import org.apache.directory.api.ldap.model.message.LdapResult;
 import org.apache.directory.api.ldap.model.message.ModifyRequest;
 import org.apache.directory.api.ldap.model.message.ModifyRequestImpl;
@@ -305,7 +306,17 @@ public class LdapResourceProvider implements ProviderService
         
         ResourceSchema scimSchema = schemaMapper.getSchemaWithUri( uri );
         
-        ExprNode ldapFilter = LdapUtil._scimToLdapFilter( filter, scimSchema, ldapSchema, this );
+        ExprNode ldapFilter = null;
+        
+        if ( filter != null )
+        {
+            ldapFilter = LdapUtil._scimToLdapFilter( filter, scimSchema, ldapSchema, this );
+        }
+        else
+        {
+            ldapFilter = org.apache.directory.api.ldap.model.filter.FilterParser.parse( scimSchema.getFilter() );
+        }
+        
         LOG.debug( "LDAP filter {}", ldapFilter );
         
         SearchRequest sr = new SearchRequestImpl();

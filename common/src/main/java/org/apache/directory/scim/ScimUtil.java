@@ -90,6 +90,11 @@ public class ScimUtil
             ec = CONFLICT;
         }
         
+        if ( desc == null )
+        {
+            desc = ec.getDesc();
+        }
+        
         ErrorResponse.Error error = new ErrorResponse.Error( ec.getVal(), desc );
         
         error.setStackTrace( exceptionToStr( e ) );
