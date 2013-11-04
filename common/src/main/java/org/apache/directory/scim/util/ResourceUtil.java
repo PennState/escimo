@@ -20,6 +20,7 @@
 package org.apache.directory.scim.util;
 
 
+
 /**
  * TODO ResourceUtil.
  *
@@ -27,7 +28,7 @@ package org.apache.directory.scim.util;
  */
 public class ResourceUtil
 {
-    public static String formatDate( String zTime )
+    public static String toScimDate( String zTime )
     {
         //parse a value like 20120302164134Z to 2012-03-02T16:41:34Z 
         StringBuilder sb = new StringBuilder();
@@ -66,4 +67,12 @@ public class ResourceUtil
         return sb.toString();
     }
 
+    public static String toLdapDate( String scimTime )
+    {
+        scimTime = scimTime.replace( "-", "" );
+        scimTime = scimTime.replace( ":", "" );
+        scimTime = scimTime.replace( "T", "" );
+        
+        return scimTime;
+    }
 }

@@ -38,6 +38,8 @@ import org.apache.directory.api.ldap.model.filter.SubstringNode;
 import org.apache.directory.api.ldap.model.message.ModifyRequest;
 import org.apache.directory.api.ldap.model.schema.AttributeType;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
+import org.apache.directory.api.ldap.model.schema.SyntaxChecker;
+import org.apache.directory.api.ldap.model.schema.syntaxCheckers.GeneralizedTimeSyntaxChecker;
 import org.apache.directory.api.util.Base64;
 import org.apache.directory.api.util.Strings;
 import org.apache.directory.scim.AttributeHandler;
@@ -51,6 +53,7 @@ import org.apache.directory.scim.schema.BaseType;
 import org.apache.directory.scim.search.BranchNode;
 import org.apache.directory.scim.search.FilterNode;
 import org.apache.directory.scim.search.TerminalNode;
+import org.apache.directory.scim.util.ResourceUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -451,26 +454,35 @@ public class LdapUtil
                 return null;
             }
             
+            String value = tn.getValue();
+            
+            SyntaxChecker sc = at.getSyntax().getSyntaxChecker();
+            
+            if( sc instanceof GeneralizedTimeSyntaxChecker )
+            {
+                value = ResourceUtil.toLdapDate( value );
+            }
+            
             switch( scimFilter.getOperator() )
             {
                 case EQ:
-                    ldapFilter = new EqualityNode<String>( at, new StringValue( tn.getValue() ) );
+                    ldapFilter = new EqualityNode<String>( at, new StringValue( value ) );
                     break;
                   
                 case CO:
                     List<String> anyPattern = new ArrayList<String>();
-                    anyPattern.add( tn.getValue() );
+                    anyPattern.add( value );
                     ldapFilter = new SubstringNode( anyPattern, at, null, null );
                     break;
                 
                 case GT:
                 case GE:
-                    ldapFilter = new GreaterEqNode<String>( at, new StringValue( tn.getValue() ) );
+                    ldapFilter = new GreaterEqNode<String>( at, new StringValue( value ) );
                     break;
                     
                 case LT:
                 case LE:
-                    ldapFilter = new LessEqNode<String>( at, new StringValue( tn.getValue() ) );
+                    ldapFilter = new LessEqNode<String>( at, new StringValue( value ) );
                     break;
                     
                 case PR:
@@ -478,7 +490,7 @@ public class LdapUtil
                     break;
                     
                 case SW:
-                    ldapFilter = new SubstringNode( at, tn.getValue(), null );
+                    ldapFilter = new SubstringNode( at, value, null );
                     break;
             }
         }

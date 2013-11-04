@@ -1134,7 +1134,7 @@ public class LdapResourceProvider implements ProviderService
             }
             else if ( sc instanceof GeneralizedTimeSyntaxChecker )
             {
-                return ResourceUtil.formatDate( ldapValue.getString() );
+                return ResourceUtil.toScimDate( ldapValue.getString() );
             }
         }
 

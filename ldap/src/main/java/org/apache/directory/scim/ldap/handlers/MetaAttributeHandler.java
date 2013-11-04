@@ -60,7 +60,7 @@ public class MetaAttributeHandler extends LdapAttributeHandler
             if( atCreated != null )
             {
                 SimpleAttribute created = new SimpleAttribute( "created" );
-                createTimestamp = ResourceUtil.formatDate( atCreated.getString() );
+                createTimestamp = ResourceUtil.toScimDate( atCreated.getString() );
                 created.setValue( createTimestamp );
                 atList.add( created );
             }
@@ -70,7 +70,7 @@ public class MetaAttributeHandler extends LdapAttributeHandler
             if( atlastMod != null )
             {
                 lastModified = new SimpleAttribute( "lastModified" );
-                lastModified.setValue( ResourceUtil.formatDate( atlastMod.getString() ) );
+                lastModified.setValue( ResourceUtil.toScimDate( atlastMod.getString() ) );
             }
             else if( createTimestamp != null )
             {

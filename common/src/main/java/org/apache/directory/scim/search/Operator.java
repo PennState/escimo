@@ -20,7 +20,7 @@
 package org.apache.directory.scim.search;
 
 /**
- * TODO Operator.
+ * An enum to hold all the operators used in search filters.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
@@ -93,10 +93,6 @@ public enum Operator
     
     /** Unknown operator */
     UNKNOWN("", "unknown operator");
-    
-    //LEFT_PARENTHESIS("(", "left parenthesis"),
-    
-    //RIGHT_PARENTHESIS(")", "right parenthesis");
     
     private String val;
     
