@@ -38,6 +38,8 @@ import org.apache.directory.api.ldap.model.filter.FilterParser;
 import org.apache.directory.api.ldap.model.filter.FilterVisitor;
 import org.apache.directory.api.ldap.model.filter.SimpleNode;
 import org.apache.directory.api.ldap.model.message.SearchScope;
+import org.apache.directory.api.ldap.model.schema.AttributeType;
+import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.api.util.Strings;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.RequestContext;
@@ -45,6 +47,7 @@ import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
 import org.apache.directory.scim.ldap.LdapResourceProvider;
 import org.apache.directory.scim.ldap.schema.MultiValType;
+import org.apache.directory.scim.ldap.schema.ResourceSchema;
 import org.apache.directory.scim.schema.BaseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -60,7 +63,21 @@ public class GroupsAttributeHandler extends LdapAttributeHandler
 
     private static final Logger LOG = LoggerFactory.getLogger( GroupsAttributeHandler.class );
 
+    
+    @Override
+    public List<AttributeType> getLdapAtTypes( BaseType bt, String remainingScimAttributePath, ResourceSchema schema,
+        SchemaManager ldapSchema )
+    {
+        List<AttributeType> atList = new ArrayList<AttributeType>();
+        
+        atList.add( ldapSchema.getAttributeType( SchemaConstants.UNIQUE_MEMBER_AT ) );
+        atList.add( ldapSchema.getAttributeType( SchemaConstants.MEMBER_AT ) );
+        atList.add( ldapSchema.getAttributeType( SchemaConstants.ENTRY_DN_AT ) );
+        
+        return atList;
+    }
 
+    
     @Override
     public void read( BaseType bt, Object srcResource, RequestContext ctx ) throws Exception
     {

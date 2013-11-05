@@ -19,6 +19,9 @@
  */
 package org.apache.directory.scim.ldap.handlers;
 
+import java.util.Collections;
+import java.util.List;
+
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.message.ModifyRequest;
 import org.apache.directory.api.ldap.model.schema.AttributeType;
@@ -74,13 +77,13 @@ public abstract class LdapAttributeHandler extends AttributeHandler
     }
     
     
-    public AttributeType getLdapAtType( BaseType bt, String remainingScimAttributePath, ResourceSchema schema, SchemaManager ldapSchema )
+    public List<AttributeType> getLdapAtTypes( BaseType bt, String remainingScimAttributePath, ResourceSchema schema, SchemaManager ldapSchema )
     {
         if( !( bt instanceof SimpleType ) )
         {
             return null;
         }
         
-        return ldapSchema.getAttributeType( ( ( SimpleType ) bt ).getMappedTo() );
+        return Collections.singletonList( ldapSchema.getAttributeType( ( ( SimpleType ) bt ).getMappedTo() ) );
     }
 }

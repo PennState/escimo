@@ -447,12 +447,15 @@ public class LdapUtil
         {
             TerminalNode tn = ( TerminalNode ) scimFilter;
 
-            AttributeType at = provider.getLdapType( tn.getAttribute(), scimSchema );
+            List<AttributeType> atList = provider.getLdapTypes( tn.getAttribute(), scimSchema );
             
-            if( at == null )
+            // if there is none or more than one do not consider that scim attribute
+            if( ( atList == null ) || ( atList.size() > 1 ) )
             {
                 return null;
             }
+            
+            AttributeType at = atList.get( 0 );
             
             String value = tn.getValue();
             

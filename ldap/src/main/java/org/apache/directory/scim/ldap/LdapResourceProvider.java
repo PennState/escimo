@@ -29,6 +29,7 @@ import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -232,7 +233,7 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    public AttributeType getLdapType( String scimAtName, ResourceSchema schema )
+    public List<AttributeType> getLdapTypes( String scimAtName, ResourceSchema schema )
     {
         scimAtName = scimAtName.trim();
         int colonPos = scimAtName.lastIndexOf( ":" );
@@ -256,36 +257,57 @@ public class LdapResourceProvider implements ProviderService
             
             if( Strings.isNotEmpty( st.getMappedTo() ) )
             {
-                return ldapSchema.getAttributeType( st.getMappedTo() );
+                return Collections.singletonList( ldapSchema.getAttributeType( st.getMappedTo() ) );
             }
             else if ( st.getAtHandlerName() != null )
             {
                 LdapAttributeHandler atHandler = ( LdapAttributeHandler ) schema.getHandler( st.getAtHandlerName() );
-                return atHandler.getLdapAtType( st, "", schema, ldapSchema );
+                return atHandler.getLdapAtTypes( st, "", schema, ldapSchema );
             }
         }
-        else // a complex or multivalued attribute with a handler
+        else if ( bt != null )// a complex or multivalued attribute with a handler
         {
             int pos = scimAtName.indexOf( '.' );
             
-            if( pos <= 0 )
+            String remainingScimAttributePath = null;
+            if( pos > 0 )
             {
-                return null;
-            }
-            
-            bt = schema.getAttribute( scimAtName.substring( 0, pos ) );
-            
-            if( bt == null )
-            {
-                return null;
+                remainingScimAttributePath = scimAtName.substring( pos + 1 );
             }
             
             LdapAttributeHandler atHandler = ( LdapAttributeHandler ) schema.getHandler( bt.getAtHandlerName() );
             
             if( atHandler != null )
             {
-                String remainingScimAttributePath = scimAtName.substring( pos + 1 );
-                return atHandler.getLdapAtType( bt, remainingScimAttributePath, schema, ldapSchema );
+                return atHandler.getLdapAtTypes( bt, remainingScimAttributePath, schema, ldapSchema );
+            }
+            else
+            {
+                SimpleTypeGroup stg = null;
+                
+                if( bt instanceof ComplexType )
+                {
+                    stg = ( ( ComplexType ) bt ).getAtGroup();
+                }
+                else if( bt instanceof MultiValType )
+                {
+                    stg = ( ( MultiValType ) bt ).getAtGroup();
+                }
+                
+                if( stg != null )
+                {
+                    List<AttributeType> atList = new ArrayList<AttributeType>();
+                    
+                    for( SimpleType st : stg.getSubTypes() )
+                    {
+                        if( Strings.isNotEmpty( st.getMappedTo() ) )
+                        {
+                            atList.add( ldapSchema.getAttributeType( st.getMappedTo() ) );
+                        }
+                    }
+                    
+                    return atList;
+                }
             }
         }
         
@@ -370,10 +392,13 @@ public class LdapResourceProvider implements ProviderService
             String[] names = attributes.split( "," );
             for( String n : names )
             {
-                AttributeType at = getLdapType( n, scimSchema );
-                if( at != null )
+                List<AttributeType> atList = getLdapTypes( n, scimSchema );
+                if( atList != null )
                 {
-                    ldapAtNames.add( at.getName() );
+                    for( AttributeType at : atList )
+                    {
+                        ldapAtNames.add( at.getName() );
+                    }
                 }
             }
             

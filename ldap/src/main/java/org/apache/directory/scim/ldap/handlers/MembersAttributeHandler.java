@@ -70,6 +70,19 @@ public class MembersAttributeHandler extends LdapAttributeHandler
 
 
     @Override
+    public List<AttributeType> getLdapAtTypes( BaseType bt, String remainingScimAttributePath, ResourceSchema schema,
+        SchemaManager ldapSchema )
+    {
+        List<AttributeType> atList = new ArrayList<AttributeType>();
+        
+        atList.add( ldapSchema.getAttributeType( SchemaConstants.UNIQUE_MEMBER_AT ) );
+        atList.add( ldapSchema.getAttributeType( SchemaConstants.MEMBER_AT ) );
+        
+        return atList;
+    }
+
+
+    @Override
     public void read( BaseType bt, Object srcResource, RequestContext ctx ) throws Exception
     {
         checkHandler( bt, "members", this );
