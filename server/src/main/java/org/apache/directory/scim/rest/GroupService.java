@@ -20,7 +20,7 @@
 package org.apache.directory.scim.rest;
 
 
-import static org.apache.directory.scim.ScimUtil.exceptionToStr;
+import static org.apache.directory.scim.ScimUtil.*;
 
 import java.net.URI;
 
@@ -78,7 +78,7 @@ public class GroupService
         }
         catch( ResourceNotFoundException e )
         {
-            rb = Response.status( Status.INTERNAL_SERVER_ERROR ).entity( exceptionToStr( e ) );
+            rb = buildError( e );
         }
         
         return rb.build();
@@ -97,7 +97,7 @@ public class GroupService
         }
         catch( Exception e )
         {
-            rb = Response.status( Status.INTERNAL_SERVER_ERROR ).entity( exceptionToStr( e ) );
+            rb = buildError( e );
         }
         
         return rb.build();
@@ -112,8 +112,7 @@ public class GroupService
 
         if( ( jsonData == null ) || ( jsonData.trim().length() == 0 ) )
         {
-            rb = Response.status( Status.BAD_REQUEST ).entity( "No data is present with the call to " + uriInfo.getAbsolutePath() );
-            return rb.build();
+            return sendBadRequest( "No data is present with the call to " + uriInfo.getAbsolutePath() );
         }
         
         LOG.debug( "Data received at the URI {}\n{}", uriInfo.getAbsolutePath(), jsonData );
@@ -134,7 +133,7 @@ public class GroupService
         }
         catch( Exception e )
         {
-            rb = Response.status( Status.INTERNAL_SERVER_ERROR ).entity( exceptionToStr( e ) );
+            rb = buildError( e );
         }
         
         return rb.build();
@@ -150,8 +149,7 @@ public class GroupService
 
         if( ( jsonData == null ) || ( jsonData.trim().length() == 0 ) )
         {
-            rb = Response.status( Status.BAD_REQUEST ).entity( "No data is present with the call to " + uriInfo.getAbsolutePath() );
-            return rb.build();
+            return sendBadRequest( "No data is present with the call to " + uriInfo.getAbsolutePath() );
         }
         
         LOG.debug( "Data received at the URI {}\n{}", uriInfo.getAbsolutePath(), jsonData );
@@ -170,7 +168,7 @@ public class GroupService
         }
         catch( Exception e )
         {
-            rb = Response.status( Status.INTERNAL_SERVER_ERROR ).entity( exceptionToStr( e ) );
+            rb = buildError( e );
         }
         
         return rb.build();
@@ -185,8 +183,7 @@ public class GroupService
 
         if( ( jsonData == null ) || ( jsonData.trim().length() == 0 ) )
         {
-            rb = Response.status( Status.BAD_REQUEST ).entity( "No data is present with the call to " + uriInfo.getAbsolutePath() );
-            return rb.build();
+            return sendBadRequest( "No data is present with the call to " + uriInfo.getAbsolutePath() );
         }
         
         LOG.debug( "Data received at the URI {}\n{}", uriInfo.getAbsolutePath(), jsonData );
@@ -207,13 +204,9 @@ public class GroupService
                 rb = Response.ok().entity( json );
             }
         }
-        catch( AttributeNotFoundException e )
-        {
-            rb = Response.status( Status.NOT_FOUND ).entity( exceptionToStr( e ) );
-        }
         catch( Exception e )
         {
-            rb = Response.status( Status.INTERNAL_SERVER_ERROR ).entity( exceptionToStr( e ) );
+            rb = buildError( e );
         }
         
         return rb.build();

@@ -18,6 +18,8 @@
  */
 package org.apache.directory.scim.rest;
 
+import static org.apache.directory.scim.ScimUtil.*;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -45,7 +47,6 @@ import org.apache.directory.scim.ListResponse;
 import org.apache.directory.scim.MissingParameterException;
 import org.apache.directory.scim.ProviderService;
 import org.apache.directory.scim.RequestContext;
-import org.apache.directory.scim.ScimUtil;
 import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.UserResource;
 import org.apache.directory.scim.json.ResourceSerializer;
@@ -81,7 +82,7 @@ public class UserService
         }
         catch( Exception e )
         {
-            rb = ScimUtil.buildError( e );
+            rb = buildError( e );
         }
         
         return rb.build();
@@ -100,7 +101,7 @@ public class UserService
         }
         catch( Exception e )
         {
-            rb = ScimUtil.buildError( e );
+            rb = buildError( e );
         }
         
         return rb.build();
@@ -115,8 +116,7 @@ public class UserService
 
         if( ( jsonData == null ) || ( jsonData.trim().length() == 0 ) )
         {
-            rb = Response.status( Status.BAD_REQUEST ).entity( "No data is present with the call to " + uriInfo.getAbsolutePath() );
-            return rb.build();
+            return sendBadRequest( "No data is present with the call to " + uriInfo.getAbsolutePath() );
         }
         
         LOG.debug( "Data received at the URI {}\n{}", uriInfo.getAbsolutePath(), jsonData );
@@ -137,7 +137,7 @@ public class UserService
         }
         catch( Exception e )
         {
-            rb = ScimUtil.buildError( e );
+            rb = buildError( e );
         }
         
         return rb.build();
@@ -153,8 +153,7 @@ public class UserService
 
         if( ( jsonData == null ) || ( jsonData.trim().length() == 0 ) )
         {
-            rb = Response.status( Status.BAD_REQUEST ).entity( "No data is present with the call to " + uriInfo.getAbsolutePath() );
-            return rb.build();
+            return sendBadRequest( "No data is present with the call to " + uriInfo.getAbsolutePath() );
         }
         
         LOG.debug( "Data received at the URI {}\n{}", uriInfo.getAbsolutePath(), jsonData );
@@ -173,7 +172,7 @@ public class UserService
         }
         catch( Exception e )
         {
-            rb = ScimUtil.buildError( e );
+            rb = buildError( e );
         }
         
         return rb.build();
@@ -189,8 +188,7 @@ public class UserService
 
         if( ( jsonData == null ) || ( jsonData.trim().length() == 0 ) )
         {
-            rb = Response.status( Status.BAD_REQUEST ).entity( "No data is present with the call to " + uriInfo.getAbsolutePath() );
-            return rb.build();
+            return sendBadRequest( "No data is present with the call to " + uriInfo.getAbsolutePath() );
         }
         
         LOG.debug( "Data received at the URI {}\n{}", uriInfo.getAbsolutePath(), jsonData );
@@ -213,7 +211,7 @@ public class UserService
         }
         catch( Exception e )
         {
-            rb = ScimUtil.buildError( e );
+            rb = buildError( e );
         }
         
         return rb.build();
@@ -229,8 +227,7 @@ public class UserService
         if( ( ( filter == null ) || ( filter.trim().length() == 0 ) ) &&
             ( ( attributes == null ) || ( attributes.trim().length() == 0 ) ) )
         {
-            rb = Response.status( Status.BAD_REQUEST ).entity( "Neither filter nor attributes parameters are present with the call to " + uriInfo.getAbsolutePath() );
-            return rb.build();
+            return sendBadRequest( "Neither filter nor attributes parameters are present with the call to " + uriInfo.getAbsolutePath() );
         }
         
         LOG.debug( "Filter : {}", filter );
@@ -246,7 +243,7 @@ public class UserService
         }
         catch( Exception e )
         {
-            rb = ScimUtil.buildError( e );
+            rb = buildError( e );
         }
 
         return rb.build();
@@ -301,10 +298,9 @@ public class UserService
         }
         catch( MissingParameterException e )
         {
-            rb = ScimUtil.buildError( e );
+            rb = buildError( e );
         }
         
         return rb.build();
-
     }
 }

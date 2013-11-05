@@ -31,14 +31,14 @@ import java.util.List;
  */
 public class ErrorResponse
 {
-    public static final String SCHEMA_ID = "urn:scim:schemas:core:2.0:Error";
+    public static final String SCHEMA_ID = "urn:scim:schemas:core:2.0:ScimError";
 
     // named the variable with uppercase 'E'
     // to allow direct serialization using Gson
-    private List<Error> Errors;
+    private List<ScimError> Errors;
 
 
-    public ErrorResponse( Error error )
+    public ErrorResponse( ScimError error )
     {
         addError( error );
     }
@@ -54,11 +54,11 @@ public class ErrorResponse
         return Errors.get( 0 ).getDescription();
     }
 
-    public void addError( Error error )
+    public void addError( ScimError error )
     {
         if ( Errors == null )
         {
-            Errors = new ArrayList<Error>();
+            Errors = new ArrayList<ScimError>();
         }
 
         Errors.add( error );
@@ -68,7 +68,7 @@ public class ErrorResponse
     /**
      * @return the errors
      */
-    public List<Error> getErrors()
+    public List<ScimError> getErrors()
     {
         return Errors;
     }
@@ -77,12 +77,12 @@ public class ErrorResponse
     /**
      * @param errors the errors to set
      */
-    public void setErrors( List<Error> errors )
+    public void setErrors( List<ScimError> errors )
     {
         this.Errors = errors;
     }
 
-    public static class Error
+    public static class ScimError
     {
         private String description;
         
@@ -92,7 +92,12 @@ public class ErrorResponse
         // debugging purpose
         private String stackTrace;
 
-        public Error( int code, String description )
+        public ScimError( ErrorCode code, String description )
+        {
+            this( code.getVal(), description );
+        }
+        
+        public ScimError( int code, String description )
         {
             this.code = code;
             this.description = description;

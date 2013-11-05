@@ -33,6 +33,7 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 import org.apache.directory.scim.json.ResourceSerializer;
 import org.apache.directory.scim.schema.ErrorCode;
 import org.apache.directory.scim.schema.ErrorResponse;
+import org.apache.directory.scim.schema.ErrorResponse.ScimError;
 
 /**
  * 
@@ -95,7 +96,7 @@ public class ScimUtil
             desc = ec.getDesc();
         }
         
-        ErrorResponse.Error error = new ErrorResponse.Error( ec.getVal(), desc );
+        ErrorResponse.ScimError error = new ErrorResponse.ScimError( ec.getVal(), desc );
         
         error.setStackTrace( exceptionToStr( e ) );
         
@@ -107,4 +108,17 @@ public class ScimUtil
         
         return rb;
     }
+
+    
+    public static Response sendBadRequest( String message )
+    {
+        ScimError err = new ScimError( ErrorCode.BAD_REQUEST, message );
+        
+        ErrorResponse resp = new ErrorResponse( err );
+        String json = ResourceSerializer.serialize( resp );
+        ResponseBuilder rb = Response.status( err.getCode() ).entity( json );
+        
+        return rb.build();
+    }
+    
 }
