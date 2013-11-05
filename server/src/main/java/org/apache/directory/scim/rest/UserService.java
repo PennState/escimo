@@ -227,7 +227,7 @@ public class UserService
         if( ( ( filter == null ) || ( filter.trim().length() == 0 ) ) &&
             ( ( attributes == null ) || ( attributes.trim().length() == 0 ) ) )
         {
-            return sendBadRequest( "Neither filter nor attributes parameters are present with the call to " + uriInfo.getAbsolutePath() );
+            return sendBadRequest( "Neither filter nor attributes parameter is present with the call to " + uriInfo.getAbsolutePath() );
         }
         
         LOG.debug( "Filter : {}", filter );

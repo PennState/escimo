@@ -31,6 +31,7 @@ import javax.ws.rs.PUT;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
+import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
@@ -41,6 +42,7 @@ import javax.ws.rs.core.UriInfo;
 
 import org.apache.directory.scim.AttributeNotFoundException;
 import org.apache.directory.scim.GroupResource;
+import org.apache.directory.scim.ListResponse;
 import org.apache.directory.scim.ProviderService;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.ResourceNotFoundException;
@@ -209,6 +211,37 @@ public class GroupService
             rb = buildError( e );
         }
         
+        return rb.build();
+    }
+
+    @GET
+    @Produces({MediaType.APPLICATION_JSON})
+    public Response search( @QueryParam("filter") String filter, @QueryParam("attributes") String attributes, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    {
+        ResponseBuilder rb = null;
+
+        if( ( ( filter == null ) || ( filter.trim().length() == 0 ) ) &&
+            ( ( attributes == null ) || ( attributes.trim().length() == 0 ) ) )
+        {
+            return sendBadRequest( "Neither filter nor attributes parameter is present with the call to " + uriInfo.getAbsolutePath() );
+        }
+        
+        LOG.debug( "Filter : {}", filter );
+        LOG.debug( "Attributes : {}", attributes );
+    
+        try
+        {
+            RequestContext ctx = new RequestContext( provider, uriInfo, headers );
+            ListResponse lr = provider.search( filter, attributes, ctx );
+
+            String json = ResourceSerializer.serialize( lr );
+            rb = Response.ok().entity( json );
+        }
+        catch( Exception e )
+        {
+            rb = buildError( e );
+        }
+
         return rb.build();
     }
 

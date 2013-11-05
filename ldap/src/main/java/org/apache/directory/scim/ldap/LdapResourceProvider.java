@@ -299,7 +299,8 @@ public class LdapResourceProvider implements ProviderService
         
         String path = ctx.getUriInfo().getPath();
         String uri = ScimUtil.CORE_USER_URI;
-        if( path.endsWith( "/Groups" ) )
+        
+        if( path.endsWith( "Groups" ) || path.endsWith( "Groups/" ) )
         {
             uri = ScimUtil.CORE_GROUP_URI;
         }
