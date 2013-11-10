@@ -18,13 +18,15 @@
  */
 package org.apache.directory.scim.rest;
 
-import static org.apache.directory.scim.ScimUtil.*;
+import static org.apache.directory.scim.ScimUtil.buildError;
+import static org.apache.directory.scim.ScimUtil.sendBadRequest;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -35,7 +37,6 @@ import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
@@ -65,16 +66,19 @@ public class UserService
 
     private static final Logger LOG = LoggerFactory.getLogger( UserService.class );
     
+    @Context
+    HttpServletRequest httpReq;
+    
     @GET
     @Produces({MediaType.APPLICATION_JSON})
     @Path("{id}")
-    public Response getUser( @PathParam("id") String userId, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    public Response getUser( @PathParam("id") String userId, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = null;
         
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, headers );
+            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
             
             UserResource user = provider.getUser( ctx, userId );
             String json = ResourceSerializer.serialize( user );
@@ -91,7 +95,7 @@ public class UserService
 
     @DELETE
     @Path("{id}")
-    public Response deleteUser( @PathParam("id") String userId, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    public Response deleteUser( @PathParam("id") String userId, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = Response.ok();
         
@@ -110,7 +114,7 @@ public class UserService
     
     @POST
     @Produces({MediaType.APPLICATION_JSON})
-    public Response addUser( String jsonData, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    public Response addUser( String jsonData, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = null;
 
@@ -123,7 +127,7 @@ public class UserService
         
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, headers );
+            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
             
             provider.addUser( jsonData, ctx );
             
@@ -147,7 +151,7 @@ public class UserService
     @PUT
     @Path("{id}")
     @Produces({MediaType.APPLICATION_JSON})
-    public Response putUser( @PathParam("id") String userId, String jsonData, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    public Response putUser( @PathParam("id") String userId, String jsonData, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = null;
 
@@ -160,7 +164,7 @@ public class UserService
         
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, headers );
+            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
             
             ServerResource res = provider.putUser( userId, jsonData, ctx );
             
@@ -182,7 +186,7 @@ public class UserService
     @PATCH
     @Path("{id}")
     @Produces({MediaType.APPLICATION_JSON})
-    public Response patchUser( @PathParam("id") String userId, String jsonData, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    public Response patchUser( @PathParam("id") String userId, String jsonData, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = null;
 
@@ -195,7 +199,7 @@ public class UserService
         
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, headers );
+            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
             
             ServerResource resource = provider.patchUser( userId, jsonData, ctx );
             
@@ -220,7 +224,7 @@ public class UserService
 
     @GET
     @Produces({MediaType.APPLICATION_JSON})
-    public Response search( @QueryParam("filter") String filter, @QueryParam("attributes") String attributes, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    public Response search( @QueryParam("filter") String filter, @QueryParam("attributes") String attributes, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = null;
 
@@ -235,7 +239,7 @@ public class UserService
     
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, headers );
+            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
             ListResponse lr = provider.search( filter, attributes, ctx );
 
             String json = ResourceSerializer.serialize( lr );

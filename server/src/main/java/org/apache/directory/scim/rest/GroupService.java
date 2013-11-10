@@ -20,10 +20,12 @@
 package org.apache.directory.scim.rest;
 
 
-import static org.apache.directory.scim.ScimUtil.*;
+import static org.apache.directory.scim.ScimUtil.buildError;
+import static org.apache.directory.scim.ScimUtil.sendBadRequest;
 
 import java.net.URI;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
 import javax.ws.rs.POST;
@@ -33,14 +35,12 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Context;
-import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriInfo;
 
-import org.apache.directory.scim.AttributeNotFoundException;
 import org.apache.directory.scim.GroupResource;
 import org.apache.directory.scim.ListResponse;
 import org.apache.directory.scim.ProviderService;
@@ -63,16 +63,19 @@ public class GroupService
 
     private static final Logger LOG = LoggerFactory.getLogger( GroupService.class );
     
+    @Context
+    HttpServletRequest httpReq;
+
     @GET
     @Produces({MediaType.APPLICATION_JSON})
     @Path("{id}")
-    public Response getGroup( @PathParam("id") String groupId, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    public Response getGroup( @PathParam("id") String groupId, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = null;
         
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, headers );
+            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
             
             GroupResource group = provider.getGroup( ctx, groupId );
             String json = ResourceSerializer.serialize( group );
@@ -89,7 +92,7 @@ public class GroupService
     
     @DELETE
     @Path("{id}")
-    public Response deleteGroup( @PathParam("id") String groupId, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    public Response deleteGroup( @PathParam("id") String groupId, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = Response.ok();
         
@@ -108,7 +111,7 @@ public class GroupService
     
     @POST
     @Produces({MediaType.APPLICATION_JSON})
-    public Response addGroup( String jsonData, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    public Response addGroup( String jsonData, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = null;
 
@@ -121,7 +124,7 @@ public class GroupService
         
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, headers );
+            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
             
             provider.addGroup( jsonData, ctx );
             
@@ -145,7 +148,7 @@ public class GroupService
     @PUT
     @Path("{id}")
     @Produces({MediaType.APPLICATION_JSON})
-    public Response putGroup( @PathParam("id") String groupId, String jsonData, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    public Response putGroup( @PathParam("id") String groupId, String jsonData, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = null;
 
@@ -158,7 +161,7 @@ public class GroupService
         
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, headers );
+            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
             
             ServerResource res = provider.putGroup( groupId, jsonData, ctx );
             
@@ -179,7 +182,7 @@ public class GroupService
     @PATCH
     @Path("{id}")
     @Produces({MediaType.APPLICATION_JSON})
-    public Response patchGroup( @PathParam("id") String groupId, String jsonData, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    public Response patchGroup( @PathParam("id") String groupId, String jsonData, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = null;
 
@@ -192,7 +195,7 @@ public class GroupService
         
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, headers );
+            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
             
             ServerResource resource = provider.patchGroup( groupId, jsonData, ctx );
             
@@ -216,7 +219,7 @@ public class GroupService
 
     @GET
     @Produces({MediaType.APPLICATION_JSON})
-    public Response search( @QueryParam("filter") String filter, @QueryParam("attributes") String attributes, @Context UriInfo uriInfo, @Context HttpHeaders headers )
+    public Response search( @QueryParam("filter") String filter, @QueryParam("attributes") String attributes, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = null;
 
@@ -231,7 +234,7 @@ public class GroupService
     
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, headers );
+            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
             ListResponse lr = provider.search( filter, attributes, ctx );
 
             String json = ResourceSerializer.serialize( lr );

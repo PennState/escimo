@@ -57,4 +57,6 @@ public interface ProviderService
     GroupResource patchGroup( String groupId, String jsonData, RequestContext ctx ) throws Exception;
     
     ListResponse search( String filter, String attributes, RequestContext ctx ) throws Exception;
+    
+    String authenticate( String userName, String password ) throws Exception;
 }

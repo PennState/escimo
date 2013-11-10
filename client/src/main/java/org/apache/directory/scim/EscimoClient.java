@@ -27,8 +27,12 @@ import java.util.Map;
 
 import org.apache.directory.scim.schema.CoreResource;
 import org.apache.directory.scim.schema.ErrorResponse;
+import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
+import org.apache.http.auth.AuthScope;
+import org.apache.http.auth.UsernamePasswordCredentials;
+import org.apache.http.client.CredentialsProvider;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
@@ -37,6 +41,8 @@ import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpPut;
 import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.impl.client.BasicCredentialsProvider;
+import org.apache.http.impl.client.HttpClientBuilder;
 import org.apache.http.impl.client.HttpClients;
 import org.apache.http.util.EntityUtils;
 import org.slf4j.Logger;
@@ -69,6 +75,9 @@ public class EscimoClient
     
     private static final Logger LOG = LoggerFactory.getLogger( EscimoClient.class );
 
+    public static final String USER_AUTH_HEADER = "X-Escimo-Auth";
+    
+    private String authToken = null;
 
     public EscimoClient( String providerUrl, Map<String,Class<? extends CoreResource>> uriClassMap )
     {
@@ -81,6 +90,33 @@ public class EscimoClient
         serializer = gb.create();
     }
 
+    public EscimoResult authenticate( String userName, String password )
+    {
+        HttpGet get = new HttpGet( providerUrl + USERS_URI + "/" + "dummy-req-for-auth" );
+        
+        UsernamePasswordCredentials credentials = new UsernamePasswordCredentials( userName, password );
+        AuthScope authScope = new AuthScope(get.getURI().getHost(), get.getURI().getPort(), AuthScope.ANY_REALM, "BASIC");
+        CredentialsProvider cp = new BasicCredentialsProvider();
+        cp.setCredentials( authScope, credentials );
+        
+        HttpClientBuilder clientBuilder = HttpClients.custom();
+        clientBuilder.setDefaultCredentialsProvider( cp );
+
+        HttpClient client = clientBuilder.build();
+        
+        EscimoResult er = getResource( client, get );
+        
+        Header h = er.getHeader( USER_AUTH_HEADER );
+        
+        if( h != null )
+        {
+            authToken = h.getValue();
+        }
+        
+        return er;
+    }
+    
+    
     public EscimoResult addUser( CoreResource resource )
     {
         return addResource( resource, USERS_URI );
@@ -146,6 +182,7 @@ public class EscimoClient
         }
 
         HttpDelete delete = new HttpDelete( providerUrl + uri + "/" + id );
+        delete.addHeader( USER_AUTH_HEADER, authToken );
         
         LOG.debug( "Trying to delete resource with ID {} at URI {}", id, uri );
 
@@ -186,11 +223,18 @@ public class EscimoClient
         }
 
         HttpGet get = new HttpGet( providerUrl + uri + "/" + id );
+        get.addHeader( USER_AUTH_HEADER, authToken );
         
         LOG.debug( "Trying to retrieve resource with ID {} at URI {}", id, uri );
-
+        
         HttpClient client = HttpClients.createDefault();
-
+        
+        return getResource( client, get );
+    }
+    
+    
+    private EscimoResult getResource( HttpClient client, HttpGet get )
+    {
         try
         {
             HttpResponse resp = client.execute( get );
@@ -227,7 +271,8 @@ public class EscimoClient
         }
 
         HttpPost post = new HttpPost( providerUrl + uri );
-
+        post.addHeader( USER_AUTH_HEADER, authToken );
+        
         String payload = serialize( resource ).toString();
 
         LOG.debug( "sending JSON payload to URI {} for adding resource:\n{}", uri, payload );
@@ -274,7 +319,8 @@ public class EscimoClient
         uri = uri + "/" + resourceId;
         
         HttpPut put = new HttpPut( providerUrl + uri );
-
+        put.addHeader( USER_AUTH_HEADER, authToken );
+        
         String payload = serialize( resource ).toString();
 
         LOG.debug( "sending JSON payload to URI {} for adding resource:\n{}", uri, payload );
@@ -320,19 +366,20 @@ public class EscimoClient
 
         uri = uri + "/" + resourceId;
         
-        HttpPatch put = new HttpPatch( providerUrl + uri );
-
+        HttpPatch patch = new HttpPatch( providerUrl + uri );
+        patch.addHeader( USER_AUTH_HEADER, authToken );
+        
         String payload = serialize( resource ).toString();
 
         LOG.debug( "sending JSON payload to URI {} for adding resource:\n{}", uri, payload );
 
-        put.setEntity( new StringEntity( payload, ContentType.APPLICATION_JSON ) );
+        patch.setEntity( new StringEntity( payload, ContentType.APPLICATION_JSON ) );
 
         HttpClient client = HttpClients.createDefault();
 
         try
         {
-            HttpResponse resp = client.execute( put );
+            HttpResponse resp = client.execute( patch );
             StatusLine sl = resp.getStatusLine();
             
             EscimoResult result = new EscimoResult( sl.getStatusCode(), resp.getAllHeaders() );
@@ -357,7 +404,7 @@ public class EscimoClient
         }
         catch ( Exception e )
         {
-            LOG.warn( "Failed while trying to patch a resource at {}", put.getURI() );
+            LOG.warn( "Failed while trying to patch a resource at {}", patch.getURI() );
             throw new RuntimeException( e );
         }
     }

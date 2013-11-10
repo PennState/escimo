@@ -21,6 +21,7 @@ package org.apache.directory.scim;
 
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 import org.apache.directory.scim.schema.CoreResource;
@@ -132,6 +133,16 @@ public class EscimoResult
     public void setResource( CoreResource resource )
     {
         this.resource = resource;
+    }
+
+    /* (non-Javadoc)
+     * @see java.lang.Object#toString()
+     */
+    @Override
+    public String toString()
+    {
+        return "EscimoResult [httpStatusCode=" + httpStatusCode + ", errorResponse=" + errorResponse + ", resource="
+            + resource + ", headers=" + Arrays.toString( headers ) + "]";
     }
 
 }

@@ -67,6 +67,9 @@ public class UserResourceTest
         client = new EscimoClient( baseUrl, uriClassMap );
         
         JettyServer.start();
+        
+        EscimoResult er = client.authenticate( "admin", "secret" );
+        System.out.println( er );
     }
     
     @AfterClass

@@ -4,9 +4,24 @@
     "http://java.sun.com/dtd/web-app_2_3.dtd">
 
 <web-app>
+    <filter>
+     <filter-name>AuthenticationFilter</filter-name>
+     <filter-class>org.apache.directory.scim.rest.auth.AuthenticationFilter</filter-class>
+     <init-param>
+       <param-name>authMethod</param-name>
+       <param-value>basic</param-value>
+     </init-param>
+    </filter>
+    
+    <filter-mapping>
+      <filter-name>AuthenticationFilter</filter-name>
+      <url-pattern>/*</url-pattern>
+    </filter-mapping>
+    
     <listener>
         <listener-class></listener-class>
     </listener>
+    
     <!-- Servlets -->
     <servlet>
         <servlet-name>escimoService</servlet-name>

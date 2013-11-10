@@ -28,5 +28,14 @@
             <artifactId>escimo-common</artifactId>
             <version>${project.version}</version>
         </dependency>
+        <dependency>
+            <groupId>javax.servlet</groupId>
+            <artifactId>servlet-api</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>commons-codec</groupId>
+            <artifactId>commons-codec</artifactId>
+            <version>1.8</version>
+        </dependency>
     </dependencies>
 </project>

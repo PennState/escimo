@@ -35,6 +35,7 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.UUID;
 
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.cursor.EntryCursor;
@@ -46,7 +47,6 @@ import org.apache.directory.api.ldap.model.entry.Value;
 import org.apache.directory.api.ldap.model.exception.LdapEntryAlreadyExistsException;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.filter.ExprNode;
-import org.apache.directory.api.ldap.model.filter.PresenceNode;
 import org.apache.directory.api.ldap.model.message.LdapResult;
 import org.apache.directory.api.ldap.model.message.ModifyRequest;
 import org.apache.directory.api.ldap.model.message.ModifyRequestImpl;
@@ -129,12 +129,16 @@ public class LdapResourceProvider implements ProviderService
 
     private SchemaManager ldapSchema;
     
+    private LdapConnectionConfig config;
+    
     private Map<String,JsonSchema> schemas = new HashMap<String, JsonSchema>();
 
     private static final Logger LOG = LoggerFactory.getLogger( LdapResourceProvider.class );
 
     private static final String ENTRYDN_HEADER = "X-ENTRYDN";
 
+    private Map<String, LdapConnection> connMap = new HashMap<String, LdapConnection>();
+    
     public LdapResourceProvider()
     {
     }
@@ -221,7 +225,7 @@ public class LdapResourceProvider implements ProviderService
         String password = prop.getProperty( "escimo.ldap.server.password" );
         String tlsVal = prop.getProperty( "escimo.ldap.server.useTls" );
 
-        LdapConnectionConfig config = new LdapConnectionConfig();
+        config = new LdapConnectionConfig();
         config.setLdapHost( host );
         config.setLdapPort( port );
         config.setUseTls( Boolean.parseBoolean( tlsVal ) );
@@ -230,6 +234,57 @@ public class LdapResourceProvider implements ProviderService
 
         connection = new LdapNetworkConnection( config );
         connection.bind();
+    }
+
+
+    public String authenticate( String userName, String password ) throws Exception
+    {
+        if( ( userName == null ) || ( password == null ) )
+        {
+            LOG.debug( "Missing username and/or password" );
+            return null;
+        }
+        
+        LOG.debug( "Authenticating user {}", userName );
+        
+        String userDn = null;
+        SimpleType st = ( SimpleType ) userSchema.getAttribute( "userName" );
+        
+        String filter = "(" + st.getMappedTo() + "=" + userName + ")";
+        
+        EntryCursor cursor = null;
+        
+        try
+        {
+            cursor = connection.search( userSchema.getBaseDn(), filter, SUBTREE, "1.1" );
+
+            if ( cursor.next() )
+            {
+                userDn = cursor.get().getDn().getName();
+            }
+        }
+        finally
+        {
+            if( cursor != null )
+            {
+                cursor.close();
+            }
+        }
+
+        if( userDn == null )
+        {
+            return null;
+        }
+        
+        LdapConnection conn = new LdapNetworkConnection( config );
+        conn.bind( userDn, password );
+        conn.loadSchema();
+        
+        String sessionId = UUID.randomUUID().toString();
+        
+        connMap.put( sessionId, conn );
+        
+        return sessionId;
     }
 
 
@@ -350,7 +405,9 @@ public class LdapResourceProvider implements ProviderService
         String[] requested = getRequestedAttributes( attributes, scimSchema );
         sr.addAttributes( requested );
         
-        SearchCursor cursor = connection.search( sr );
+        LdapConnection conn = getConnection( ctx );
+        
+        SearchCursor cursor = conn.search( sr );
         
         ListResponse lr = new ListResponse();
         
@@ -559,7 +616,7 @@ public class LdapResourceProvider implements ProviderService
             SimpleType st = ( SimpleType ) userSchema.getCoreAttribute( "userName" );
             String userIdName = st.getMappedTo();
 
-            String dn = ctx.getHeaderValue( ENTRYDN_HEADER );
+            String dn = ctx.getReqHeaderValue( ENTRYDN_HEADER );
             
             if( Strings.isEmpty( dn ) )
             {
@@ -616,7 +673,7 @@ public class LdapResourceProvider implements ProviderService
             SimpleType st = ( SimpleType ) groupSchema.getCoreAttribute( "displayName" );
             String groupNameAt = st.getMappedTo();
 
-            String dn = ctx.getHeaderValue( ENTRYDN_HEADER );
+            String dn = ctx.getReqHeaderValue( ENTRYDN_HEADER );
             
             if( Strings.isEmpty( dn ) )
             {
@@ -1300,6 +1357,12 @@ public class LdapResourceProvider implements ProviderService
     public GroupSchema getGroupSchema()
     {
         return groupSchema;
+    }
+    
+    
+    private LdapConnection getConnection( RequestContext ctx )
+    {
+        return connMap.get( ctx.getReqHeaderValue( RequestContext.USER_AUTH_HEADER ) );
     }
     
     public static void main( String[] args ) throws Exception

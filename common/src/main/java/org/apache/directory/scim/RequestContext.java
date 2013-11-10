@@ -20,8 +20,11 @@
 package org.apache.directory.scim;
 
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.HttpHeaders;
 import javax.ws.rs.core.UriInfo;
 
@@ -37,15 +40,19 @@ public class RequestContext
 
     private UriInfo uriInfo;
 
-    private HttpHeaders headers;
-    
     private ServerResource resource;
 
-    public RequestContext( ProviderService providerService, UriInfo uriInfo, HttpHeaders headers )
+    public static final String USER_AUTH_HEADER = "X-Escimo-Auth";
+    
+    private Map<String, String> respHeaders = new HashMap<String, String>();
+    
+    private HttpServletRequest httpReq;
+    
+    public RequestContext( ProviderService providerService, UriInfo uriInfo, HttpServletRequest httpReq )
     {
         this.providerService = providerService;
         this.uriInfo = uriInfo;
-        this.headers = headers;
+        this.httpReq = httpReq;
     }
 
 
@@ -67,31 +74,21 @@ public class RequestContext
     }
 
 
-    /**
-     * @return the headers
-     */
-    public HttpHeaders getHeaders()
-    {
-        return headers;
-    }
-
-
     public ProviderService getProviderService()
     {
         return providerService;
     }
 
     
-    public String getHeaderValue( String name )
+    public void addRespHeader( String name, String value )
     {
-        List<String> lst = headers.getRequestHeader( name );
-        
-        if( ( lst == null ) || ( lst.isEmpty() ) )
-        {
-            return null;
-        }
-        
-        return lst.get( 0 );
+        respHeaders.put( name, value );
+    }
+    
+    
+    public String getReqHeaderValue( String name )
+    {
+       return httpReq.getHeader( name );
     }
     
     
