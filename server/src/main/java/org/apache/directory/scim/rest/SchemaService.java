@@ -30,6 +30,10 @@ import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.directory.scim.ProviderService;
+import org.apache.directory.scim.json.ResourceSerializer;
+import org.apache.directory.scim.schema.ErrorCode;
+import org.apache.directory.scim.schema.ErrorResponse;
+import org.apache.directory.scim.schema.ErrorResponse.ScimError;
 import org.apache.directory.scim.schema.JsonSchema;
 
 /**
@@ -59,7 +63,11 @@ public class SchemaService
         }
         else
         {
-            rb = Response.status( Response.Status.NOT_FOUND ).entity( "No schema found with the URI " + schemaUri );
+            ScimError err = new ScimError( ErrorCode.NOT_FOUND, "No schema found with the URI " + schemaUri );
+            
+            ErrorResponse resp = new ErrorResponse( err );
+            String json = ResourceSerializer.serialize( resp );
+            rb = Response.status( err.getCode() ).entity( json );
         }
         
         return rb.build();

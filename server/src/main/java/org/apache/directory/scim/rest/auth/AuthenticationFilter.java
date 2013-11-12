@@ -70,6 +70,13 @@ public class AuthenticationFilter implements Filter
         
         HttpServletRequest httpReq = ( HttpServletRequest ) req;
         HttpServletResponse httpResp = ( HttpServletResponse ) resp;
+
+        // /Schemas serves read-only resources
+        if( httpReq.getRequestURI().contains( "/Schemas" ) )
+        {
+            chain.doFilter( req, resp );
+            return;
+        }
         
         String userHeader = httpReq.getHeader( RequestContext.USER_AUTH_HEADER );
         
