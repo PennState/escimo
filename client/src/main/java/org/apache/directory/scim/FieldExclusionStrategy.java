@@ -32,14 +32,12 @@ import com.google.gson.FieldAttributes;
 public class FieldExclusionStrategy implements ExclusionStrategy
 {
 
-    @Override
     public boolean shouldSkipField( FieldAttributes f )
     {
         DoNotExpose dne = f.getAnnotation( DoNotExpose.class );
         return ( dne != null );
     }
 
-    @Override
     public boolean shouldSkipClass( Class<?> clazz )
     {
         return false;
