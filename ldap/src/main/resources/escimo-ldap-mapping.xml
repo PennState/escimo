@@ -58,7 +58,7 @@
         </multival-attribute>
 
         <multival-attribute name="groups" baseDn="ou=system"
-            filter="(uniqueMember=$entryDn)" handlerRef="groupsHandler" />
+            filter="(member=$entryDn)" handlerRef="groupsHandler" />
 
         <multival-attribute name="entitlements" />
 
