@@ -298,7 +298,10 @@ public class UserResourceTest
         deleteMemGroup.setMeta( meta );
         
         result = client.patchGroup( addedGroup.getId(), deleteMemGroup );
-        patchedGroup = result.getResourceAs( Group.class ); 
-        assertNull( patchedGroup.getMembers() );
+        patchedGroup = result.getResourceAs( Group.class );
+        assertTrue( result.isSuccess() );
+        assertNull( patchedGroup );
+        //TODO uncomment the below line as soon as client supports HTTP parameter passing
+        //assertNull( patchedGroup.getMembers() );
     }
 }

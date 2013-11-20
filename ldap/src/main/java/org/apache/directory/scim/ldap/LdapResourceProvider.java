@@ -901,16 +901,12 @@ public class LdapResourceProvider implements ProviderService
         ModifyRequest modReq = new ModifyRequestImpl();
         modReq.setName( existingEntry.getDn() );
         
-        boolean hasAttributesInMeta = false;
-        
         JsonObject metaObj = ( JsonObject ) obj.get( "meta" );
         if( metaObj != null )
         {
             JsonArray metaAtNames = ( JsonArray ) metaObj.get( "attributes" );
             if( metaAtNames != null )
             {
-                hasAttributesInMeta = true;
-                
                 for( JsonElement e : metaAtNames )
                 {
                     String name = e.getAsString();
@@ -945,7 +941,8 @@ public class LdapResourceProvider implements ProviderService
                 throw new Exception( result.getDiagnosticMessage() );
             }
             
-            if( hasAttributesInMeta )
+            // send attributes if requested
+            if( ctx.getParamAttributes() != null )
             {
                 Entry entry = fetchEntryById( resourceId, resourceSchema, ctx );
                 

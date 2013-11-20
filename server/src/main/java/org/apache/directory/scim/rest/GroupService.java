@@ -223,11 +223,11 @@ public class GroupService
     {
         ResponseBuilder rb = null;
 
-        if( ( ( filter == null ) || ( filter.trim().length() == 0 ) ) &&
-            ( ( attributes == null ) || ( attributes.trim().length() == 0 ) ) )
-        {
-            return sendBadRequest( "Neither filter nor attributes parameter is present with the call to " + uriInfo.getAbsolutePath() );
-        }
+//        if( ( ( filter == null ) || ( filter.trim().length() == 0 ) ) &&
+//            ( ( attributes == null ) || ( attributes.trim().length() == 0 ) ) )
+//        {
+//            return sendBadRequest( "Neither filter nor attributes parameter is present with the call to " + uriInfo.getAbsolutePath() );
+//        }
         
         LOG.debug( "Filter : {}", filter );
         LOG.debug( "Attributes : {}", attributes );
