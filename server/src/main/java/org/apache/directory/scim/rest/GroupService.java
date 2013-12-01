@@ -75,13 +75,13 @@ public class GroupService
         
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
+            RequestContext ctx = provider.createCtx( uriInfo, httpReq );
             
             GroupResource group = provider.getGroup( ctx, groupId );
             String json = ResourceSerializer.serialize( group );
             rb = Response.ok( json, MediaType.APPLICATION_JSON );
         }
-        catch( ResourceNotFoundException e )
+        catch( Exception e )
         {
             rb = buildError( e );
         }
@@ -98,7 +98,8 @@ public class GroupService
         
         try
         {
-            provider.deleteGroup( groupId );
+            RequestContext ctx = provider.createCtx( uriInfo, httpReq );
+            provider.deleteGroup( groupId, ctx );
         }
         catch( Exception e )
         {
@@ -124,7 +125,7 @@ public class GroupService
         
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
+            RequestContext ctx = provider.createCtx( uriInfo, httpReq );
             
             provider.addGroup( jsonData, ctx );
             
@@ -161,7 +162,7 @@ public class GroupService
         
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
+            RequestContext ctx = provider.createCtx( uriInfo, httpReq );
             
             ServerResource res = provider.putGroup( groupId, jsonData, ctx );
             
@@ -195,7 +196,7 @@ public class GroupService
         
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
+            RequestContext ctx = provider.createCtx( uriInfo, httpReq );
             
             ServerResource resource = provider.patchGroup( groupId, jsonData, ctx );
             
@@ -234,7 +235,7 @@ public class GroupService
     
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
+            RequestContext ctx = provider.createCtx( uriInfo, httpReq );
             ListResponse lr = provider.search( filter, attributes, ctx );
 
             String json = ResourceSerializer.serialize( lr );

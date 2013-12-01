@@ -78,7 +78,7 @@ public class UserService
         
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
+            RequestContext ctx = provider.createCtx( uriInfo, httpReq );
             
             UserResource user = provider.getUser( ctx, userId );
             String json = ResourceSerializer.serialize( user );
@@ -101,7 +101,8 @@ public class UserService
         
         try
         {
-            provider.deleteUser( userId );
+            RequestContext ctx = provider.createCtx( uriInfo, httpReq );
+            provider.deleteUser( userId, ctx );
         }
         catch( Exception e )
         {
@@ -127,7 +128,7 @@ public class UserService
         
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
+            RequestContext ctx = provider.createCtx( uriInfo, httpReq );
             
             provider.addUser( jsonData, ctx );
             
@@ -164,7 +165,7 @@ public class UserService
         
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
+            RequestContext ctx = provider.createCtx( uriInfo, httpReq );
             
             ServerResource res = provider.putUser( userId, jsonData, ctx );
             
@@ -199,7 +200,7 @@ public class UserService
         
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
+            RequestContext ctx = provider.createCtx( uriInfo, httpReq );
             
             ServerResource resource = provider.patchUser( userId, jsonData, ctx );
             
@@ -239,7 +240,7 @@ public class UserService
     
         try
         {
-            RequestContext ctx = new RequestContext( provider, uriInfo, httpReq );
+            RequestContext ctx = provider.createCtx( uriInfo, httpReq );
             ListResponse lr = provider.search( filter, attributes, ctx );
 
             String json = ResourceSerializer.serialize( lr );
@@ -257,13 +258,16 @@ public class UserService
     @GET
     @Produces({MediaType.APPLICATION_OCTET_STREAM})
     @Path("photo")
-    public Response getPhoto( @QueryParam("atName") String atName, @QueryParam("id") String id )
+    public Response getPhoto( @QueryParam("atName") String atName, @QueryParam("id") String id, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = Response.ok();
         
         try
         {
-            final InputStream in = provider.getUserPhoto( id, atName );
+            RequestContext ctx = provider.createCtx( uriInfo, httpReq );
+            
+            final InputStream in = provider.getUserPhoto( id, atName, ctx );
+            
             if( in == null )
             {
                 rb.status( Status.NOT_FOUND ).entity( "No photo found for the resource with ID " + id + " and attribute name " + atName );
@@ -300,7 +304,7 @@ public class UserService
                 rb.entity( streamOut );
             }
         }
-        catch( MissingParameterException e )
+        catch( Exception e )
         {
             rb = buildError( e );
         }

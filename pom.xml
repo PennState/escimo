@@ -25,8 +25,8 @@
   <name>Apache Directory SCIM</name>
   
   <properties>
-    <ldap.api.version>1.0.0-M20</ldap.api.version>
-    <apacheds.version>2.0.0-M15</apacheds.version>
+    <ldap.api.version>1.0.0-M21-SNAPSHOT</ldap.api.version>
+    <apacheds.version>2.0.0-M16-SNAPSHOT</apacheds.version>
     <jetty.version>7.5.0.v20110901</jetty.version>
     <wink.version>1.4</wink.version>
     <httpclient.version>4.3</httpclient.version>

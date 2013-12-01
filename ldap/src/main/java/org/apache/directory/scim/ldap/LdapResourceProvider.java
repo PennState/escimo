@@ -23,9 +23,14 @@ package org.apache.directory.scim.ldap;
 import static org.apache.directory.api.ldap.model.constants.SchemaConstants.ALL_ATTRIBUTES_ARRAY;
 import static org.apache.directory.api.ldap.model.message.SearchScope.SUBTREE;
 
+import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -36,7 +41,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.UriInfo;
+
+import org.apache.commons.lang.StringUtils;
 import org.apache.directory.api.ldap.model.constants.SchemaConstants;
 import org.apache.directory.api.ldap.model.cursor.EntryCursor;
 import org.apache.directory.api.ldap.model.cursor.SearchCursor;
@@ -66,7 +76,6 @@ import org.apache.directory.api.ldap.model.schema.syntaxCheckers.JavaByteSyntaxC
 import org.apache.directory.api.ldap.model.schema.syntaxCheckers.JavaIntegerSyntaxChecker;
 import org.apache.directory.api.ldap.model.schema.syntaxCheckers.JavaLongSyntaxChecker;
 import org.apache.directory.api.ldap.model.schema.syntaxCheckers.JavaShortSyntaxChecker;
-import org.apache.directory.api.ldap.schemaloader.JarLdifSchemaLoader;
 import org.apache.directory.api.util.Base64;
 import org.apache.directory.api.util.Strings;
 import org.apache.directory.ldap.client.api.LdapConnection;
@@ -87,6 +96,7 @@ import org.apache.directory.scim.ScimUtil;
 import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
+import org.apache.directory.scim.UnauthorizedException;
 import org.apache.directory.scim.UserResource;
 import org.apache.directory.scim.ldap.handlers.LdapAttributeHandler;
 import org.apache.directory.scim.ldap.schema.ComplexType;
@@ -119,7 +129,7 @@ import com.google.gson.JsonParser;
 public class LdapResourceProvider implements ProviderService
 {
 
-    private LdapConnection connection;
+    private LdapConnection adminConnection;
 
     private LdapSchemaMapper schemaMapper;
 
@@ -137,7 +147,15 @@ public class LdapResourceProvider implements ProviderService
 
     private static final String ENTRYDN_HEADER = "X-ENTRYDN";
 
-    private Map<String, LdapConnection> connMap = new HashMap<String, LdapConnection>();
+    private final Map<String, ConnectionSession> connMap = new ConcurrentHashMap<String, ConnectionSession>();
+    
+    private boolean allowAuthorizedUsers = false;
+    
+    private boolean initialized = false;
+
+    private volatile boolean stop;
+    
+    private long sessionTimeout = 2 * 60 * 1000;
     
     public LdapResourceProvider()
     {
@@ -146,7 +164,7 @@ public class LdapResourceProvider implements ProviderService
 
     public LdapResourceProvider( LdapConnection connection )
     {
-        this.connection = connection;
+        this.adminConnection = connection;
     }
 
 
@@ -156,14 +174,25 @@ public class LdapResourceProvider implements ProviderService
         
         try
         {
-            List<URL> urls = SchemaUtil.getDefaultSchemas();
-            for( URL u : urls )
-            {
-                JsonSchema json = SchemaUtil.getSchemaJson( u );
-                schemas.put( json.getId(), json );
-            }
+            String jsonSchemaDir = System.getProperty( "escimo.json.schema.dir", null );
             
-            // TODO load custom schemas
+            File schemaDir = new File( jsonSchemaDir );
+            
+            List<URL> urls = SchemaUtil.getSchemas( schemaDir );
+            
+            if( urls.isEmpty() )
+            {
+                LOG.info( "No schemas found at {} , extracting and loading the default schemas", jsonSchemaDir );
+                schemas = SchemaUtil.storeDefaultSchemas( schemaDir );
+            }
+            else
+            {
+                for( URL u : urls )
+                {
+                    JsonSchema json = SchemaUtil.getSchemaJson( u );
+                    schemas.put( json.getId(), json );
+                }
+            }
         }
         catch( Exception e )
         {
@@ -172,35 +201,112 @@ public class LdapResourceProvider implements ProviderService
             throw re;
         }
         
-        if ( connection == null )
+        Runnable r = new Runnable() 
+        {
+            public void run() 
+            {
+                List<String> keys = new ArrayList<String>();
+                
+                while( !stop )
+                {
+                    long now = System.currentTimeMillis();
+                    
+                    for( String key : connMap.keySet() )
+                    {
+                        ConnectionSession cs = connMap.get( key );
+                        
+                        if( ( now - cs.lastAccessed ) >= sessionTimeout )
+                        {
+                            try
+                            {
+                                LOG.debug( "Closing an inactive connection associated with the userDn {} and key {}", cs.userDn, key );
+                                
+                                keys.add( key );
+                                
+                                cs.connection.unBind();
+                                cs.connection.close();
+                            }
+                            catch( Exception e )
+                            {
+                                //ignore
+                                LOG.info( "Errors occurred while unbinding and closing an inactive connection", e );
+                            }
+                        }
+                    }
+                    
+                    for( String k : keys )
+                    {
+                        connMap.remove( k );
+                    }
+                    
+                    keys.clear();
+                    
+                    try
+                    {
+                        Thread.sleep( 60 * 1000 );
+                    }
+                    catch( InterruptedException e )
+                    {
+                        // ignore
+                        LOG.warn( "Connection cleaner thread was interrupted", e );
+                    }
+                }
+            }
+        };
+        
+        Thread connCleaner = new Thread( r );
+        connCleaner.start();
+    }
+
+    
+    public RequestContext createCtx( UriInfo uriInfo, HttpServletRequest httpReq ) throws Exception
+    {
+        LdapConnection connection = getConnection(httpReq);
+        LdapRequestContext ctx = new LdapRequestContext(this, connection, uriInfo, httpReq );
+        return ctx;
+    }
+
+
+    private void _initInternal() throws Exception
+    {
+        if( initialized )
+        {
+            return;
+        }
+
+        if ( adminConnection == null )
         {
             createConnection();
         }
 
-        if ( connection instanceof LdapNetworkConnection )
+        if ( adminConnection instanceof LdapNetworkConnection )
         {
-            ( ( LdapNetworkConnection ) connection ).loadSchema( new JarLdifSchemaLoader() );
+            ( ( LdapNetworkConnection ) adminConnection ).loadSchema();// new JarLdifSchemaLoader() );
         }
 
-        ldapSchema = connection.getSchemaManager();
+        ldapSchema = adminConnection.getSchemaManager();
         
         Map<String,JsonSchema> jsonSchemaCopy = new HashMap<String, JsonSchema>( schemas );
         schemaMapper = new LdapSchemaMapper( jsonSchemaCopy, ldapSchema );
         schemaMapper.loadMappings();
         userSchema = schemaMapper.getUserSchema();
         groupSchema = schemaMapper.getGroupSchema();
+        
+        initialized = true;
     }
 
-
+    
     public void stop()
     {
         LOG.info( "Closing the LDAP server connection" );
 
-        if ( connection != null )
+        stop = true;
+        
+        if ( adminConnection != null )
         {
             try
             {
-                connection.close();
+                adminConnection.close();
             }
             catch ( Exception e )
             {
@@ -214,10 +320,38 @@ public class LdapResourceProvider implements ProviderService
     {
         LOG.info( "Creating LDAP server connection" );
 
-        InputStream in = this.getClass().getClassLoader().getResourceAsStream( "ldap-server.properties" );
-        Properties prop = new Properties();
-        prop.load( in );
+        String configDir = System.getProperty( "escimo.config.dir" );
+        
+        File ldapServerProps = new File( new File( configDir ), "ldap-server.properties" );
+        
+        Properties prop = null;
+        InputStream in = null;
+        
+        if( !ldapServerProps.exists() )
+        {
+            in = this.getClass().getClassLoader().getResourceAsStream( ldapServerProps.getName() );
+            FileWriter fw = new FileWriter( ldapServerProps );
+            
+            BufferedReader br = new BufferedReader( new InputStreamReader( in ) );
+            
+            String s = null;
+            
+            while( ( s = br.readLine() ) != null )
+            {
+                fw.write( s + "\n" );
+            }
+            
+            fw.close();
+            br.close();
+        }
 
+        in = new FileInputStream( ldapServerProps );
+        
+        prop = new Properties();
+        prop.load( in );
+        
+        in.close();
+        
         String host = prop.getProperty( "escimo.ldap.server.host" );
         String portVal = prop.getProperty( "escimo.ldap.server.port" );
         int port = Integer.parseInt( portVal );
@@ -232,13 +366,15 @@ public class LdapResourceProvider implements ProviderService
         config.setName( user );
         config.setCredentials( password );
 
-        connection = new LdapNetworkConnection( config );
-        connection.bind();
+        adminConnection = new LdapNetworkConnection( config );
+        adminConnection.bind();
     }
 
 
     public String authenticate( String userName, String password ) throws Exception
     {
+        _initInternal();
+        
         if( ( userName == null ) || ( password == null ) )
         {
             LOG.debug( "Missing username and/or password" );
@@ -256,7 +392,7 @@ public class LdapResourceProvider implements ProviderService
         
         try
         {
-            cursor = connection.search( userSchema.getBaseDn(), filter, SUBTREE, "1.1" );
+            cursor = adminConnection.search( userSchema.getBaseDn(), filter, SUBTREE, "1.1" );
 
             if ( cursor.next() )
             {
@@ -278,11 +414,11 @@ public class LdapResourceProvider implements ProviderService
         
         LdapConnection conn = new LdapNetworkConnection( config );
         conn.bind( userDn, password );
-        conn.loadSchema();
+        conn.setSchemaManager( ldapSchema );
         
         String sessionId = UUID.randomUUID().toString();
         
-        connMap.put( sessionId, conn );
+        connMap.put( sessionId, new ConnectionSession( conn, userDn ) );
         
         return sessionId;
     }
@@ -405,7 +541,7 @@ public class LdapResourceProvider implements ProviderService
         String[] requested = getRequestedAttributes( attributes, scimSchema );
         sr.addAttributes( requested );
         
-        LdapConnection conn = getConnection( ctx );
+        LdapConnection conn = ( ( LdapRequestContext ) ctx ).getConnection();
         
         SearchCursor cursor = conn.search( sr );
         
@@ -509,7 +645,7 @@ public class LdapResourceProvider implements ProviderService
     }
 
     
-    public InputStream getUserPhoto( String id, String atName ) throws MissingParameterException
+    public InputStream getUserPhoto( String id, String atName, RequestContext ctx ) throws MissingParameterException
     {
         if ( Strings.isEmpty( id ) )
         {
@@ -521,7 +657,7 @@ public class LdapResourceProvider implements ProviderService
             throw new MissingParameterException( "parameter 'atName' cannot be null or empty" );
         }
 
-        Entry entry = fetchEntryById( id, userSchema );
+        Entry entry = fetchEntryById( id, userSchema, ctx );
 
         if ( entry == null )
         {
@@ -633,9 +769,12 @@ public class LdapResourceProvider implements ProviderService
             _resourceToEntry( entry, obj, ctx, userSchema );
             
             entry.setDn( dn );
-            connection.add( entry );
+            
+            LdapConnection conn = ( ( LdapRequestContext ) ctx ).getConnection();
+            
+            conn.add( entry );
 
-            entry = connection.lookup( entry.getDn(), SchemaConstants.ALL_ATTRIBUTES_ARRAY );
+            entry = conn.lookup( entry.getDn(), SchemaConstants.ALL_ATTRIBUTES_ARRAY );
 
             UserResource addedUser = new UserResource();
 
@@ -691,9 +830,11 @@ public class LdapResourceProvider implements ProviderService
             
             entry.setDn( dn );
             
-            connection.add( entry );
+            LdapConnection conn = ( ( LdapRequestContext ) ctx ).getConnection();
             
-            entry = connection.lookup( entry.getDn(), SchemaConstants.ALL_ATTRIBUTES_ARRAY );
+            conn.add( entry );
+            
+            entry = conn.lookup( entry.getDn(), SchemaConstants.ALL_ATTRIBUTES_ARRAY );
 
             GroupResource addedGroup = new GroupResource();
 
@@ -848,7 +989,9 @@ public class LdapResourceProvider implements ProviderService
             }
         }
         
-        ModifyResponse modResp = connection.modify( modReq );
+        LdapConnection conn = ( ( LdapRequestContext ) ctx ).getConnection();
+        
+        ModifyResponse modResp = conn.modify( modReq );
         
         if( modResp.getLdapResult().getResultCode() != ResultCodeEnum.SUCCESS )
         {
@@ -860,7 +1003,7 @@ public class LdapResourceProvider implements ProviderService
             if( !existingUserNameAt.contains( newUserNameAt.getString() ) )
             {
                 // a modDN needs to be performed
-                connection.rename( existingEntry.getDn().getName(), newUserNameAt.getUpId() + "=" + newUserNameAt.getString(), true );
+                conn.rename( existingEntry.getDn().getName(), newUserNameAt.getUpId() + "=" + newUserNameAt.getString(), true );
             }
         }
         
@@ -929,11 +1072,13 @@ public class LdapResourceProvider implements ProviderService
             }
         }
 
+        LdapConnection conn = ( ( LdapRequestContext ) ctx ).getConnection();
+        
         try
         {
             LdapUtil.patchAttributes( existingEntry, obj, ctx, resourceSchema, modReq );
             
-            ModifyResponse modResp = connection.modify( modReq );
+            ModifyResponse modResp = conn.modify( modReq );
             
             LdapResult result = modResp.getLdapResult();
             if( result.getResultCode() != ResultCodeEnum.SUCCESS )
@@ -985,21 +1130,22 @@ public class LdapResourceProvider implements ProviderService
     }
 
     
-    public void deleteUser( String id ) throws Exception
+    public void deleteUser( String id, RequestContext ctx ) throws Exception
     {
-        deleteResource( id, userSchema );
+        deleteResource( id, userSchema, ctx );
     }
     
-    public void deleteGroup( String id ) throws Exception
+    public void deleteGroup( String id, RequestContext ctx ) throws Exception
     {
-        deleteResource( id, groupSchema );
+        deleteResource( id, groupSchema, ctx );
     }
     
     
-    private void deleteResource( String id, ResourceSchema schema ) throws LdapException
+    private void deleteResource( String id, ResourceSchema schema, RequestContext ctx ) throws LdapException
     {
-        Entry entry = fetchEntryById( id, schema );
-        connection.delete( entry.getDn() );
+        Entry entry = fetchEntryById( id, schema, ctx );
+        LdapConnection conn = ( ( LdapRequestContext ) ctx ).getConnection();
+        conn.delete( entry.getDn() );
     }
 
     public GroupResource toGroup( RequestContext ctx, Entry entry ) throws Exception
@@ -1259,17 +1405,13 @@ public class LdapResourceProvider implements ProviderService
     }
 
 
-    public LdapConnection getConnection()
-    {
-        return connection;
-    }
-
-
-    public Entry fetchEntryByDn( String dn )
+    public Entry fetchEntryByDn( String dn, RequestContext ctx )
     {
         try
         {
-            return connection.lookup( dn, ALL_ATTRIBUTES_ARRAY );
+            LdapConnection conn = ( ( LdapRequestContext ) ctx ).getConnection();
+            
+            return conn.lookup( dn, ALL_ATTRIBUTES_ARRAY );
         }
         catch ( LdapException e )
         {
@@ -1279,11 +1421,6 @@ public class LdapResourceProvider implements ProviderService
         return null;
     }
 
-    public Entry fetchEntryById( String id, ResourceSchema resourceSchema )
-    {
-        return fetchEntryById( id, resourceSchema, null );
-    }
-    
     public Entry fetchEntryById( String id, ResourceSchema resourceSchema, RequestContext ctx )
     {
         EntryCursor cursor = null;
@@ -1302,9 +1439,11 @@ public class LdapResourceProvider implements ProviderService
             attributes = getRequestedAttributes( ctx.getParamAttributes(), resourceSchema );
         }
         
+        LdapConnection conn = ( ( LdapRequestContext ) ctx ).getConnection();
+        
         try
         {
-            cursor = connection.search( resourceSchema.getBaseDn(), filter, SUBTREE, attributes );
+            cursor = conn.search( resourceSchema.getBaseDn(), filter, SUBTREE, attributes );
 
             if ( cursor.next() )
             {
@@ -1357,11 +1496,66 @@ public class LdapResourceProvider implements ProviderService
     }
     
     
-    private LdapConnection getConnection( RequestContext ctx )
+    public LdapConnection getConnection( HttpServletRequest httpReq ) throws Exception
     {
-        return connMap.get( ctx.getReqHeaderValue( RequestContext.USER_AUTH_HEADER ) );
+        
+        if( allowAuthorizedUsers )
+        {
+            ConnectionSession cs = connMap.get( httpReq.getHeader( RequestContext.USER_AUTH_HEADER ) );
+            
+            if( cs == null )
+            {
+                throw new UnauthorizedException( "Not Authenticated" );
+            }
+            
+            cs.touch();
+            
+            return cs.connection;
+        }
+        
+        _initInternal();
+        
+        return adminConnection;
     }
     
+    /**
+     * @return the allowAuthorizedUsers
+     */
+    public boolean isAllowAuthorizedUsers()
+    {
+        return allowAuthorizedUsers;
+    }
+
+
+    /**
+     * @param allowAuthorizedUsers the allowAuthorizedUsers to set
+     */
+    public void setAllowAuthorizedUsers( boolean allowAuthorizedUsers )
+    {
+        this.allowAuthorizedUsers = allowAuthorizedUsers;
+    }
+
+    class ConnectionSession
+    {
+        private String userDn;
+        
+        private LdapConnection connection;
+        
+        private long lastAccessed;
+        
+        public ConnectionSession( LdapConnection connection, String userDn )
+        {
+            this.userDn = userDn;
+            this.connection = connection;
+            touch();
+        }
+        
+        public void touch()
+        {
+            lastAccessed = System.currentTimeMillis();
+        }
+    }
+
     public static void main( String[] args ) throws Exception
     {
         LdapResourceProvider provider = new LdapResourceProvider();
@@ -1378,7 +1572,7 @@ public class LdapResourceProvider implements ProviderService
         }
         finally
         {
-            provider.connection.close();
+            provider.adminConnection.close();
         }
     }
 }

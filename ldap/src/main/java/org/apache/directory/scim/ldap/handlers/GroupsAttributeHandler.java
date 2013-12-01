@@ -41,10 +41,12 @@ import org.apache.directory.api.ldap.model.message.SearchScope;
 import org.apache.directory.api.ldap.model.schema.AttributeType;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.api.util.Strings;
+import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
+import org.apache.directory.scim.ldap.LdapRequestContext;
 import org.apache.directory.scim.ldap.LdapResourceProvider;
 import org.apache.directory.scim.ldap.schema.MultiValType;
 import org.apache.directory.scim.ldap.schema.ResourceSchema;
@@ -94,14 +96,13 @@ public class GroupsAttributeHandler extends LdapAttributeHandler
         Attribute memberAt = userEntry.get( SchemaConstants.MEMBER_AT );
         if ( memberAt != null )
         {
-            members = getMemberEntries( memberAt, ( LdapResourceProvider ) ctx.getProviderService() );
+            members = getMemberEntries( memberAt, ctx);
         }
         else
         // query members based on the filter and base DN
         {
             MultiValType mvt = ( MultiValType ) bt;
-            members = getMemberEntriesUsingFilter( mvt.getFilter(), mvt.getBaseDn(), userEntry,
-                ( LdapResourceProvider ) ctx.getProviderService() );
+            members = getMemberEntriesUsingFilter( mvt.getFilter(), mvt.getBaseDn(), userEntry, ctx );
         }
 
         if ( ( members != null ) && ( !members.isEmpty() ) )
@@ -145,15 +146,17 @@ public class GroupsAttributeHandler extends LdapAttributeHandler
     }
 
 
-    private List<Entry> getMemberEntries( Attribute memberAt, LdapResourceProvider provider )
+    private List<Entry> getMemberEntries( Attribute memberAt, RequestContext ctx )
     {
+        LdapResourceProvider provider = ( LdapResourceProvider ) ctx.getProviderService();
+        
         List<Entry> members = new ArrayList<Entry>();
 
         Iterator<Value<?>> itr = memberAt.iterator();
         while ( itr.hasNext() )
         {
             Value<?> dn = itr.next();
-            Entry entry = provider.fetchEntryByDn( dn.getString() );
+            Entry entry = provider.fetchEntryByDn( dn.getString(), ctx );
             if ( entry != null )
             {
                 members.add( entry );
@@ -165,7 +168,7 @@ public class GroupsAttributeHandler extends LdapAttributeHandler
 
 
     private List<Entry> getMemberEntriesUsingFilter( String filter, String baseDn, Entry userEntry,
-        LdapResourceProvider provider ) throws Exception
+        RequestContext ctx ) throws Exception
     {
         if ( Strings.isEmpty( baseDn ) )
         {
@@ -181,12 +184,14 @@ public class GroupsAttributeHandler extends LdapAttributeHandler
 
         try
         {
+            LdapConnection conn = ( ( LdapRequestContext ) ctx ).getConnection();
+            
             ExprNode rootNode = FilterParser.parse( filter );
 
             FilterTokenVisitor tv = new FilterTokenVisitor( userEntry );
             tv.visit( rootNode );
 
-            EntryCursor cursor = provider.getConnection().search( baseDn, rootNode.toString(), SearchScope.SUBTREE,
+            EntryCursor cursor = conn.search( baseDn, rootNode.toString(), SearchScope.SUBTREE,
                 SchemaConstants.ALL_ATTRIBUTES_ARRAY );
             while ( cursor.next() )
             {

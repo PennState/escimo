@@ -48,7 +48,7 @@ public class RequestContext
     
     private HttpServletRequest httpReq;
     
-    public RequestContext( ProviderService providerService, UriInfo uriInfo, HttpServletRequest httpReq )
+    protected RequestContext( ProviderService providerService, UriInfo uriInfo, HttpServletRequest httpReq )
     {
         this.providerService = providerService;
         this.uriInfo = uriInfo;

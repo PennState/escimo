@@ -43,10 +43,12 @@ import org.apache.directory.api.ldap.model.message.SearchScope;
 import org.apache.directory.api.ldap.model.schema.AttributeType;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.api.util.Strings;
+import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.scim.MultiValAttribute;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
+import org.apache.directory.scim.ldap.LdapRequestContext;
 import org.apache.directory.scim.ldap.LdapResourceProvider;
 import org.apache.directory.scim.ldap.schema.ResourceSchema;
 import org.apache.directory.scim.schema.BaseType;
@@ -140,7 +142,7 @@ public class MembersAttributeHandler extends LdapAttributeHandler
         {
             JsonObject jo = ( JsonObject ) je;
             
-            String dn = getMemberDn( jo, provider );
+            String dn = getMemberDn( jo, ctx );
             
             if( dn == null )
             {
@@ -185,7 +187,7 @@ public class MembersAttributeHandler extends LdapAttributeHandler
         {
             JsonObject jo = ( JsonObject ) je;
             
-            String dn = getMemberDn( jo, provider );
+            String dn = getMemberDn( jo, ctx );
             
             if( dn == null )
             {
@@ -237,8 +239,10 @@ public class MembersAttributeHandler extends LdapAttributeHandler
     }
 
 
-    private String getMemberDn( JsonObject jo, LdapResourceProvider provider )
+    private String getMemberDn( JsonObject jo, RequestContext ctx )
     {
+        LdapResourceProvider provider = ( LdapResourceProvider ) ctx.getProviderService();
+        
         String resId = jo.get( "value" ).getAsString();
         String resRef = jo.get( "$ref" ).getAsString();
         
@@ -249,7 +253,7 @@ public class MembersAttributeHandler extends LdapAttributeHandler
             resSchema = provider.getGroupSchema();
         }
         
-        Entry resEntry = provider.fetchEntryById( resId, resSchema );
+        Entry resEntry = provider.fetchEntryById( resId, resSchema, ctx );
         
         if( resEntry == null )
         {
@@ -282,8 +286,8 @@ public class MembersAttributeHandler extends LdapAttributeHandler
     private SimpleAttributeGroup getMemberDetails( String dn, RequestContext ctx ) throws Exception
     {
         LdapResourceProvider provider = ( LdapResourceProvider ) ctx.getProviderService();
-
-        Entry memberEntry = provider.fetchEntryByDn( dn );
+        
+        Entry memberEntry = provider.fetchEntryByDn( dn, ctx );
 
         if ( memberEntry == null )
         {
@@ -323,7 +327,7 @@ public class MembersAttributeHandler extends LdapAttributeHandler
 
 
     private List<Entry> getMemberEntriesUsingFilter( String filter, String baseDn, Entry userEntry,
-        LdapResourceProvider provider ) throws Exception
+        RequestContext ctx ) throws Exception
     {
         if ( Strings.isEmpty( baseDn ) )
         {
@@ -344,7 +348,9 @@ public class MembersAttributeHandler extends LdapAttributeHandler
             FilterTokenVisitor tv = new FilterTokenVisitor( userEntry );
             tv.visit( rootNode );
 
-            EntryCursor cursor = provider.getConnection().search( baseDn, rootNode.toString(), SearchScope.SUBTREE,
+            LdapConnection conn = ( ( LdapRequestContext ) ctx ).getConnection();
+            
+            EntryCursor cursor = conn.search( baseDn, rootNode.toString(), SearchScope.SUBTREE,
                 SchemaConstants.ALL_ATTRIBUTES_ARRAY );
             while ( cursor.next() )
             {

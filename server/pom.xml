@@ -37,5 +37,12 @@
             <artifactId>commons-codec</artifactId>
             <version>1.8</version>
         </dependency>
+
+        <!-- adding the LDAP backend support by default -->
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>escimo-ldap</artifactId>
+            <version>${project.version}</version>
+        </dependency>
     </dependencies>
 </project>

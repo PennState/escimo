@@ -19,7 +19,7 @@
 package org.apache.directory.scim;
 
 
-import static org.apache.directory.scim.schema.ErrorCode.BAD_REQUEST;
+import static org.apache.directory.scim.schema.ErrorCode.*;
 import static org.apache.directory.scim.schema.ErrorCode.CONFLICT;
 import static org.apache.directory.scim.schema.ErrorCode.INTERNAL_SERVER_ERROR;
 import static org.apache.directory.scim.schema.ErrorCode.NOT_FOUND;
@@ -89,6 +89,10 @@ public class ScimUtil
         else if ( e instanceof ResourceConflictException )
         {
             ec = CONFLICT;
+        }
+        else if ( e instanceof UnauthorizedException )
+        {
+            ec = UNAUTHORIZED;
         }
         
         if ( desc == null )

@@ -21,11 +21,16 @@ package org.apache.directory.scim.schema;
 
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 
 /**
@@ -35,10 +40,65 @@ import java.util.List;
  */
 public class SchemaUtil
 {
+    private static String[] stockNames =
+        { "user-schema.json", "group-schema.json", "enterprise-user-schema.json" };
+    
+    
+    public static List<URL> getSchemas( File schemaDir )
+    {
+        File[] files = schemaDir.listFiles();
+        
+        List<URL> urls = new ArrayList<URL>();
+        
+        for( File f : files )
+        {
+            if( f.getName().endsWith( "-schema.json" ) )
+            {
+                try
+                {
+                    urls.add( f.toURI().toURL() );
+                }
+                catch( MalformedURLException e )
+                {
+                    // should never happen
+                    throw new RuntimeException( e );
+                }
+            }
+        }
+        
+        return urls;
+    }
+    
+    
+    public static Map<String,JsonSchema> storeDefaultSchemas( File schemaDir ) throws IOException
+    {
+        List<URL> urls = SchemaUtil.getDefaultSchemas();
+        
+        Map<String,JsonSchema> schemas = new HashMap<String, JsonSchema>();
+        
+        for( URL u : urls )
+        {
+            JsonSchema json = getSchemaJson( u );
+            schemas.put( json.getId(), json );
+            
+            String name = u.getFile();
+            int pos = name.lastIndexOf( File.separator );
+            if( pos > 0 )
+            {
+                name = name.substring( pos, name.length() );
+            }
+            
+            FileWriter fw = new FileWriter( new File( schemaDir, name ) );
+            fw.write( json.getRawJson() );
+            fw.close();
+        }
+        
+        return schemas;
+    }
+    
+    
     public static List<URL> getDefaultSchemas()
     {
-        String[] stockNames =
-            { "user-schema.json", "group-schema.json", "enterprise-user-schema.json" };
         List<URL> lst = new ArrayList<URL>();
 
         ClassLoader cl = Thread.currentThread().getContextClassLoader();

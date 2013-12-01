@@ -4,6 +4,16 @@
     "http://java.sun.com/dtd/web-app_2_3.dtd">
 
 <web-app>
+
+    <filter>
+     <filter-name>escimoConfigServlet</filter-name>
+     <filter-class>org.apache.directory.scim.rest.ConfigurationFilter</filter-class>
+        <init-param>
+            <param-name>configDir</param-name>
+            <param-value>/WEB-INF/conf</param-value>
+        </init-param>
+    </filter>
+
     <filter>
      <filter-name>AuthenticationFilter</filter-name>
      <filter-class>org.apache.directory.scim.rest.auth.AuthenticationFilter</filter-class>

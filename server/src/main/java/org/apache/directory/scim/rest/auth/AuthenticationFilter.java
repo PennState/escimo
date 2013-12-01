@@ -146,7 +146,11 @@ public class AuthenticationFilter implements Filter
             authenticator = new BasicAuthenticator();
         }
         
-        provider = ServerInitializer.getProvider();
+        if( authenticator != null )
+        {
+            provider = ServerInitializer.getProvider();
+            provider.setAllowAuthorizedUsers( true );
+        }
     }
 
 }

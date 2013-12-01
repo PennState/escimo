@@ -19,17 +19,8 @@
  */
 package org.apache.directory.scim.rest;
 
-import java.net.URL;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import org.apache.commons.lang.StringUtils;
 import org.apache.directory.scim.ProviderService;
-import org.apache.directory.scim.schema.SchemaUtil;
-
-import com.google.gson.JsonObject;
-import com.google.gson.JsonParser;
 
 /**
  * TODO ServerInitializer.

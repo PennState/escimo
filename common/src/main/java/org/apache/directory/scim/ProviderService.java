@@ -20,6 +20,9 @@ package org.apache.directory.scim;
 
 import java.io.InputStream;
 
+import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.core.UriInfo;
+
 import org.apache.directory.scim.schema.JsonSchema;
 
 /**
@@ -32,9 +35,11 @@ public interface ProviderService
     
     void stop();
     
+    RequestContext createCtx( UriInfo uriInfo, HttpServletRequest httpReq ) throws Exception;
+    
     UserResource getUser( RequestContext ctx, String userId ) throws ResourceNotFoundException;
     
-    InputStream getUserPhoto( String id, String atName ) throws MissingParameterException;
+    InputStream getUserPhoto( String id, String atName, RequestContext ctx ) throws MissingParameterException;
     
     GroupResource getGroup( RequestContext ctx, String groupId ) throws ResourceNotFoundException;
     
@@ -44,9 +49,9 @@ public interface ProviderService
     
     GroupResource addGroup( String jsonData, RequestContext ctx ) throws Exception;
     
-    void deleteUser( String id ) throws Exception;
+    void deleteUser( String id, RequestContext ctx ) throws Exception;
     
-    void deleteGroup( String id ) throws Exception;
+    void deleteGroup( String id, RequestContext ctx ) throws Exception;
     
     UserResource putUser( String userId, String jsonData, RequestContext ctx ) throws Exception;
     
@@ -59,4 +64,8 @@ public interface ProviderService
     ListResponse search( String filter, String attributes, RequestContext ctx ) throws Exception;
     
     String authenticate( String userName, String password ) throws Exception;
+    
+    void setAllowAuthorizedUsers( boolean allowAuthorizedUsers );
+    
+    boolean isAllowAuthorizedUsers();
 }
