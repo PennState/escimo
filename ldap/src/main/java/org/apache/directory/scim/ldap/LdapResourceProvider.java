@@ -54,6 +54,7 @@ import org.apache.directory.api.ldap.model.entry.Attribute;
 import org.apache.directory.api.ldap.model.entry.DefaultEntry;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.entry.Value;
+import org.apache.directory.api.ldap.model.exception.LdapAuthenticationException;
 import org.apache.directory.api.ldap.model.exception.LdapEntryAlreadyExistsException;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.filter.ExprNode;
@@ -274,7 +275,8 @@ public class LdapResourceProvider implements ProviderService
             return;
         }
 
-        if ( adminConnection == null )
+        if ( ( adminConnection == null ) || 
+            ( ! ( adminConnection.isAuthenticated() || adminConnection.isConnected() ) ) )
         {
             createConnection();
         }
@@ -409,11 +411,22 @@ public class LdapResourceProvider implements ProviderService
 
         if( userDn == null )
         {
-            return null;
+            // do not reveal that the user does not exist
+            throw new UnauthorizedException( "Cannot authenticate user " + userName );
         }
         
         LdapConnection conn = new LdapNetworkConnection( config );
-        conn.bind( userDn, password );
+        try
+        {
+            conn.bind( userDn, password );
+        }
+        catch( LdapAuthenticationException e )
+        {
+            UnauthorizedException ue = new UnauthorizedException( "Cannot authenticate user " + userName + " : " + e.getMessage() );
+            ue.initCause( e );
+            throw ue;
+        }
+        
         conn.setSchemaManager( ldapSchema );
         
         String sessionId = UUID.randomUUID().toString();
