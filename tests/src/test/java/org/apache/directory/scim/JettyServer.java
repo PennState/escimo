@@ -5,11 +5,9 @@ import java.io.File;
 import java.io.FilenameFilter;
 import java.io.InputStream;
 import java.util.Enumeration;
-import java.util.concurrent.CountDownLatch;
 import java.util.jar.JarEntry;
 import java.util.jar.JarFile;
 
-import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.server.annotations.CreateLdapServer;
 import org.apache.directory.server.annotations.CreateTransport;
 import org.apache.directory.server.core.annotations.ContextEntry;
