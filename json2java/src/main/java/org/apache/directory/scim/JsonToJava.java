@@ -47,7 +47,6 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import com.sun.tools.internal.xjc.reader.xmlschema.bindinfo.BIConversion.User;
 
 
 /**
@@ -76,7 +75,6 @@ public class JsonToJava extends AbstractMojo
     private static StringTemplateGroup stg = new StringTemplateGroup( "json" );
 
 
-    @Override
     public void execute() throws MojoExecutionException, MojoFailureException
     {
         Log log = getLog();
@@ -380,8 +378,8 @@ public class JsonToJava extends AbstractMojo
         //        JsonToJava.compile( sb.toString() );
         Gson gson = new Gson();
 
-        String json = sb.toString();
-        User u = gson.fromJson( json, User.class );
-        System.out.println( u );
+        //String json = sb.toString();
+        //User u = gson.fromJson( json, User.class );
+        //System.out.println( u );
     }
 }
