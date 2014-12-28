@@ -32,6 +32,14 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 
 /**
  * TODO SchemaUtil.
@@ -41,9 +49,21 @@ import java.util.Map;
 public class SchemaUtil
 {
     private static String[] stockNames =
-        { "user-schema.json", "group-schema.json", "enterprise-user-schema.json" };
+        { "user-schema.json", "group-schema.json", "enterprise-user-schema.json", "serviceproviderconfig-schema.json" };
+
+    public static final String PROVIDER_SERVICE_SCHEMA_ID = "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig";
+
+    public static final String CORE_USER_ID = "urn:ietf:params:scim:schemas:core:2.0:User";
+
+    public static final String CORE_GROUP_ID = "urn:ietf:params:scim:schemas:core:2.0:Group";
+
+    public static final String CORE_EXT_USER_ID = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User";
+
+    public static final String CORE_SCHEMA_ID_PREFIX = "urn:ietf:params:scim:schemas:core:2.0";
+
+    private static final Logger LOG = LoggerFactory.getLogger( SchemaUtil.class );
     
-    
+
     public static List<URL> getSchemas( File schemaDir )
     {
         File[] files = schemaDir.listFiles();
@@ -78,8 +98,14 @@ public class SchemaUtil
         
         for( URL u : urls )
         {
-            JsonSchema json = getSchemaJson( u );
-            schemas.put( json.getId(), json );
+            String json = getSchemaJson( u );
+            
+            JsonSchema schema = JsonSchema.parse( json );
+            
+            if ( schema != null )
+            {
+                schemas.put( schema.getId(), schema );
+            }
             
             String name = u.getFile();
             int pos = name.lastIndexOf( File.separator );
@@ -89,7 +115,7 @@ public class SchemaUtil
             }
             
             FileWriter fw = new FileWriter( new File( schemaDir, name ) );
-            fw.write( json.getRawJson() );
+            fw.write( json );
             fw.close();
         }
         
@@ -112,7 +138,7 @@ public class SchemaUtil
     }
 
 
-    public static JsonSchema getSchemaJson( URL url ) throws IOException
+    public static String getSchemaJson( URL url ) throws IOException
     {
         BufferedReader br = null;
         try
@@ -127,7 +153,7 @@ public class SchemaUtil
                 sb.append( s );
             }
 
-            return JsonSchema.parse( sb.toString() );
+            return sb.toString();
         }
         finally
         {
@@ -145,4 +171,49 @@ public class SchemaUtil
         }
     }
 
+    
+    public static JsonObject getResourceProviderConfig()
+    {
+        String jsonSchemaDir = System.getProperty( "escimo.json.schema.dir", null );
+
+        if ( jsonSchemaDir == null )
+        {
+            return null;
+        }
+        
+        File schemaDir = new File( jsonSchemaDir );
+
+        List<URL> urls = SchemaUtil.getSchemas( schemaDir );
+        
+        try
+        {
+            JsonParser parser = new JsonParser();
+
+            for( URL u : urls )
+            {
+                String json = SchemaUtil.getSchemaJson( u );
+                JsonObject obj = ( JsonObject ) parser.parse( json );
+                JsonElement scEl = obj.get( "schemas" );
+                if( ( scEl != null ) && ( scEl.isJsonArray() ) )
+                {
+                    JsonArray ja = scEl.getAsJsonArray();
+                    if( ja.size() > 0 )
+                    {
+                        String scName = ja.get( 0 ).getAsString();
+                        if( scName.equals( PROVIDER_SERVICE_SCHEMA_ID ) )
+                        {
+                            return obj;
+                        }
+                    }
+                }
+            }
+        }
+        catch( Exception e )
+        {
+            LOG.warn( "Failed to get ResourceProviderConfig from the directory {}", jsonSchemaDir );
+            LOG.warn( "", e );
+        }
+        
+        return null;
+    }
 }

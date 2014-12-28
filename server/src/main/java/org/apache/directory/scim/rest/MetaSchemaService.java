@@ -40,9 +40,11 @@ import org.apache.directory.scim.schema.ErrorCode;
 import org.apache.directory.scim.schema.ErrorResponse;
 import org.apache.directory.scim.schema.ErrorResponse.ScimError;
 import org.apache.directory.scim.schema.JsonSchema;
+import org.apache.directory.scim.schema.SchemaUtil;
 
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
 
@@ -55,14 +57,13 @@ import com.google.gson.JsonParser;
 public class MetaSchemaService
 {
 
-    private static String PROVIDER_SERVICE_SCHEMA_ID = "urn:ietf:params:scim:schemas:core:2.0:ServiceProviderConfig";
-
     @Context
     private ServletContext servletCtx;
 
     // variable to cache the schema object
-    private String jsonSchemas;
-    
+    private static String jsonSchemas;
+
+    private static String resProviderSchema;
 
     @GET
     @Produces(
@@ -108,22 +109,30 @@ public class MetaSchemaService
     @Produces(
         { MediaType.APPLICATION_JSON })
     @Path("/ServiceProviderConfig")
-    public Response getSrviceProviderSchema()
+    public Response getSrviceProviderSchema( @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = null;
 
-        ResourceProvider provider = ( ResourceProvider ) servletCtx
-            .getAttribute( ResourceProvider.SERVLET_CONTEXT_ATTRIBUTE_KEY );
-        JsonSchema jsonSchema = provider.getJsonSchemaById( PROVIDER_SERVICE_SCHEMA_ID );
-
-        if ( jsonSchema != null )
+        if ( resProviderSchema == null )
         {
-            rb = Response.ok( jsonSchema.getRawJson(), MediaType.APPLICATION_JSON );
+            JsonObject obj = SchemaUtil.getResourceProviderConfig();
+            
+            JsonObject meta = obj.get( "meta" ).getAsJsonObject();
+            meta.remove( "location" );
+            
+            meta.addProperty( "location", uriInfo.getBaseUri().toString() + "ServiceProviderConfig" );
+            
+            resProviderSchema = obj.toString();
+        }
+
+        if ( resProviderSchema != null )
+        {
+            rb = Response.ok( resProviderSchema, MediaType.APPLICATION_JSON );
         }
         else
         {
             ScimError err = new ScimError( ErrorCode.NOT_FOUND, "No schema found with the URI "
-                + PROVIDER_SERVICE_SCHEMA_ID );
+                + SchemaUtil.PROVIDER_SERVICE_SCHEMA_ID );
 
             ErrorResponse resp = new ErrorResponse( err );
             String json = ResourceSerializer.serialize( resp );

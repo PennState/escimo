@@ -20,9 +20,6 @@ package org.apache.directory.scim;
 
 
 import static org.apache.directory.scim.schema.ErrorCode.*;
-import static org.apache.directory.scim.schema.ErrorCode.CONFLICT;
-import static org.apache.directory.scim.schema.ErrorCode.INTERNAL_SERVER_ERROR;
-import static org.apache.directory.scim.schema.ErrorCode.NOT_FOUND;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -34,6 +31,7 @@ import org.apache.directory.scim.json.ResourceSerializer;
 import org.apache.directory.scim.schema.ErrorCode;
 import org.apache.directory.scim.schema.ErrorResponse;
 import org.apache.directory.scim.schema.ErrorResponse.ScimError;
+import org.apache.directory.scim.schema.SchemaUtil;
 
 /**
  * 
@@ -41,10 +39,6 @@ import org.apache.directory.scim.schema.ErrorResponse.ScimError;
  */
 public class ScimUtil
 {
-    public static final String CORE_USER_URI = "urn:ietf:params:scim:schemas:core:2.0:User";
-    public static final String CORE_GROUP_URI = "urn:ietf:params:scim:schemas:core:2.0:Group";
-    public static final String CORE_EXT_USER_URI = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User";
-
     public static String exceptionToStr( Exception e )
     {
         StringWriter sw = new StringWriter();
@@ -67,8 +61,8 @@ public class ScimUtil
     
     public static boolean isCoreAttribute( String uri )
     {
-        return ( CORE_USER_URI.equals( uri ) || 
-                 CORE_GROUP_URI.equals( uri ) );
+        return ( SchemaUtil.CORE_USER_ID.equals( uri ) || 
+                 SchemaUtil.CORE_GROUP_ID.equals( uri ) );
     }
 
     

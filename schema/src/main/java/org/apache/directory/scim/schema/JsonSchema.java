@@ -49,8 +49,6 @@ public class JsonSchema
 
     private boolean core;
 
-    private static String CORE_SCHEMA_ID_PREFIX = "urn:ietf:params:scim:schemas:core:2.0";
-
     private Map<String, JsonObject> attributes;
 
 
@@ -64,24 +62,40 @@ public class JsonSchema
     public static JsonSchema parse( String rawJson )
     {
         JsonSchema schema = new JsonSchema( rawJson );
-        schema._parse();
+        boolean result = schema._parse();
 
+        if ( !result )
+        {
+            schema = null;
+        }
+        
         return schema;
     }
 
 
-    private void _parse()
+    private boolean _parse()
     {
         JsonParser parser = new JsonParser();
         JsonObject obj = ( JsonObject ) parser.parse( rawJson );
 
-        this.id = obj.get( "id" ).getAsString();
+        JsonElement idEl = obj.get( "id" );
+        
+        if ( idEl == null )
+        {
+            JsonElement scEl = obj.get( "schemas" );
+            System.out.println( "Ignoring schema with schemas " + scEl + " , it is not a valid SCIM resource schema" );
+            return false;
+        }
+        
+        this.id = idEl.getAsString();
         this.name = obj.get( "name" ).getAsString();
         this.desc = obj.get( "description" ).getAsString();
 
-        core = id.startsWith( CORE_SCHEMA_ID_PREFIX );
+        core = id.startsWith( SchemaUtil.CORE_SCHEMA_ID_PREFIX );
 
         _readAttributeDef( obj );
+        
+        return true;
     }
 
 
@@ -220,15 +234,6 @@ public class JsonSchema
     @Override
     public String toString()
     {
-        return "JsonSchema [id=" + id + ", name=" + name + ", desc=" + desc + "]";
+        return "JsonSchema [id=" + id + ", name=" + name + ", desc=" + desc + ", core=" + core + "]";
     }
-
-
-    public static void main( String[] args ) throws Exception
-    {
-        URL url = SchemaUtil.getDefaultSchemas().get( 0 );
-        JsonSchema json = SchemaUtil.getSchemaJson( url );
-        System.out.println( json );
-    }
-
 }

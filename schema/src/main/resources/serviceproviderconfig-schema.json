@@ -44,7 +44,7 @@
        }
     ],
     "meta": {
-      "location":"http://localhost:8080/v2/ServiceProviderConfig",
+      "location":"http://example.com/ServiceProviderConfig",
       "resourceType": "ServiceProviderConfig",
       "created": "2010-01-23T04:56:22Z",
       "lastModified": "2011-05-13T04:42:34Z",

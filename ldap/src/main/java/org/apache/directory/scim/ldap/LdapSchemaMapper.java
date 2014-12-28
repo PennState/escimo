@@ -54,6 +54,7 @@ import org.slf4j.LoggerFactory;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
+@SuppressWarnings("unchecked")
 public class LdapSchemaMapper implements SchemaMapper
 {
     private SchemaManager ldapSchema;
@@ -62,7 +63,7 @@ public class LdapSchemaMapper implements SchemaMapper
 
     private List<ResourceSchema> resourceSchemas = new ArrayList<ResourceSchema>();
 
-    private Map<String,ResourceSchema> uriToResSchema;
+    private Map<String,ResourceSchema> idToResSchema;
     
     private Map<String,JsonSchema> jsonSchemas;
     
@@ -132,7 +133,7 @@ public class LdapSchemaMapper implements SchemaMapper
             List<Element> elmResources = root.elements( "resourceType" );
             List<Element> lstSchema = root.elements( "schema" );
             
-            uriToResSchema = new HashMap<String, ResourceSchema>();
+            idToResSchema = new HashMap<String, ResourceSchema>();
             Map<String, AttributeHandler> atHandlersMap = loadAtHandlers( root.element( "atHandlers" ) );
             
             for( Element resElem : elmResources )
@@ -187,9 +188,9 @@ public class LdapSchemaMapper implements SchemaMapper
                 if ( refId.equals( schemaId ) )
                 {
                     parseSchema( elmSchema, resourceSchema, atHandlersMap );
-                    for( String uri : resourceSchema.getSchemaIds() )
+                    for( String id : resourceSchema.getSchemaIds() )
                     {
-                        uriToResSchema.put( uri, resourceSchema );
+                        idToResSchema.put( id, resourceSchema );
                     }
                     break;
                 }

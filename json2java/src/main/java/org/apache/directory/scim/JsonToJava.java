@@ -123,7 +123,15 @@ public class JsonToJava extends AbstractMojo
         for ( URL url : lst )
         {
             String schemaJson = getSchemaJson( url );
-            compileAndSave( schemaJson, srcDir );
+            try
+            {
+                compileAndSave( schemaJson, srcDir );
+            }
+            catch( Exception e )
+            {
+                e.printStackTrace();
+                throw new RuntimeException( e );
+            }
         }
     }
 
@@ -172,7 +180,30 @@ public class JsonToJava extends AbstractMojo
         JsonParser parser = new JsonParser();
         JsonObject json = ( JsonObject ) parser.parse( schema );
 
-        String className = json.get( "name" ).getAsString();
+        JsonElement nameEl = json.get( "name" );
+        
+        if( nameEl == null )
+        {
+            JsonElement scEl = json.get( "schemas" );
+            if( ( scEl != null ) && ( scEl.isJsonArray() ) )
+            {
+                JsonArray ja = scEl.getAsJsonArray();
+                if( ja.size() > 0 )
+                {
+                    String scName = ja.get( 0 ).getAsString();
+                    if( scName.contains( "ServiceProviderConfig" ) )
+                    {
+                        // no need to print a warning, just return
+                        return;
+                    }
+                }
+            }
+            
+            System.out.println( "Ignoring " + schema + " it is not a valid SCIM resource schema" );
+            return;
+        }
+        
+        String className = nameEl.getAsString();
         
         List<String> innerClasses = new ArrayList<String>();
 

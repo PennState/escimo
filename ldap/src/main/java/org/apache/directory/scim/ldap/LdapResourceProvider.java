@@ -183,8 +183,9 @@ public class LdapResourceProvider implements ResourceProvider
             {
                 for ( URL u : urls )
                 {
-                    JsonSchema json = SchemaUtil.getSchemaJson( u );
-                    schemas.put( json.getId(), json );
+                    String json = SchemaUtil.getSchemaJson( u );
+                    JsonSchema schema = JsonSchema.parse( json );
+                    schemas.put( schema.getId(), schema );
                 }
             }
 
