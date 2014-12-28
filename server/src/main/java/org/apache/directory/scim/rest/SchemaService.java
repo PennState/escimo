@@ -19,6 +19,7 @@
  */
 package org.apache.directory.scim.rest;
 
+import javax.servlet.ServletContext;
 import javax.ws.rs.GET;
 import javax.ws.rs.Path;
 import javax.ws.rs.PathParam;
@@ -29,7 +30,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.UriInfo;
 
-import org.apache.directory.scim.ProviderService;
+import org.apache.directory.scim.ResourceProvider;
 import org.apache.directory.scim.json.ResourceSerializer;
 import org.apache.directory.scim.schema.ErrorCode;
 import org.apache.directory.scim.schema.ErrorResponse;
@@ -45,32 +46,7 @@ import org.apache.directory.scim.schema.JsonSchema;
 public class SchemaService
 {
 
-    private ProviderService provider = ServerInitializer.getProvider();
-
-    
-    @GET
-    @Produces({MediaType.APPLICATION_JSON})
-    @Path("{uri}")
-    public Response getUser( @PathParam("uri") String schemaUri, @Context UriInfo uriInfo )
-    {
-        ResponseBuilder rb = null;
-        
-        JsonSchema jsonSchema = provider.getSchema( schemaUri );
-        
-        if( jsonSchema != null )
-        {
-            rb = Response.ok( jsonSchema.getRawJson(), MediaType.APPLICATION_JSON );
-        }
-        else
-        {
-            ScimError err = new ScimError( ErrorCode.NOT_FOUND, "No schema found with the URI " + schemaUri );
-            
-            ErrorResponse resp = new ErrorResponse( err );
-            String json = ResourceSerializer.serialize( resp );
-            rb = Response.status( err.getCode() ).entity( json );
-        }
-        
-        return rb.build();
-    }
+    @Context
+    private ServletContext servletCtx;
 
 }

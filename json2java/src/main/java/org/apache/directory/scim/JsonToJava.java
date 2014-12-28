@@ -28,6 +28,7 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.Iterator;
 import java.util.List;
 
@@ -212,11 +213,19 @@ public class JsonToJava extends AbstractMojo
     {
         StringTemplate template = stg.getInstanceOf( "resource-class" );
 
+        boolean isCoreSchema = false;
+        
         if ( json.has( "id" ) )
         {
             String schemaId = json.get( "id" ).getAsString();
             template.setAttribute( "schemaId", schemaId );
+            if( schemaId.startsWith( "urn:ietf:params:scim:schemas:core:" ) )
+            {
+                isCoreSchema = true;
+            }
 
+            template.setAttribute( "date", new Date() );
+            
             template.setAttribute( "package", generatePackage );
 
             template.setAttribute( "visibility", "public" );
@@ -263,7 +272,13 @@ public class JsonToJava extends AbstractMojo
 
             String name = jo.get( "name" ).getAsString();
 
-            boolean readOnly = jo.get( "readOnly" ).getAsBoolean();
+            boolean readOnly = false;
+            
+            JsonElement jeReadOnly = jo.get( "readOnly" );
+            if( jeReadOnly != null )
+            {
+                readOnly = jeReadOnly.getAsBoolean();
+            }
             
             String javaType = "String";
             if ( type.equals( "numeric" ) )
@@ -318,6 +333,15 @@ public class JsonToJava extends AbstractMojo
             simpleAttributes.add( ad );
         }
 
+        if(isCoreSchema)
+        {
+            AttributeDetail id = new AttributeDetail( "id", "String" );
+            simpleAttributes.add( id );
+            
+            AttributeDetail externalId = new AttributeDetail( "externalId", "String" );
+            simpleAttributes.add( externalId );
+        }
+        
         template.setAttribute( "allAttrs", simpleAttributes );
 
         return template;

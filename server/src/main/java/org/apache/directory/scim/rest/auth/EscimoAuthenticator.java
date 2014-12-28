@@ -21,7 +21,7 @@ package org.apache.directory.scim.rest.auth;
 
 import javax.servlet.http.HttpServletRequest;
 
-import org.apache.directory.scim.ProviderService;
+import org.apache.directory.scim.ResourceProvider;
 
 /**
  * TODO EscimoAuthenticator.
@@ -30,5 +30,5 @@ import org.apache.directory.scim.ProviderService;
  */
 public interface EscimoAuthenticator
 {
-    String authenticate( HttpServletRequest req, ProviderService provider ) throws Exception;
+    String authenticate( HttpServletRequest req, ResourceProvider provider ) throws Exception;
 }

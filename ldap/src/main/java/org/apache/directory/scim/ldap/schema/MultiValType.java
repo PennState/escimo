@@ -32,16 +32,10 @@ public class MultiValType extends BaseType
 {
     private SimpleTypeGroup atGroup;
 
-    private String baseDn;
-
-    private String filter;
-
-    public MultiValType( String uri, String name, boolean show, SimpleTypeGroup atGroup, String baseDn, String filter )
+    public MultiValType( String uri, String name, boolean show, SimpleTypeGroup atGroup )
     {
         super( uri, name, show );
         this.atGroup = atGroup;
-        this.baseDn = baseDn;
-        this.filter = filter;
     }
 
 
@@ -51,24 +45,6 @@ public class MultiValType extends BaseType
     public SimpleTypeGroup getAtGroup()
     {
         return atGroup;
-    }
-
-
-    /**
-     * @return the baseDn
-     */
-    public String getBaseDn()
-    {
-        return baseDn;
-    }
-
-
-    /**
-     * @return the filter
-     */
-    public String getFilter()
-    {
-        return filter;
     }
 
 

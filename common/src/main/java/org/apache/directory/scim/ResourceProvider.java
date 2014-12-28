@@ -18,54 +18,78 @@
  */
 package org.apache.directory.scim;
 
+
 import java.io.InputStream;
+import java.util.List;
 
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.directory.scim.schema.JsonSchema;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
+
 /**
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public interface ProviderService 
+public interface ResourceProvider
 {
-    void init() throws Exception;
-    
-    void stop();
-    
-    RequestContext createCtx( UriInfo uriInfo, HttpServletRequest httpReq ) throws Exception;
-    
-    UserResource getUser( RequestContext ctx, String userId ) throws ResourceNotFoundException;
-    
-    InputStream getUserPhoto( String id, String atName, RequestContext ctx ) throws MissingParameterException;
-    
-    GroupResource getGroup( RequestContext ctx, String groupId ) throws ResourceNotFoundException;
-    
-    JsonSchema getSchema( String uriId );
-    
-    UserResource addUser( String jsonData, RequestContext ctx ) throws Exception;
-    
-    GroupResource addGroup( String jsonData, RequestContext ctx ) throws Exception;
-    
-    void deleteUser( String id, RequestContext ctx ) throws Exception;
-    
-    void deleteGroup( String id, RequestContext ctx ) throws Exception;
-    
-    UserResource putUser( String userId, String jsonData, RequestContext ctx ) throws Exception;
-    
-    GroupResource putGroup( String groupId, String jsonData, RequestContext ctx ) throws Exception;
+    String SERVLET_CONTEXT_ATTRIBUTE_KEY = "ESCIMO_PROVIDER";
 
-    UserResource patchUser( String userId, String jsonData, RequestContext ctx ) throws Exception;
-    
-    GroupResource patchGroup( String groupId, String jsonData, RequestContext ctx ) throws Exception;
-    
+
+    void init() throws Exception;
+
+
+    void stop();
+
+
+    RequestContext createCtx( UriInfo uriInfo, HttpServletRequest httpReq ) throws Exception;
+
+
+    ServerResource getResource( RequestContext ctx, String id ) throws ResourceNotFoundException;
+
+
+    InputStream getUserPhoto( String id, String atName, RequestContext ctx ) throws MissingParameterException;
+
+
+    JsonSchema getJsonSchemaById( String id );
+
+
+    List<JsonSchema> getJsonSchemas();
+
+
+    ServerResource addResource( String jsonData, RequestContext ctx ) throws Exception;
+
+
+    void deleteResource( String id, RequestContext ctx ) throws Exception;
+
+
+    ServerResource putResource( String id, String jsonData, RequestContext ctx ) throws Exception;
+
+
+    ServerResource patchResource( String id, String jsonData, RequestContext ctx ) throws Exception;
+
+
     ListResponse search( String filter, String attributes, RequestContext ctx ) throws Exception;
-    
+
+
     String authenticate( String userName, String password ) throws Exception;
-    
+
+
     void setAllowAuthorizedUsers( boolean allowAuthorizedUsers );
-    
+
+
+    List<String> getResourceUris();
+
+
     boolean isAllowAuthorizedUsers();
+
+
+    JsonArray getAllResourceTypesSchema( String servletCtxPath );
+
+
+    JsonObject getResourceTypeSchema( String servletCtxPath, String resName );
 }

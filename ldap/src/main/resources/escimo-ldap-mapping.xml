@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
-<entities>
+<ldap-mapping>
     <!-- Core User resource schema -->
-    <schema id="user-core" uri="urn:scim:schemas:core:2.0:User">
+    <schema id="user-core" uri="urn:ietf:params:scim:schemas:core:2.0:User">
         <attribute name="id" mappedTo="entryUUID" />
         <attribute name="userName" mappedTo="uid" />
         <attribute name="displayName" mappedTo="displayName" />
@@ -57,8 +57,10 @@
             </at-group>
         </multival-attribute>
 
-        <multival-attribute name="groups" baseDn="ou=system"
-            filter="(member=$entryDn)" handlerRef="groupsHandler" />
+        <multival-attribute name="groups" handlerRef="groupsHandler">
+            <handlerArg name="baseDn" value="ou=system"/>
+            <handlerArg name="filter" value="(member=$entryDn)"/> 
+        </multival-attribute>
 
         <multival-attribute name="entitlements" />
 
@@ -75,7 +77,7 @@
     </schema>
 
     <!-- Enterprise User resource schema -->
-    <schema id="enterprise-user" uri="urn:scim:schemas:extension:enterprise:2.0:User">
+    <schema id="enterprise-user" uri="urn:ietf:params:scim:schemas:extension:enterprise:2.0:User">
         <attribute name="employeeNumber" mappedTo="" />
         <attribute name="costCenter" mappedTo="" />
         <attribute name="organization" mappedTo="" />
@@ -91,28 +93,31 @@
         </complex-attribute>
     </schema>
 
-    <schema id="group" uri="urn:scim:schemas:core:2.0:Group">
-        <!-- the 'displayName' MUST be mapped to the RDN attribute otherwise creation of new groups fails -->
+    <schema id="group" uri="urn:ietf:params:scim:schemas:core:2.0:Group">
         <attribute name="displayName" mappedTo="cn" />
         <attribute name="id" mappedTo="entryUUID" />
         <multival-attribute name="members" handlerRef="membersHandler"/>
         <complex-attribute name="meta" handlerRef="metaHandler" />
     </schema>
 
-    <userType baseDn="ou=system" filter="(objectClass=inetOrgPerson)">
+    <resourceType name="User" baseDn="ou=system" filter="(objectClass=inetOrgPerson)">
         <schemaRef id="user-core" />
         <schemaRef id="enterprise-user" />
+        <rdnAtRef name="userName"/>
+        <reqUri value="/Users"/>
         <objectClasses>
          <objectClass>inetOrgPerson</objectClass>
         </objectClasses>
-    </userType>
+    </resourceType>
 
-    <groupType baseDn="ou=system" filter="(objectClass=groupOfNames)">
+    <resourceType name="Group" baseDn="ou=system" filter="(objectClass=groupOfNames)">
         <schemaRef id="group" />
+        <rdnAtRef name="displayName"/>
+        <reqUri value="/Groups"/>
         <objectClasses>
          <objectClass>groupOfNames</objectClass>
         </objectClasses>
-    </groupType>
+    </resourceType>
 
     <atHandlers>
         <handler name="activeHandler"
@@ -126,4 +131,4 @@
         <handler name="membersHandler"
             class="org.apache.directory.scim.ldap.handlers.MembersAttributeHandler" />
     </atHandlers>
-</entities>
+</ldap-mapping>

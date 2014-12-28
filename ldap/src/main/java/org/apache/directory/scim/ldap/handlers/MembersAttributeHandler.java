@@ -246,12 +246,7 @@ public class MembersAttributeHandler extends LdapAttributeHandler
         String resId = jo.get( "value" ).getAsString();
         String resRef = jo.get( "$ref" ).getAsString();
         
-        ResourceSchema resSchema = provider.getUserSchema();
-        
-        if( resRef.endsWith( "/Groups/" + resId ) )
-        {
-            resSchema = provider.getGroupSchema();
-        }
+        ResourceSchema resSchema = provider.getResourceSchema( ctx );
         
         Entry resEntry = provider.fetchEntryById( resId, resSchema, ctx );
         

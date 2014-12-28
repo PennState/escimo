@@ -52,36 +52,6 @@ public class ConfigurationFilter implements Filter
 
     public void init( FilterConfig filterConfig ) throws ServletException
     {
-        String configDir = filterConfig.getInitParameter( "configDir" );
-        
-        if( StringUtils.isBlank( configDir ) )
-        {
-            throw new IllegalArgumentException( "Mandatory parameter 'configDir' is missing in ConfigurationFilter declaration in web.xml" );
-        }
-        
-        if( configDir.startsWith( "/WEB-INF" ) )
-        {
-            configDir = filterConfig.getServletContext().getRealPath( configDir );
-        }
-        
-        File dir = new File( configDir );
-        
-        if( !dir.exists() )
-        {
-            boolean created = dir.mkdirs();
-            
-            if( !created )
-            {
-                throw new IllegalArgumentException( "Could not create the given config directory " + configDir );
-            }
-        }
-        
-        System.setProperty( "escimo.config.dir", dir.getAbsolutePath() );
-        
-        File jsonSchemaDir = new File( dir, "json-schema" );
-        jsonSchemaDir.mkdir();
-        
-        System.setProperty( "escimo.json.schema.dir", jsonSchemaDir.getAbsolutePath() );
         /*
         File[] propFiles = dir.listFiles();
         

@@ -4,17 +4,12 @@
     "http://java.sun.com/dtd/web-app_2_3.dtd">
 
 <web-app>
+    <context-param>
+      <param-name>configDir</param-name>
+      <param-value>/WEB-INF/conf</param-value>
+    </context-param>
 
-    <filter>
-     <filter-name>escimoConfigServlet</filter-name>
-     <filter-class>org.apache.directory.scim.rest.ConfigurationFilter</filter-class>
-        <init-param>
-            <param-name>configDir</param-name>
-            <param-value>/WEB-INF/conf</param-value>
-        </init-param>
-    </filter>
-
-    <filter>
+    <!--filter>
      <filter-name>AuthenticationFilter</filter-name>
      <filter-class>org.apache.directory.scim.rest.auth.AuthenticationFilter</filter-class>
      <init-param>
@@ -26,7 +21,11 @@
     <filter-mapping>
       <filter-name>AuthenticationFilter</filter-name>
       <url-pattern>/*</url-pattern>
-    </filter-mapping>
+    </filter-mapping-->
+    
+    <listener>
+      <listener-class>org.apache.directory.scim.rest.EscimoContextListener</listener-class>
+    </listener>
     
     <!-- Servlets -->
     <servlet>

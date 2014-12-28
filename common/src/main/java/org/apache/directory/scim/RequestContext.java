@@ -36,7 +36,7 @@ import javax.ws.rs.core.UriInfo;
  */
 public class RequestContext
 {
-    private ProviderService providerService;
+    private ResourceProvider providerService;
 
     private UriInfo uriInfo;
 
@@ -48,7 +48,7 @@ public class RequestContext
     
     private HttpServletRequest httpReq;
     
-    protected RequestContext( ProviderService providerService, UriInfo uriInfo, HttpServletRequest httpReq )
+    protected RequestContext( ResourceProvider providerService, UriInfo uriInfo, HttpServletRequest httpReq )
     {
         this.providerService = providerService;
         this.uriInfo = uriInfo;
@@ -74,7 +74,7 @@ public class RequestContext
     }
 
 
-    public ProviderService getProviderService()
+    public ResourceProvider getProviderService()
     {
         return providerService;
     }

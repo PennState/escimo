@@ -41,9 +41,9 @@ import org.apache.directory.scim.schema.ErrorResponse.ScimError;
  */
 public class ScimUtil
 {
-    public static final String CORE_USER_URI = "urn:scim:schemas:core:2.0:User";
-    public static final String CORE_GROUP_URI = "urn:scim:schemas:core:2.0:Group";
-    public static final String CORE_EXT_USER_URI = "urn:scim:schemas:extension:enterprise:2.0:User";
+    public static final String CORE_USER_URI = "urn:ietf:params:scim:schemas:core:2.0:User";
+    public static final String CORE_GROUP_URI = "urn:ietf:params:scim:schemas:core:2.0:Group";
+    public static final String CORE_EXT_USER_URI = "urn:ietf:params:scim:schemas:extension:enterprise:2.0:User";
 
     public static String exceptionToStr( Exception e )
     {

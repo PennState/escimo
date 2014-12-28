@@ -18,7 +18,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.directory.ldap.client.api.LdapConnection;
-import org.apache.directory.scim.ProviderService;
+import org.apache.directory.scim.ResourceProvider;
 import org.apache.directory.scim.RequestContext;
 
 /**
@@ -29,7 +29,7 @@ public class LdapRequestContext extends RequestContext
 {
     private LdapConnection connection;
     
-    public LdapRequestContext( ProviderService providerService, LdapConnection connection, UriInfo uriInfo, HttpServletRequest httpReq )
+    public LdapRequestContext( ResourceProvider providerService, LdapConnection connection, UriInfo uriInfo, HttpServletRequest httpReq )
     {
         super( providerService, uriInfo, httpReq );
         this.connection = connection;

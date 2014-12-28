@@ -5,7 +5,6 @@
     "attributes" : [
       {
         "name" : "userName",
-        "escimoAttribute": "uid",
         "type" : "string",
         "multiValued" : false,
         "description" : "Unique identifier for the User typically used by the user to directly authenticate to the service provider. Each User MUST include a non-empty userName value.  This identifier MUST be unique across the Service Consumer's entire set of Users.  REQUIRED",
@@ -36,7 +35,6 @@
           },
           {
             "name" : "familyName",
-            "escimoAttribute": "sn",
             "type" : "string",
             "multiValued" : false,
             "description" : "The family name of the User, or Last Name in most Western languages (e.g. Jensen given the full name Ms. Barbara J Jensen, III.).",

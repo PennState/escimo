@@ -209,7 +209,7 @@ public class LdapUtil
                 continue;
             }
 
-            AttributeHandler handler = resourceSchema.getHandler( bt.getAtHandlerName() );
+            AttributeHandler handler = bt.getHandler();
             
             if( handler != null )
             {

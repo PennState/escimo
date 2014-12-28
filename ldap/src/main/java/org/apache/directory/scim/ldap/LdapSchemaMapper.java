@@ -24,26 +24,23 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.api.ldap.model.schema.AttributeType;
 import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.api.util.Strings;
-import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.SchemaMapper;
 import org.apache.directory.scim.ldap.schema.ComplexType;
-import org.apache.directory.scim.ldap.schema.GroupSchema;
 import org.apache.directory.scim.ldap.schema.MultiValType;
 import org.apache.directory.scim.ldap.schema.ResourceSchema;
 import org.apache.directory.scim.ldap.schema.SimpleType;
 import org.apache.directory.scim.ldap.schema.SimpleTypeGroup;
-import org.apache.directory.scim.ldap.schema.UserSchema;
 import org.apache.directory.scim.schema.JsonSchema;
 import org.dom4j.Document;
 import org.dom4j.DocumentHelper;
@@ -63,42 +60,18 @@ public class LdapSchemaMapper implements SchemaMapper
 
     private static final Logger LOG = LoggerFactory.getLogger( LdapSchemaMapper.class );
 
-    private GroupSchema groupSchema;
-
-    private UserSchema userSchema;
+    private List<ResourceSchema> resourceSchemas = new ArrayList<ResourceSchema>();
 
     private Map<String,ResourceSchema> uriToResSchema;
     
     private Map<String,JsonSchema> jsonSchemas;
     
-    public LdapSchemaMapper( Map<String,JsonSchema> jsonSchemas, SchemaManager ldapSchema )
+    public LdapSchemaMapper( Map<String,JsonSchema> jsonSchemas )
     {
         this.jsonSchemas = jsonSchemas;
-        this.ldapSchema = ldapSchema;
-    }
-
-
-    /**
-     * @return the userSchema
-     */
-    public UserSchema getUserSchema()
-    {
-        return userSchema;
-    }
-
-
-    public GroupSchema getGroupSchema()
-    {
-        return groupSchema;
     }
 
     
-    public ResourceSchema getSchemaWithUri( String uri )
-    {
-        return uriToResSchema.get( uri );
-    }
-    
-
     /**
      * @return the ldapSchema
      */
@@ -108,6 +81,12 @@ public class LdapSchemaMapper implements SchemaMapper
     }
 
     
+    public void setLdapSchema( SchemaManager ldapSchema )
+    {
+        this.ldapSchema = ldapSchema;
+    }
+
+
     public AttributeType getLdapAttributeType( String name )
     {
         return ldapSchema.getAttributeType( name );
@@ -150,29 +129,21 @@ public class LdapSchemaMapper implements SchemaMapper
                 throw new IllegalStateException( "Invalid schema mapping file" );
             }
 
-            Element elmUser = root.element( "userType" );
-
-            String baseDn = elmUser.attributeValue( "baseDn" );
-            String filter = elmUser.attributeValue( "filter" );
-
-            Map<String, AttributeHandler> atHandlersMap = loadAtHandlers( root.element( "atHandlers" ) );
-            
-            uriToResSchema = new HashMap<String, ResourceSchema>();
-            
-            userSchema = new UserSchema( baseDn, filter );
-            userSchema.setAtHandlers( atHandlersMap );
-
+            List<Element> elmResources = root.elements( "resourceType" );
             List<Element> lstSchema = root.elements( "schema" );
             
-            parseResourceSchema( elmUser, lstSchema, userSchema );
-
-            Element elmGroup = root.element( "groupType" );
-            String groupBaseDn = elmGroup.attributeValue( "baseDn" );
-            String groupFilter = elmGroup.attributeValue( "filter" );
-
-            groupSchema = new GroupSchema( groupBaseDn, groupFilter );
-            groupSchema.setAtHandlers( atHandlersMap );
-            parseResourceSchema( elmGroup, lstSchema, groupSchema );
+            uriToResSchema = new HashMap<String, ResourceSchema>();
+            Map<String, AttributeHandler> atHandlersMap = loadAtHandlers( root.element( "atHandlers" ) );
+            
+            for( Element resElem : elmResources )
+            {
+                String baseDn = resElem.attributeValue( "baseDn" );
+                String filter = resElem.attributeValue( "filter" );
+                ResourceSchema rs = new ResourceSchema( baseDn, filter );
+                parseResourceSchema( resElem, lstSchema, rs, atHandlersMap );
+                
+                resourceSchemas.add( rs );
+            }
         }
         catch ( Exception e )
         {
@@ -196,7 +167,7 @@ public class LdapSchemaMapper implements SchemaMapper
     }
 
 
-    private void parseResourceSchema( Element elmResourceSchema, List<Element> lstSchema, ResourceSchema resourceSchema )
+    private void parseResourceSchema( Element elmResourceSchema, List<Element> lstSchema, ResourceSchema resourceSchema, Map<String, AttributeHandler> atHandlersMap )
     {
         Element elmObjectClass = elmResourceSchema.element( "objectClasses" );
         List<Element> elmOcs = elmObjectClass.elements( "objectClass" );
@@ -215,8 +186,8 @@ public class LdapSchemaMapper implements SchemaMapper
                 String schemaId = elmSchema.attributeValue( "id" );
                 if ( refId.equals( schemaId ) )
                 {
-                    parseSchema( elmSchema, resourceSchema );
-                    for( String uri : resourceSchema.getUris() )
+                    parseSchema( elmSchema, resourceSchema, atHandlersMap );
+                    for( String uri : resourceSchema.getSchemaIds() )
                     {
                         uriToResSchema.put( uri, resourceSchema );
                     }
@@ -224,11 +195,20 @@ public class LdapSchemaMapper implements SchemaMapper
                 }
             }
         }
-
+        
+        resourceSchema.setName( elmResourceSchema.attributeValue( "name" ) );
+        
+        Element rdn = elmResourceSchema.element( "rdnAtRef" );
+        
+        SimpleType rdnType = ( SimpleType ) resourceSchema.getAttribute( rdn.attributeValue( "name" ) );
+        resourceSchema.setRdnType( rdnType );
+        
+        Element uri = elmResourceSchema.element( "reqUri" );
+        resourceSchema.setReqUri( uri.attributeValue( "value" ) );
     }
 
 
-    private void parseSchema( Element schemaRoot, ResourceSchema resourceSchema )
+    private void parseSchema( Element schemaRoot, ResourceSchema resourceSchema, Map<String, AttributeHandler> atHandlersMap )
     {
         String uri = schemaRoot.attributeValue( "uri" );
 
@@ -240,7 +220,7 @@ public class LdapSchemaMapper implements SchemaMapper
 
         for ( Element el : simpleAtElmList )
         {
-            SimpleType st = parseSimpleType( el, uri );
+            SimpleType st = parseSimpleType( el, uri, atHandlersMap );
             if ( st != null )
             {
                 st.setReadOnly( json.isReadOnly( st.getName() ) );
@@ -264,29 +244,24 @@ public class LdapSchemaMapper implements SchemaMapper
             boolean show = getShowVal( elmComplex );
             
             Element atGrpElm = elmComplex.element( "at-group" );
-            SimpleTypeGroup stg = parseAtGroup( atGrpElm, uri, name );
+            SimpleTypeGroup stg = parseAtGroup( atGrpElm, uri, name, atHandlersMap );
             ComplexType ct = null;
             if ( stg != null )
             {
                 ct = new ComplexType( uri, name, show, stg );
             }
             
-            String handlerRef = elmComplex.attributeValue( "handlerRef" );
-            
-            if( Strings.isEmpty( handlerRef ) ) 
-            {
-                handlerRef = null;
-            }
+            AttributeHandler handler = getHandlerInstance( elmComplex, atHandlersMap );
             
             // if attribute handler is present then create the type
-            if( ( ct == null ) && ( handlerRef != null ) )
+            if( ( ct == null ) && ( handler != null ) )
             {
                 ct = new ComplexType( uri, name, show, null );
             }
             
             if( ct != null )
             {
-                ct.setAtHandlerName( handlerRef );
+                ct.setHandler( handler );
                 ct.setReadOnly( json.isReadOnly( name ) );
                 resourceSchema.addAttributeType( name, ct );
             }
@@ -305,9 +280,6 @@ public class LdapSchemaMapper implements SchemaMapper
                     + elmMultiVal.asXML() );
             }
 
-            String baseDn = elmMultiVal.attributeValue( "baseDn" );
-            String filter = elmMultiVal.attributeValue( "filter" );
-
             boolean showMultiVal = getShowVal( elmMultiVal );
             
             MultiValType mt = null;
@@ -315,29 +287,23 @@ public class LdapSchemaMapper implements SchemaMapper
             Element elmAtGroup = elmMultiVal.element( "at-group" );
             if ( elmAtGroup != null )
             {
-                SimpleTypeGroup stg = parseAtGroup( elmAtGroup, uri, name );
+                SimpleTypeGroup stg = parseAtGroup( elmAtGroup, uri, name, atHandlersMap );
                 if ( stg != null )
                 {
-                    mt = new MultiValType( uri, name, showMultiVal, stg, baseDn, filter );
+                    mt = new MultiValType( uri, name, showMultiVal, stg );
                 }
-
             }
             
-            String handlerRef = elmMultiVal.attributeValue( "handlerRef" );
-            
-            if( Strings.isEmpty( handlerRef ) ) 
-            {
-                handlerRef = null;
-            }
+            AttributeHandler handler = getHandlerInstance( elmMultiVal, atHandlersMap );
 
-            if( ( mt == null ) && ( handlerRef != null ) )
+            if( ( mt == null ) && ( handler != null ) )
             {
-                mt = new MultiValType( uri, name, showMultiVal, ( SimpleTypeGroup ) null, baseDn, filter );
+                mt = new MultiValType( uri, name, showMultiVal, ( SimpleTypeGroup ) null );
             }
             
             if( mt != null )
             {
-                mt.setAtHandlerName( handlerRef );
+                mt.setHandler( handler );
                 mt.setReadOnly( json.isReadOnly( name ) );
                 resourceSchema.addAttributeType( name, mt );
             }
@@ -345,7 +311,7 @@ public class LdapSchemaMapper implements SchemaMapper
     }
 
 
-    private SimpleTypeGroup parseAtGroup( Element elmAtGroup, String uri, String parentAtName )
+    private SimpleTypeGroup parseAtGroup( Element elmAtGroup, String uri, String parentAtName, Map<String, AttributeHandler> atHandlersMap )
     {
         SimpleTypeGroup stg = null;
 
@@ -360,7 +326,7 @@ public class LdapSchemaMapper implements SchemaMapper
             List<Element> elmSTypes = elmAtGroup.elements( "attribute" );
             for ( Element elmAt : elmSTypes )
             {
-                SimpleType st = parseSimpleType( elmAt, uri );
+                SimpleType st = parseSimpleType( elmAt, uri, atHandlersMap );
                 if ( st != null )
                 {
                     st.setReadOnly( json.isReadOnly( parentAtName + "." + st.getName() ) );
@@ -378,7 +344,7 @@ public class LdapSchemaMapper implements SchemaMapper
     }
 
 
-    private SimpleType parseSimpleType( Element el, String uri )
+    private SimpleType parseSimpleType( Element el, String uri, Map<String, AttributeHandler> atHandlersMap )
     {
         String name = el.attributeValue( "name" );
 
@@ -399,7 +365,9 @@ public class LdapSchemaMapper implements SchemaMapper
         boolean show = getShowVal( el );
 
         SimpleType st = new SimpleType( uri, name, show, mappedTo );
-        st.setAtHandlerName( handlerRef );
+        
+        AttributeHandler handler = getHandlerInstance( el, atHandlersMap );
+        st.setHandler( handler );
         
         return st;
     }
@@ -450,6 +418,58 @@ public class LdapSchemaMapper implements SchemaMapper
         }
         
         return mapHandlers;
+    }
+
+    private AttributeHandler getHandlerInstance( Element elmAttribute, Map<String,AttributeHandler> atHandlersMap )
+    {
+        String handlerRef = elmAttribute.attributeValue( "handlerRef" );
+        String handlerClass = elmAttribute.attributeValue( "handlerClass" );
+        List<Element> args = elmAttribute.elements( "handlerArg" );
+        
+        AttributeHandler handler = null;
+        
+        if( !Strings.isEmpty( handlerRef ) ) 
+        {
+            handler = atHandlersMap.get( handlerRef );
+        }
+        
+        if( !Strings.isEmpty( handlerClass ) )
+        {
+            if( handlerRef != null )
+            {
+                throw new IllegalArgumentException("An attribute type cannot contain both handlerRef and handlerClass attributes");
+            }
+
+            try
+            {
+                handler = (AttributeHandler ) Class.forName( handlerClass ).newInstance();
+                
+                if(args != null)
+                {
+                    for( Element e : args )
+                    {
+                        String name = e.attributeValue( "name" );
+                        String value = e.attributeValue( "value" );
+                        
+                        Field f = handler.getClass().getDeclaredField( name );
+                        f.setAccessible( true );
+                        f.set( handler, value );
+                    }
+                }
+            }
+            catch( Exception e )
+            {
+                throw new RuntimeException( "Failed to create handler for the attribute " + elmAttribute.asXML() , e );
+            }
+        }
+
+        return handler;
+    }
+
+
+    List<ResourceSchema> getResourceSchemas()
+    {
+        return resourceSchemas;
     }
     
 }

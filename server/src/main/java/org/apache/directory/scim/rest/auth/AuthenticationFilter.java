@@ -32,11 +32,10 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang.StringUtils;
-import org.apache.directory.scim.ProviderService;
+import org.apache.directory.scim.ResourceProvider;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.ScimUtil;
 import org.apache.directory.scim.json.ResourceSerializer;
-import org.apache.directory.scim.rest.ServerInitializer;
 import org.apache.directory.scim.schema.ErrorCode;
 import org.apache.directory.scim.schema.ErrorResponse;
 import org.apache.directory.scim.schema.ErrorResponse.ScimError;
@@ -52,7 +51,7 @@ public class AuthenticationFilter implements Filter
 
     private EscimoAuthenticator authenticator;
 
-    private ProviderService provider;
+    private ResourceProvider provider;
     
     public void destroy()
     {
@@ -148,7 +147,7 @@ public class AuthenticationFilter implements Filter
         
         if( authenticator != null )
         {
-            provider = ServerInitializer.getProvider();
+            provider = ( ResourceProvider ) filterConfig.getServletContext().getAttribute( ResourceProvider.SERVLET_CONTEXT_ATTRIBUTE_KEY );
             provider.setAllowAuthorizedUsers( true );
         }
     }

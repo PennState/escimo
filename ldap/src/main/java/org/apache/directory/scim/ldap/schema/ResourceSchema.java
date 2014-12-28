@@ -23,13 +23,11 @@ package org.apache.directory.scim.ldap.schema;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.directory.api.util.Strings;
-import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.schema.BaseType;
 
 
@@ -39,17 +37,21 @@ import org.apache.directory.scim.schema.BaseType;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public abstract class ResourceSchema
+public class ResourceSchema
 {
     private String baseDn;
     private String filter;
 
-    private List<String> uris = new ArrayList<String>();
+    private SimpleType rdnType;
+
+    private String reqUri;
+
+    private String name;
+
+    private List<String> schemaIds = new ArrayList<String>();
 
     private Map<String, BaseType> coreTypes = new LinkedHashMap<String, BaseType>();
     private Map<String, BaseType> extendedTypes = new LinkedHashMap<String, BaseType>();
-
-    private Map<String, AttributeHandler> atHandlers = new HashMap<String, AttributeHandler>();
 
     private List<String> objectClasses = new ArrayList<String>();
 
@@ -80,28 +82,27 @@ public abstract class ResourceSchema
 
     public BaseType getAttribute( String name )
     {
-        if( name == null )
+        if ( name == null )
         {
             return null;
         }
-        
+
         name = name.trim();
-        
+
         int colonPos = name.lastIndexOf( ":" );
-        if( colonPos > 0 )
+        if ( colonPos > 0 )
         {
             name = name.substring( colonPos + 1 );
         }
 
-        if( name.contains( "." ) )
+        if ( name.contains( "." ) )
         {
             String[] atPath = name.split( "\\." );
-            
+
             BaseType b = _findAtType( atPath[0] );
-            
-            
+
             SimpleTypeGroup stg = null;
-            
+
             if ( b instanceof ComplexType )
             {
                 ComplexType c = ( ComplexType ) b;
@@ -112,23 +113,23 @@ public abstract class ResourceSchema
                 MultiValType m = ( MultiValType ) b;
                 stg = m.getAtGroup();
             }
-            
-            if( stg != null )
+
+            if ( stg != null )
             {
                 return stg.getType( atPath[1] );
             }
-            
+
             return null;
         }
 
         return _findAtType( name );
     }
 
-    
+
     private BaseType _findAtType( String name )
     {
         BaseType bt = coreTypes.get( name );
-        
+
         if ( bt == null )
         {
             bt = extendedTypes.get( name );
@@ -136,6 +137,7 @@ public abstract class ResourceSchema
 
         return bt;
     }
+
 
     public void addAttributeType( String name, BaseType type )
     {
@@ -153,18 +155,6 @@ public abstract class ResourceSchema
     }
 
 
-    public void addAttributeHandler( String name, AttributeHandler handler )
-    {
-        atHandlers.put( name, handler );
-    }
-
-
-    public AttributeHandler getHandler( String name )
-    {
-        return atHandlers.get( name );
-    }
-
-
     public Collection<BaseType> getCoreTypes()
     {
         return Collections.unmodifiableCollection( coreTypes.values() );
@@ -179,13 +169,7 @@ public abstract class ResourceSchema
 
     public void addUri( String uri )
     {
-        uris.add( uri );
-    }
-
-
-    public void setAtHandlers( Map<String, AttributeHandler> atHandlers )
-    {
-        this.atHandlers = atHandlers;
+        schemaIds.add( uri );
     }
 
 
@@ -222,8 +206,44 @@ public abstract class ResourceSchema
     }
 
 
-    public List<String> getUris()
+    public SimpleType getRdnType()
     {
-        return new ArrayList<String>( uris );
+        return rdnType;
+    }
+
+
+    public void setRdnType( SimpleType rdnType )
+    {
+        this.rdnType = rdnType;
+    }
+
+
+    public String getReqUri()
+    {
+        return reqUri;
+    }
+
+
+    public String getName()
+    {
+        return name;
+    }
+
+
+    public void setName( String name )
+    {
+        this.name = name;
+    }
+
+
+    public void setReqUri( String reqUri )
+    {
+        this.reqUri = reqUri;
+    }
+
+
+    public List<String> getSchemaIds()
+    {
+        return new ArrayList<String>( schemaIds );
     }
 }

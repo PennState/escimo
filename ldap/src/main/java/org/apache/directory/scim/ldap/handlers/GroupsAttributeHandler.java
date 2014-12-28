@@ -62,7 +62,10 @@ import org.slf4j.LoggerFactory;
  */
 public class GroupsAttributeHandler extends LdapAttributeHandler
 {
-
+    private String baseDn;
+    
+    private String filter;
+    
     private static final Logger LOG = LoggerFactory.getLogger( GroupsAttributeHandler.class );
 
     
@@ -102,7 +105,7 @@ public class GroupsAttributeHandler extends LdapAttributeHandler
         // query members based on the filter and base DN
         {
             MultiValType mvt = ( MultiValType ) bt;
-            members = getMemberEntriesUsingFilter( mvt.getFilter(), mvt.getBaseDn(), userEntry, ctx );
+            members = getMemberEntriesUsingFilter( filter, baseDn, userEntry, ctx );
         }
 
         if ( ( members != null ) && ( !members.isEmpty() ) )
@@ -296,6 +299,28 @@ public class GroupsAttributeHandler extends LdapAttributeHandler
 
             return null;
         }
+    }
 
+    public String getBaseDn()
+    {
+        return baseDn;
+    }
+
+
+    public void setBaseDn( String baseDn )
+    {
+        this.baseDn = baseDn;
+    }
+
+
+    public String getFilter()
+    {
+        return filter;
+    }
+
+
+    public void setFilter( String filter )
+    {
+        this.filter = filter;
     }
 }

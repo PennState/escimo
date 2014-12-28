@@ -19,28 +19,38 @@
  */
 package org.apache.directory.scim.rest;
 
+
 import java.util.HashSet;
 import java.util.Set;
 
-import javax.ws.rs.core.Application;
+import org.apache.wink.common.WinkApplication;
+
 
 /**
  * TODO EscimoApplication.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class EscimoApplication extends Application
+public class EscimoApplication extends WinkApplication
 {
     private Set<Class<?>> resources = new HashSet<Class<?>>();
-    
-    
+
+    private static Set<Object> instances = new HashSet<Object>();
+
+
     public EscimoApplication()
     {
-        resources.add( UserService.class );
-        resources.add( GroupService.class );
-        resources.add( SchemaService.class );
+        resources.add( MetaSchemaService.class );
     }
-    
+
+
+    @Override
+    public Set<Object> getInstances()
+    {
+        return instances;
+    }
+
+
     @Override
     public Set<Class<?>> getClasses()
     {

@@ -20,15 +20,22 @@
 package org.apache.directory.scim.ldap.handlers;
 
 
+import java.util.List;
+
 import org.apache.directory.api.ldap.model.constants.PasswordPolicySchemaConstants;
 import org.apache.directory.api.ldap.model.entry.Attribute;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.exception.LdapException;
+import org.apache.directory.api.ldap.model.schema.AttributeType;
+import org.apache.directory.api.ldap.model.schema.SchemaManager;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.SimpleAttribute;
+import org.apache.directory.scim.ldap.schema.ResourceSchema;
 import org.apache.directory.scim.schema.BaseType;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.google.gson.JsonElement;
 
 
 /**
@@ -80,6 +87,26 @@ public class ActiveAttributeHandler extends LdapAttributeHandler
         }
 
         ctx.getCoreResource().addAttribute( bt.getUri(), st );
+    }
+
+
+    @Override
+    public void write( BaseType atType, JsonElement jsonData, Object targetEntry, RequestContext ctx ) throws Exception
+    {
+    }
+
+
+    @Override
+    public void patch( BaseType atType, JsonElement jsonData, Object entry, RequestContext ctx, Object patchCtx )
+        throws Exception
+    {
+    }
+
+
+    @Override
+    public void deleteAttribute( BaseType atType, Object targetEntry, RequestContext ctx, Object patchCtx )
+        throws Exception
+    {
     }
 
 }

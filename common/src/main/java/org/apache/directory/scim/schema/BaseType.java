@@ -19,8 +19,10 @@
  */
 package org.apache.directory.scim.schema;
 
+import org.apache.directory.scim.AttributeHandler;
 import org.apache.directory.scim.ScimUtil;
 import org.apache.directory.scim.json.ResourceSerializer;
+
 import static org.apache.directory.scim.json.ResourceSerializer.*;
 
 
@@ -37,7 +39,7 @@ public abstract class BaseType
     
     private boolean show = true;
 
-    private String atHandlerName;
+    private AttributeHandler handler;
     
     private boolean readOnly = false;
     
@@ -92,21 +94,21 @@ public abstract class BaseType
     }
 
 
-    public void setAtHandlerName( String atHandlerName )
+    public void setHandler( AttributeHandler handler )
     {
-        this.atHandlerName = atHandlerName;
+        this.handler = handler;
     }
 
 
-    public String getAtHandlerName()
+    public AttributeHandler getHandler()
     {
-        return atHandlerName;
+        return handler;
     }
 
     
     public boolean hasHandler()
     {
-        return (atHandlerName != null);
+        return (handler != null);
     }
     
 

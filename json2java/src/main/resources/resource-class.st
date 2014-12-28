@@ -1,4 +1,5 @@
-$!/*
+$if(package)$
+/*
  *  Licensed to the Apache Software Foundation (ASF) under one
  *  or more contributor license agreements.  See the NOTICE file
  *  distributed with this work for additional information
@@ -16,13 +17,18 @@ $!/*
  *  specific language governing permissions and limitations
  *  under the License.
  *
- */!$
-$if(package)$
+ */
+
 package $package$;
 
 import org.apache.directory.scim.schema.*;
-$endif$
 
+
+/*
+ * Generated on $date$ using JsonToJava plugin 
+ */
+ 
+$endif$
 $visibility$ $static$ class $className$ $if(package)$extends CoreResource$endif$
 {
 

@@ -27,10 +27,11 @@ import org.apache.directory.api.ldap.model.entry.Attribute;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.exception.LdapException;
 import org.apache.directory.scim.ComplexAttribute;
-import org.apache.directory.scim.GroupResource;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.SimpleAttribute;
+import org.apache.directory.scim.ldap.LdapResourceProvider;
+import org.apache.directory.scim.ldap.schema.ResourceSchema;
 import org.apache.directory.scim.schema.BaseType;
 import org.apache.directory.scim.util.ResourceUtil;
 import org.slf4j.Logger;
@@ -85,19 +86,22 @@ public class MetaAttributeHandler extends LdapAttributeHandler
 
             ServerResource resource = ctx.getCoreResource();
             
-            String resourceType = "User";
+            LdapResourceProvider provider = ( LdapResourceProvider ) ctx.getProviderService();
+            ResourceSchema schema = provider.getResourceSchema( ctx );
             
-            if( resource instanceof GroupResource )
+            String resourceUri = schema.getReqUri();
+            
+            if( !resourceUri.endsWith( "/" ) )
             {
-                resourceType = "Group";
+                resourceUri += "/";
             }
             
-            SimpleAttribute resourceTypeAt = new SimpleAttribute( "resourceType", resourceType );
+            SimpleAttribute resourceTypeAt = new SimpleAttribute( "resourceType", resourceUri );
             atList.add( resourceTypeAt );
             
             SimpleAttribute location = new SimpleAttribute( "location" );
             String locationVal = ctx.getUriInfo().getBaseUri().toString();
-            locationVal = locationVal + resourceType + "s/" + resource.getId();
+            locationVal = locationVal + resourceUri + resource.getId();
             
             location.setValue( locationVal );
             atList.add( location );

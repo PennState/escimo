@@ -26,6 +26,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.URI;
 
+import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.DELETE;
 import javax.ws.rs.GET;
@@ -45,12 +46,11 @@ import javax.ws.rs.core.StreamingOutput;
 import javax.ws.rs.core.UriInfo;
 
 import org.apache.directory.scim.ListResponse;
-import org.apache.directory.scim.MissingParameterException;
-import org.apache.directory.scim.ProviderService;
+import org.apache.directory.scim.ResourceProvider;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.ServerResource;
-import org.apache.directory.scim.UserResource;
 import org.apache.directory.scim.json.ResourceSerializer;
+import org.apache.wink.common.AbstractDynamicResource;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -58,16 +58,18 @@ import org.slf4j.LoggerFactory;
  * 
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-@Path( "Users" )
-public class UserService
+public class ResourceService extends AbstractDynamicResource
 {
 
-    private ProviderService provider = ServerInitializer.getProvider();
-
-    private static final Logger LOG = LoggerFactory.getLogger( UserService.class );
+    private static final Logger LOG = LoggerFactory.getLogger( ResourceService.class );
     
     @Context
-    HttpServletRequest httpReq;
+    private HttpServletRequest httpReq;
+    
+    @Context
+    private ServletContext servletCtx;
+    
+    private ResourceProvider provider;
     
     @GET
     @Produces({MediaType.APPLICATION_JSON})
@@ -78,9 +80,11 @@ public class UserService
         
         try
         {
+            setProvider();
+            
             RequestContext ctx = provider.createCtx( uriInfo, httpReq );
             
-            UserResource user = provider.getUser( ctx, userId );
+            ServerResource user = provider.getResource( ctx, userId );
             String json = ResourceSerializer.serialize( user );
             rb = Response.ok( json, MediaType.APPLICATION_JSON );
         }
@@ -101,8 +105,9 @@ public class UserService
         
         try
         {
+            setProvider();
             RequestContext ctx = provider.createCtx( uriInfo, httpReq );
-            provider.deleteUser( userId, ctx );
+            provider.deleteResource( userId, ctx );
         }
         catch( Exception e )
         {
@@ -128,9 +133,11 @@ public class UserService
         
         try
         {
+            setProvider();
+            
             RequestContext ctx = provider.createCtx( uriInfo, httpReq );
             
-            provider.addUser( jsonData, ctx );
+            provider.addResource( jsonData, ctx );
             
             ServerResource res = ctx.getCoreResource();
             
@@ -165,9 +172,10 @@ public class UserService
         
         try
         {
+            setProvider();
             RequestContext ctx = provider.createCtx( uriInfo, httpReq );
             
-            ServerResource res = provider.putUser( userId, jsonData, ctx );
+            ServerResource res = provider.putResource( userId, jsonData, ctx );
             
             String json = ResourceSerializer.serialize( res );
             
@@ -200,9 +208,10 @@ public class UserService
         
         try
         {
+            setProvider();
             RequestContext ctx = provider.createCtx( uriInfo, httpReq );
             
-            ServerResource resource = provider.patchUser( userId, jsonData, ctx );
+            ServerResource resource = provider.patchResource( userId, jsonData, ctx );
             
             if( resource == null )
             {
@@ -240,6 +249,7 @@ public class UserService
     
         try
         {
+            setProvider();
             RequestContext ctx = provider.createCtx( uriInfo, httpReq );
             ListResponse lr = provider.search( filter, attributes, ctx );
 
@@ -264,6 +274,7 @@ public class UserService
         
         try
         {
+            setProvider();
             RequestContext ctx = provider.createCtx( uriInfo, httpReq );
             
             final InputStream in = provider.getUserPhoto( id, atName, ctx );
@@ -310,5 +321,10 @@ public class UserService
         }
         
         return rb.build();
+    }
+    
+    private void setProvider()
+    {
+        provider = ( ResourceProvider ) servletCtx.getAttribute( ResourceProvider.SERVLET_CONTEXT_ATTRIBUTE_KEY );
     }
 }

@@ -29,7 +29,7 @@ import java.util.Map;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public abstract class ServerResource
+public class ServerResource
 {
     private Map<String,List<AbstractAttribute>> uriAtMap = new HashMap<String, List<AbstractAttribute>>();
     

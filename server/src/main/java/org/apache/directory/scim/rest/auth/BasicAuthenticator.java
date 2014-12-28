@@ -23,7 +23,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 import org.apache.commons.codec.binary.Base64;
-import org.apache.directory.scim.ProviderService;
+import org.apache.directory.scim.ResourceProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -36,7 +36,7 @@ public class BasicAuthenticator implements EscimoAuthenticator
 {
     private static final Logger LOG = LoggerFactory.getLogger( BasicAuthenticator.class );
     
-    public String authenticate( HttpServletRequest req, ProviderService provider ) throws Exception
+    public String authenticate( HttpServletRequest req, ResourceProvider provider ) throws Exception
     {
         String authHeader = req.getHeader( "Authorization" );
         

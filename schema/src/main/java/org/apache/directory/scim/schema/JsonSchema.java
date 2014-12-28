@@ -47,6 +47,10 @@ public class JsonSchema
 
     private String desc;
 
+    private boolean core;
+
+    private static String CORE_SCHEMA_ID_PREFIX = "urn:ietf:params:scim:schemas:core:2.0";
+
     private Map<String, JsonObject> attributes;
 
 
@@ -74,6 +78,8 @@ public class JsonSchema
         this.id = obj.get( "id" ).getAsString();
         this.name = obj.get( "name" ).getAsString();
         this.desc = obj.get( "description" ).getAsString();
+
+        core = id.startsWith( CORE_SCHEMA_ID_PREFIX );
 
         _readAttributeDef( obj );
     }
@@ -106,14 +112,15 @@ public class JsonSchema
                 name = parentName + "." + name;
             }
 
-            attributes.put( name, attribute );
-            
+            attributes.put( name.toLowerCase(), attribute );
+
             if ( type.equals( "complex" ) )
             {
                 _readAttributeDef( attribute );
             }
         }
     }
+
 
     /**
      * gives the schema definition of an attribute with the given name.
@@ -128,8 +135,8 @@ public class JsonSchema
     {
         return attributes.get( name );
     }
-    
-    
+
+
     /**
      * tells if an attribute with the given name is read-only.
      * 
@@ -144,29 +151,30 @@ public class JsonSchema
      */
     public boolean isReadOnly( String name )
     {
-        JsonObject jo = getAttributeDef( name );
-        
-        if( jo == null )
+        JsonObject jo = getAttributeDef( name.toLowerCase() );
+
+        if ( jo == null )
         {
-            if( name.equals( "meta" ) )
+            if ( name.equals( "meta" ) ||
+                name.equals( "id" ) )
             {
                 return true;
             }
-            
+
             throw new IllegalArgumentException( "Unknown attribute name " + name );
         }
-        
+
         JsonElement je = jo.get( "readOnly" );
-        
-        if( je != null )
+
+        if ( je != null )
         {
             return je.getAsBoolean();
         }
-        
+
         return false;
     }
-    
-    
+
+
     /**
      * @return the rawJson
      */
@@ -203,6 +211,12 @@ public class JsonSchema
     }
 
 
+    public boolean isCore()
+    {
+        return core;
+    }
+
+
     @Override
     public String toString()
     {
@@ -214,7 +228,7 @@ public class JsonSchema
     {
         URL url = SchemaUtil.getDefaultSchemas().get( 0 );
         JsonSchema json = SchemaUtil.getSchemaJson( url );
-        System.out.println(json);
+        System.out.println( json );
     }
 
 }
