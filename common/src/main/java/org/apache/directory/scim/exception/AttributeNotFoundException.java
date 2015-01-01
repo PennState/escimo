@@ -17,29 +17,28 @@
  *   under the License.
  *
  */
-package org.apache.directory.scim;
+package org.apache.directory.scim.exception;
 
 
 /**
- * TODO ResourceNotFoundException.
+ * TODO AttributeNotFoundException.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class ResourceNotFoundException extends Exception
+public class AttributeNotFoundException extends ResourceNotFoundException
 {
-    public ResourceNotFoundException( String message )
+    public AttributeNotFoundException( String message )
     {
         super( message );
     }
-
-
-    public ResourceNotFoundException( Throwable t )
+    
+    public AttributeNotFoundException( Throwable t )
     {
         super( t );
     }
 
 
-    public ResourceNotFoundException( String message, Throwable t )
+    public AttributeNotFoundException( String message, Throwable t )
     {
         super( message, t );
     }

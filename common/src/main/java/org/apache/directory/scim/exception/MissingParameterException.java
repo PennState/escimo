@@ -17,31 +17,33 @@
  *   under the License.
  *
  */
-package org.apache.directory.scim;
+package org.apache.directory.scim.exception;
 
 
 /**
- * TODO UnauthorizedException.
+ * TODO MissingParameterException.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class UnauthorizedException extends Exception
+public class MissingParameterException extends EscimoException
 {
-    public UnauthorizedException( String message )
+
+    public MissingParameterException( String message )
     {
         super( message );
     }
 
 
-    public UnauthorizedException( Throwable t )
+    public MissingParameterException( Throwable t )
     {
         super( t );
     }
 
 
-    public UnauthorizedException( String message, Throwable t )
+    public MissingParameterException( String message, Throwable t )
     {
         super( message, t );
     }
+
 
 }

@@ -19,7 +19,11 @@
 package org.apache.directory.scim;
 
 
-import static org.apache.directory.scim.schema.ErrorCode.*;
+import static org.apache.directory.scim.schema.ErrorCode.BAD_REQUEST;
+import static org.apache.directory.scim.schema.ErrorCode.CONFLICT;
+import static org.apache.directory.scim.schema.ErrorCode.INTERNAL_SERVER_ERROR;
+import static org.apache.directory.scim.schema.ErrorCode.NOT_FOUND;
+import static org.apache.directory.scim.schema.ErrorCode.UNAUTHORIZED;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -27,6 +31,10 @@ import java.io.StringWriter;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 
+import org.apache.directory.scim.exception.AttributeNotFoundException;
+import org.apache.directory.scim.exception.ResourceConflictException;
+import org.apache.directory.scim.exception.ResourceNotFoundException;
+import org.apache.directory.scim.exception.UnauthorizedException;
 import org.apache.directory.scim.json.ResourceSerializer;
 import org.apache.directory.scim.schema.ErrorCode;
 import org.apache.directory.scim.schema.ErrorResponse;

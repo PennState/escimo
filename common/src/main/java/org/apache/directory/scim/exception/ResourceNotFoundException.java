@@ -17,7 +17,7 @@
  *   under the License.
  *
  */
-package org.apache.directory.scim;
+package org.apache.directory.scim.exception;
 
 
 /**
@@ -25,22 +25,23 @@ package org.apache.directory.scim;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class ResourceConflictException extends Exception
+public class ResourceNotFoundException extends EscimoException
 {
-    public ResourceConflictException( String message )
+    public ResourceNotFoundException( String message )
     {
         super( message );
     }
 
 
-    public ResourceConflictException( Throwable t )
+    public ResourceNotFoundException( Throwable t )
     {
         super( t );
     }
 
 
-    public ResourceConflictException( String message, Throwable t )
+    public ResourceNotFoundException( String message, Throwable t )
     {
         super( message, t );
     }
+
 }

@@ -17,7 +17,7 @@
  *   under the License.
  *
  */
-package org.apache.directory.scim;
+package org.apache.directory.scim.exception;
 
 
 /**
@@ -25,39 +25,25 @@ package org.apache.directory.scim;
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public class MissingParameterException extends Exception
+public class InternalException extends EscimoException
 {
-    String message;
 
-
-    public MissingParameterException( String message )
+    public InternalException( String message )
     {
-        this.message = message;
+        super( message );
     }
 
 
-    public MissingParameterException( Throwable t )
+    public InternalException( Throwable e )
     {
-        super( t );
+        super( e );
     }
 
 
-    public MissingParameterException( String message, Throwable t )
+    public InternalException( String message, Throwable e )
     {
-        super( t );
-        this.message = message;
+        super( message, e );
     }
 
-
-    @Override
-    public String getMessage()
-    {
-        if ( message == null )
-        {
-            return super.getMessage();
-        }
-
-        return message;
-    }
 
 }
