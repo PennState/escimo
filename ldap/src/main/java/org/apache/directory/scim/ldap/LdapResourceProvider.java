@@ -53,9 +53,9 @@ import org.apache.directory.api.ldap.model.entry.Attribute;
 import org.apache.directory.api.ldap.model.entry.DefaultEntry;
 import org.apache.directory.api.ldap.model.entry.Entry;
 import org.apache.directory.api.ldap.model.entry.Value;
-import org.apache.directory.api.ldap.model.exception.LdapAuthenticationException;
 import org.apache.directory.api.ldap.model.exception.LdapEntryAlreadyExistsException;
 import org.apache.directory.api.ldap.model.exception.LdapException;
+import org.apache.directory.api.ldap.model.exception.LdapNoSuchObjectException;
 import org.apache.directory.api.ldap.model.filter.ExprNode;
 import org.apache.directory.api.ldap.model.message.LdapResult;
 import org.apache.directory.api.ldap.model.message.ModifyRequest;
@@ -82,19 +82,22 @@ import org.apache.directory.ldap.client.api.LdapConnection;
 import org.apache.directory.ldap.client.api.LdapConnectionConfig;
 import org.apache.directory.ldap.client.api.LdapNetworkConnection;
 import org.apache.directory.scim.AttributeHandler;
-import org.apache.directory.scim.AttributeNotFoundException;
 import org.apache.directory.scim.ComplexAttribute;
 import org.apache.directory.scim.ListResponse;
-import org.apache.directory.scim.MissingParameterException;
 import org.apache.directory.scim.MultiValAttribute;
-import org.apache.directory.scim.ResourceProvider;
 import org.apache.directory.scim.RequestContext;
-import org.apache.directory.scim.ResourceConflictException;
-import org.apache.directory.scim.ResourceNotFoundException;
+import org.apache.directory.scim.ResourceProvider;
 import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
-import org.apache.directory.scim.UnauthorizedException;
+import org.apache.directory.scim.exception.AttributeNotFoundException;
+import org.apache.directory.scim.exception.EscimoException;
+import org.apache.directory.scim.exception.InternalException;
+import org.apache.directory.scim.exception.MissingParameterException;
+import org.apache.directory.scim.exception.ResourceConflictException;
+import org.apache.directory.scim.exception.ResourceNotFoundException;
+import org.apache.directory.scim.exception.ResourceUpdateException;
+import org.apache.directory.scim.exception.UnauthorizedException;
 import org.apache.directory.scim.ldap.handlers.LdapAttributeHandler;
 import org.apache.directory.scim.ldap.schema.ComplexType;
 import org.apache.directory.scim.ldap.schema.MultiValType;
@@ -150,7 +153,8 @@ public class LdapResourceProvider implements ResourceProvider
 
     private long sessionTimeout = 2 * 60 * 1000;
 
-
+    private String baseDn;
+    
     public LdapResourceProvider()
     {
     }
@@ -162,8 +166,10 @@ public class LdapResourceProvider implements ResourceProvider
     }
 
 
-    public void init() throws Exception
+    public void init()
     {
+        //TODO report the initialization error in a better way so that 
+        // the app is not undeployed
         LOG.info( "Initializing LDAP resource provider" );
 
         try
@@ -260,7 +266,7 @@ public class LdapResourceProvider implements ResourceProvider
     }
 
 
-    public RequestContext createCtx( UriInfo uriInfo, HttpServletRequest httpReq ) throws Exception
+    public RequestContext createCtx( UriInfo uriInfo, HttpServletRequest httpReq ) throws EscimoException
     {
         LdapConnection connection = getConnection( httpReq );
         LdapRequestContext ctx = new LdapRequestContext( this, connection, uriInfo, httpReq );
@@ -268,7 +274,7 @@ public class LdapResourceProvider implements ResourceProvider
     }
 
 
-    private void _initInternal() throws Exception
+    private void _initInternal() throws EscimoException
     {
         if ( initialized )
         {
@@ -283,7 +289,14 @@ public class LdapResourceProvider implements ResourceProvider
 
         if ( adminConnection instanceof LdapNetworkConnection )
         {
-            ( ( LdapNetworkConnection ) adminConnection ).loadSchema();// new JarLdifSchemaLoader() );
+            try
+            {
+                ( ( LdapNetworkConnection ) adminConnection ).loadSchema();// new JarLdifSchemaLoader() );
+            }
+            catch( LdapException e )
+            {
+                throw new InternalException( e );
+            }
         }
 
         ldapSchema = adminConnection.getSchemaManager();
@@ -316,7 +329,7 @@ public class LdapResourceProvider implements ResourceProvider
     }
 
 
-    private void createConnection() throws IOException, LdapException
+    private void createConnection() throws EscimoException
     {
         LOG.info( "Creating LDAP server connection" );
 
@@ -327,30 +340,38 @@ public class LdapResourceProvider implements ResourceProvider
         Properties prop = null;
         InputStream in = null;
 
-        if ( !ldapServerProps.exists() )
+        try
         {
-            in = this.getClass().getClassLoader().getResourceAsStream( ldapServerProps.getName() );
-            FileWriter fw = new FileWriter( ldapServerProps );
-
-            BufferedReader br = new BufferedReader( new InputStreamReader( in ) );
-
-            String s = null;
-
-            while ( ( s = br.readLine() ) != null )
+            if ( !ldapServerProps.exists() )
             {
-                fw.write( s + "\n" );
+                in = this.getClass().getClassLoader().getResourceAsStream( ldapServerProps.getName() );
+                FileWriter fw = new FileWriter( ldapServerProps );
+                
+                BufferedReader br = new BufferedReader( new InputStreamReader( in ) );
+                
+                String s = null;
+                
+                while ( ( s = br.readLine() ) != null )
+                {
+                    fw.write( s + "\n" );
+                }
+                
+                fw.close();
+                br.close();
             }
-
-            fw.close();
-            br.close();
+            
+            in = new FileInputStream( ldapServerProps );
+            
+            prop = new Properties();
+            prop.load( in );
+            
+            in.close();
         }
-
-        in = new FileInputStream( ldapServerProps );
-
-        prop = new Properties();
-        prop.load( in );
-
-        in.close();
+        catch( IOException e )
+        {
+            LOG.warn( "Failed to read and store the ldap server properties file {}", ldapServerProps );
+            throw new InternalException( "Failed to read and store the server properties file " + ldapServerProps, e );
+        }
 
         String host = prop.getProperty( "escimo.ldap.server.host" );
         String portVal = prop.getProperty( "escimo.ldap.server.port" );
@@ -359,6 +380,8 @@ public class LdapResourceProvider implements ResourceProvider
         String password = prop.getProperty( "escimo.ldap.server.password" );
         String tlsVal = prop.getProperty( "escimo.ldap.server.useTls" );
 
+        baseDn = prop.getProperty( "escimo.ldap.server.users.baseDn", "" );
+        
         config = new LdapConnectionConfig();
         config.setLdapHost( host );
         config.setLdapPort( port );
@@ -367,11 +390,20 @@ public class LdapResourceProvider implements ResourceProvider
         config.setCredentials( password );
 
         adminConnection = new LdapNetworkConnection( config );
-        adminConnection.bind();
+        
+        try
+        {
+            adminConnection.bind();
+        }
+        catch( LdapException e )
+        {
+            LOG.warn( "Failed to bind the admin connection", e );
+            throw new InternalException( "Failed to bind the admin connection", e );
+        }
     }
 
 
-    public String authenticate( String userName, String password ) throws Exception
+    public String authenticate( String userName, String password ) throws EscimoException
     {
         _initInternal();
 
@@ -390,12 +422,16 @@ public class LdapResourceProvider implements ResourceProvider
 
         try
         {
-            cursor = adminConnection.search( "ou=system", filter, SUBTREE, "1.1" );
+            cursor = adminConnection.search( baseDn, filter, SUBTREE, "1.1" );
 
             if ( cursor.next() )
             {
                 userDn = cursor.get().getDn().getName();
             }
+        }
+        catch( Exception e )
+        {
+            LOG.warn( "Failed to find the entry of user {}", userName );
         }
         finally
         {
@@ -416,12 +452,19 @@ public class LdapResourceProvider implements ResourceProvider
         {
             conn.bind( userDn, password );
         }
-        catch ( LdapAuthenticationException e )
+        catch ( LdapException e )
         {
             UnauthorizedException ue = new UnauthorizedException( "Cannot authenticate user " + userName + " : "
                 + e.getMessage() );
             ue.initCause( e );
-            conn.close();
+            try
+            {
+                conn.close();
+            }
+            catch( Exception ex )
+            {
+                // ignore
+            }
             throw ue;
         }
 
@@ -516,7 +559,7 @@ public class LdapResourceProvider implements ResourceProvider
     }
 
 
-    public ListResponse search( String scimFilter, String attributes, RequestContext ctx ) throws Exception
+    public ListResponse search( String scimFilter, String attributes, RequestContext ctx ) throws EscimoException
     {
         FilterNode filter = FilterParser.parse( scimFilter );
 
@@ -524,47 +567,54 @@ public class LdapResourceProvider implements ResourceProvider
 
         ExprNode ldapFilter = null;
 
-        if ( filter != null )
+        try
         {
-            ldapFilter = LdapUtil._scimToLdapFilter( filter, scimSchema, ldapSchema, this );
+            if ( filter != null )
+            {
+                ldapFilter = LdapUtil._scimToLdapFilter( filter, scimSchema, ldapSchema, this );
+            }
+            else
+            {
+                ldapFilter = org.apache.directory.api.ldap.model.filter.FilterParser.parse( scimSchema.getFilter() );
+            }
+            
+            LOG.debug( "LDAP filter {}", ldapFilter );
+            
+            SearchRequest sr = new SearchRequestImpl();
+            sr.setBase( new Dn( scimSchema.getBaseDn() ) );
+            sr.setFilter( ldapFilter );
+            sr.setScope( SearchScope.SUBTREE );
+            
+            String[] requested = getRequestedAttributes( attributes, scimSchema );
+            sr.addAttributes( requested );
+            
+            LdapConnection conn = ( ( LdapRequestContext ) ctx ).getConnection();
+            
+            SearchCursor cursor = conn.search( sr );
+            
+            ListResponse lr = new ListResponse();
+            
+            while ( cursor.next() )
+            {
+                Entry entry = cursor.getEntry();
+                
+                ServerResource res = new ServerResource();
+                
+                ctx.setCoreResource( res );
+                
+                _loadCoreResource( ctx, entry, scimSchema );
+                
+                lr.addResource( res );
+            }
+            
+            cursor.close();
+            
+            return lr;
         }
-        else
+        catch( Exception e )
         {
-            ldapFilter = org.apache.directory.api.ldap.model.filter.FilterParser.parse( scimSchema.getFilter() );
+            throw new InternalException( e );
         }
-
-        LOG.debug( "LDAP filter {}", ldapFilter );
-
-        SearchRequest sr = new SearchRequestImpl();
-        sr.setBase( new Dn( scimSchema.getBaseDn() ) );
-        sr.setFilter( ldapFilter );
-        sr.setScope( SearchScope.SUBTREE );
-
-        String[] requested = getRequestedAttributes( attributes, scimSchema );
-        sr.addAttributes( requested );
-
-        LdapConnection conn = ( ( LdapRequestContext ) ctx ).getConnection();
-
-        SearchCursor cursor = conn.search( sr );
-
-        ListResponse lr = new ListResponse();
-
-        while ( cursor.next() )
-        {
-            Entry entry = cursor.getEntry();
-
-            ServerResource res = new ServerResource();
-
-            ctx.setCoreResource( res );
-
-            _loadCoreResource( ctx, entry, scimSchema );
-
-            lr.addResource( res );
-        }
-
-        cursor.close();
-
-        return lr;
     }
 
 
@@ -622,17 +672,247 @@ public class LdapResourceProvider implements ResourceProvider
     }
 
 
-    public ServerResource putResource( String userId, String jsonData, RequestContext ctx ) throws Exception
+    // TODO can userName be changed for a user?? likewise displayName for a Group
+    public ServerResource putResource( String resourceId, String jsonData, RequestContext ctx ) throws EscimoException
     {
         ResourceSchema resourceSchema = getResourceSchema( ctx );
-        return replaceResource( userId, jsonData, ctx, resourceSchema );
+        
+        JsonParser parser = new JsonParser();
+        JsonObject obj = ( JsonObject ) parser.parse( jsonData );
+
+        Entry entry = new DefaultEntry( ldapSchema );
+
+        _resourceToEntry( entry, obj, ctx, resourceSchema );
+
+        Entry existingEntry = fetchEntryById( resourceId, resourceSchema, ctx );
+
+        // save a reference to the existing password attribute
+        Attribute existingPwdAt = existingEntry.get( SchemaConstants.USER_PASSWORD_AT );
+        Attribute newPwdAt = entry.get( SchemaConstants.USER_PASSWORD_AT );
+
+        Attribute newUserNameAt = null;
+        Attribute existingUserNameAt = null;
+
+        try
+        {
+            if ( existingPwdAt != null )
+            {
+                existingEntry.remove( existingPwdAt );
+            }
+            
+            if ( newPwdAt != null )
+            {
+                entry.remove( newPwdAt );
+            }
+            
+            SimpleType st = resourceSchema.getRdnType();
+            
+            if ( st != null )
+            {
+                existingUserNameAt = existingEntry.get( st.getMappedTo() );
+                
+                if ( existingUserNameAt != null )
+                {
+                    existingEntry.remove( existingUserNameAt );
+                }
+                
+                newUserNameAt = entry.get( st.getMappedTo() );
+                
+                if ( newUserNameAt != null )
+                {
+                    entry.remove( newUserNameAt );
+                }
+            }
+        }
+        catch( LdapException e )
+        {
+            throw new InternalException( e );
+        }
+
+        ModifyRequest modReq = new ModifyRequestImpl();
+        modReq.setName( existingEntry.getDn() );
+
+        Iterator<Attribute> itr = existingEntry.iterator();
+        while ( itr.hasNext() )
+        {
+            Attribute ldapAt = itr.next();
+
+            AttributeType type = ldapAt.getAttributeType();
+
+            if ( !type.isUserModifiable() )
+            {
+                continue;
+            }
+
+            if ( entry.containsAttribute( type ) )
+            {
+                ldapAt = entry.get( type );
+                entry.removeAttributes( type );
+                modReq.replace( ldapAt );
+            }
+            else
+            {
+                modReq.remove( ldapAt );
+            }
+        }
+
+        // iterate over the remaining attributes of new entry and add them to modlist as 'add' modifications
+
+        for ( Attribute newAt : entry )
+        {
+            modReq.add( newAt );
+        }
+
+        if ( newPwdAt != null )
+        {
+            if ( existingPwdAt != null )
+            {
+                modReq.replace( newPwdAt );
+            }
+            else
+            {
+                modReq.add( newPwdAt );
+            }
+        }
+
+        LdapConnection conn = ( ( LdapRequestContext ) ctx ).getConnection();
+
+        try
+        {
+            ModifyResponse modResp = conn.modify( modReq );
+            
+            if ( modResp.getLdapResult().getResultCode() != ResultCodeEnum.SUCCESS )
+            {
+                throw new ResourceUpdateException( "Failed to replace the resource " + modResp.getLdapResult().getDiagnosticMessage() );
+            }
+        }
+        catch( LdapException e )
+        {
+            throw new InternalException( e );
+        }
+
+        try
+        {
+            if ( newUserNameAt != null )
+            {
+                if ( !existingUserNameAt.contains( newUserNameAt.getString() ) )
+                {
+                    // a modDN needs to be performed
+                    conn.rename( existingEntry.getDn().getName(),
+                        newUserNameAt.getUpId() + "=" + newUserNameAt.getString(), true );
+                }
+            }
+        }
+        catch( LdapException e )
+        {
+            LOG.warn( "Failed to rename the resource {}", resourceId, e );
+            throw new ResourceUpdateException( "Failed to rename the resource " + resourceId, e );
+        }
+        
+        entry = fetchEntryById( resourceId, resourceSchema, ctx );
+
+        ServerResource resource = new ServerResource();
+
+        ctx.setCoreResource( resource );
+
+        _loadCoreResource( ctx, entry, resourceSchema );
+
+        return resource;
     }
 
 
-    public ServerResource patchResource( String userId, String jsonData, RequestContext ctx ) throws Exception
+    public ServerResource patchResource( String resourceId, String jsonData, RequestContext ctx ) throws EscimoException
     {
         ResourceSchema resourceSchema = getResourceSchema( ctx );
-        return patchResource( userId, jsonData, ctx, resourceSchema );
+        JsonParser parser = new JsonParser();
+        JsonObject obj = ( JsonObject ) parser.parse( jsonData );
+
+        Entry existingEntry = fetchEntryById( resourceId, resourceSchema, ctx );
+
+        if ( existingEntry == null )
+        {
+            throw new ResourceNotFoundException( "No resource found with the id " + resourceId );
+        }
+
+        ModifyRequest modReq = new ModifyRequestImpl();
+        modReq.setName( existingEntry.getDn() );
+
+        JsonObject metaObj = ( JsonObject ) obj.get( "meta" );
+        if ( metaObj != null )
+        {
+            JsonArray metaAtNames = ( JsonArray ) metaObj.get( "attributes" );
+            if ( metaAtNames != null )
+            {
+                for ( JsonElement e : metaAtNames )
+                {
+                    String name = e.getAsString();
+                    BaseType bt = resourceSchema.getAttribute( name );
+
+                    if ( bt == null )
+                    {
+                        throw new AttributeNotFoundException( "No definition found for the attribute " + name );
+                    }
+
+                    if ( bt.isReadOnly() )
+                    {
+                        continue;
+                    }
+                    
+                    AttributeHandler handler = bt.getHandler();
+                    if ( handler != null )
+                    {
+                        try
+                        {
+                            handler.deleteAttribute( bt, existingEntry, ctx, modReq );
+                        }
+                        catch( Exception ex )
+                        {
+                            throw new InternalException( ex );
+                        }
+                        continue;
+                    }
+
+                    LdapUtil.deleteAttribute( bt, existingEntry, modReq );
+                }
+            }
+        }
+
+        LdapConnection conn = ( ( LdapRequestContext ) ctx ).getConnection();
+
+        try
+        {
+            LdapUtil.patchAttributes( existingEntry, obj, ctx, resourceSchema, modReq );
+
+            ModifyResponse modResp = conn.modify( modReq );
+
+            LdapResult result = modResp.getLdapResult();
+            if ( result.getResultCode() != ResultCodeEnum.SUCCESS )
+            {
+                LOG.debug( "Failed to patch the resource with ID {}, LDAP error result {}", resourceId, result );
+                throw new ResourceUpdateException( "Failed to patch the resource with ID " + resourceId );
+            }
+
+            // send attributes if requested
+            if ( ctx.getParamAttributes() != null )
+            {
+                Entry entry = fetchEntryById( resourceId, resourceSchema, ctx );
+
+                ServerResource resource = new ServerResource();
+
+                ctx.setCoreResource( resource );
+
+                _loadCoreResource( ctx, entry, resourceSchema );
+
+                return resource;
+            }
+
+            return null;
+        }
+        catch ( Exception e )
+        {
+            LOG.warn( "Failed to patch the resource with ID {}", resourceId, e );
+            throw new ResourceUpdateException( "Failed to patch the resource with ID " + resourceId, e );
+        }
     }
 
 
@@ -670,49 +950,52 @@ public class LdapResourceProvider implements ResourceProvider
 
 
     private void addAttributes( Entry entry, JsonObject obj, RequestContext ctx, ResourceSchema resourceSchema )
-        throws Exception
+        throws EscimoException
     {
-        //obj.remove( "schemas" );
-
-        for ( java.util.Map.Entry<String, JsonElement> e : obj.entrySet() )
+        try
         {
-            String name = e.getKey();
-
-            if ( name.startsWith( "urn:scim:schemas:" ) )
+            for ( java.util.Map.Entry<String, JsonElement> e : obj.entrySet() )
             {
-                continue;
+                String name = e.getKey();
+                
+                if ( name.startsWith( "urn:scim:schemas:" ) )
+                {
+                    continue;
+                }
+                
+                BaseType bt = resourceSchema.getAttribute( name );
+                
+                if ( bt == null )
+                {
+                    LOG.debug( "Unknown attribute name {} is present in the JSON payload that has no corresponding mapping in the escimo-ldap-mapping.xml file", name );
+                    continue;
+                }
+                
+                if ( bt.isReadOnly() )
+                {
+                    continue;
+                }
+                
+                AttributeHandler handler = bt.getHandler();
+                
+                if ( handler != null )
+                {
+                    handler.write( bt, e.getValue(), entry, ctx );
+                }
+                else
+                {
+                    LdapUtil.scimToLdapAttribute( bt, e.getValue(), entry, ctx );
+                }
             }
-
-            BaseType bt = resourceSchema.getAttribute( name );
-
-            if ( bt == null )
-            {
-                LOG.debug( "Unknown attribute name "
-                    + name
-                    + " is present in the JSON payload that has no corresponding mapping in the escimo-ldap-mapping.xml file" );
-                continue;
-            }
-
-            if ( bt.isReadOnly() )
-            {
-                continue;
-            }
-
-            AttributeHandler handler = bt.getHandler();
-
-            if ( handler != null )
-            {
-                handler.write( bt, e.getValue(), entry, ctx );
-            }
-            else
-            {
-                LdapUtil.scimToLdapAttribute( bt, e.getValue(), entry, ctx );
-            }
+        }
+        catch( Exception e )
+        {
+            throw new InternalException( e );
         }
     }
 
 
-    public ServerResource addResource( String json, RequestContext ctx ) throws Exception
+    public ServerResource addResource( String json, RequestContext ctx ) throws EscimoException
     {
         String userName = null;
 
@@ -768,22 +1051,29 @@ public class LdapResourceProvider implements ResourceProvider
         catch ( Exception e )
         {
             LOG.warn( "Failed to create User resource", e );
-            throw e;
+            throw new InternalException( e );
         }
     }
 
 
     private void _resourceToEntry( Entry entry, JsonObject obj, RequestContext ctx, ResourceSchema resourceSchema )
-        throws Exception
+        throws EscimoException
     {
 
         // add the objectClasses first so a handler will get a chance to
         // inspect what attributes can the entry hold
         // e.x it is useful for handling Groups, where the handler can
         // find if the attribute name is 'member' or 'uniqueMember'
-        for ( String oc : resourceSchema.getObjectClasses() )
+        try
         {
-            entry.add( SchemaConstants.OBJECT_CLASS, oc );
+            for ( String oc : resourceSchema.getObjectClasses() )
+            {
+                entry.add( SchemaConstants.OBJECT_CLASS, oc );
+            }
+        }
+        catch( LdapException e )
+        {
+            throw new InternalException( e );
         }
 
         // process the core attributes first
@@ -803,241 +1093,59 @@ public class LdapResourceProvider implements ResourceProvider
     }
 
 
-    // TODO can userName be changed for a user?? likewise displayName for a Group
-    public ServerResource replaceResource( String resourceId, String jsonData, RequestContext ctx,
-        ResourceSchema resourceSchema ) throws Exception
-    {
-        JsonParser parser = new JsonParser();
-        JsonObject obj = ( JsonObject ) parser.parse( jsonData );
-
-        Entry entry = new DefaultEntry( ldapSchema );
-
-        _resourceToEntry( entry, obj, ctx, resourceSchema );
-
-        Entry existingEntry = fetchEntryById( resourceId, resourceSchema, ctx );
-
-        // save a reference to the existing password attribute
-        Attribute existingPwdAt = existingEntry.get( SchemaConstants.USER_PASSWORD_AT );
-        Attribute newPwdAt = entry.get( SchemaConstants.USER_PASSWORD_AT );
-
-        if ( existingPwdAt != null )
-        {
-            existingEntry.remove( existingPwdAt );
-        }
-
-        if ( newPwdAt != null )
-        {
-            entry.remove( newPwdAt );
-        }
-
-        Attribute existingUserNameAt = null;
-        Attribute newUserNameAt = null;
-        SimpleType st = resourceSchema.getRdnType();
-
-        if ( st != null )
-        {
-            existingUserNameAt = existingEntry.get( st.getMappedTo() );
-
-            if ( existingUserNameAt != null )
-            {
-                existingEntry.remove( existingUserNameAt );
-            }
-
-            newUserNameAt = entry.get( st.getMappedTo() );
-
-            if ( newUserNameAt != null )
-            {
-                entry.remove( newUserNameAt );
-            }
-        }
-
-        ModifyRequest modReq = new ModifyRequestImpl();
-        modReq.setName( existingEntry.getDn() );
-
-        Iterator<Attribute> itr = existingEntry.iterator();
-        while ( itr.hasNext() )
-        {
-            Attribute ldapAt = itr.next();
-
-            AttributeType type = ldapAt.getAttributeType();
-
-            if ( !type.isUserModifiable() )
-            {
-                continue;
-            }
-
-            if ( entry.containsAttribute( type ) )
-            {
-                ldapAt = entry.get( type );
-                entry.removeAttributes( type );
-                modReq.replace( ldapAt );
-            }
-            else
-            {
-                modReq.remove( ldapAt );
-            }
-        }
-
-        // iterate over the remaining attributes of new entry and add them to modlist as 'add' modifications
-
-        for ( Attribute newAt : entry )
-        {
-            modReq.add( newAt );
-        }
-
-        if ( newPwdAt != null )
-        {
-            if ( existingPwdAt != null )
-            {
-                modReq.replace( newPwdAt );
-            }
-            else
-            {
-                modReq.add( newPwdAt );
-            }
-        }
-
-        LdapConnection conn = ( ( LdapRequestContext ) ctx ).getConnection();
-
-        ModifyResponse modResp = conn.modify( modReq );
-
-        if ( modResp.getLdapResult().getResultCode() != ResultCodeEnum.SUCCESS )
-        {
-            throw new Exception( "Failed to replace the resource " + modResp.getLdapResult().getDiagnosticMessage() );
-        }
-
-        if ( newUserNameAt != null )
-        {
-            if ( !existingUserNameAt.contains( newUserNameAt.getString() ) )
-            {
-                // a modDN needs to be performed
-                conn.rename( existingEntry.getDn().getName(),
-                    newUserNameAt.getUpId() + "=" + newUserNameAt.getString(), true );
-            }
-        }
-
-        entry = fetchEntryById( resourceId, resourceSchema, ctx );
-
-        ServerResource resource = new ServerResource();
-
-        ctx.setCoreResource( resource );
-
-        _loadCoreResource( ctx, entry, resourceSchema );
-
-        return resource;
-    }
-
-
-    public ServerResource patchResource( String resourceId, String jsonData, RequestContext ctx,
-        ResourceSchema resourceSchema ) throws Exception
-    {
-        JsonParser parser = new JsonParser();
-        JsonObject obj = ( JsonObject ) parser.parse( jsonData );
-
-        Entry existingEntry = fetchEntryById( resourceId, resourceSchema, ctx );
-
-        if ( existingEntry == null )
-        {
-            throw new ResourceNotFoundException( "No resource found with the id " + resourceId );
-        }
-
-        ModifyRequest modReq = new ModifyRequestImpl();
-        modReq.setName( existingEntry.getDn() );
-
-        JsonObject metaObj = ( JsonObject ) obj.get( "meta" );
-        if ( metaObj != null )
-        {
-            JsonArray metaAtNames = ( JsonArray ) metaObj.get( "attributes" );
-            if ( metaAtNames != null )
-            {
-                for ( JsonElement e : metaAtNames )
-                {
-                    String name = e.getAsString();
-                    BaseType bt = resourceSchema.getAttribute( name );
-
-                    if ( bt == null )
-                    {
-                        throw new AttributeNotFoundException( "No definition found for the attribute " + name );
-                    }
-
-                    AttributeHandler handler = bt.getHandler();
-                    if ( handler != null )
-                    {
-                        handler.deleteAttribute( bt, existingEntry, ctx, modReq );
-                        continue;
-                    }
-
-                    LdapUtil.deleteAttribute( bt, existingEntry, modReq );
-                }
-            }
-        }
-
-        LdapConnection conn = ( ( LdapRequestContext ) ctx ).getConnection();
-
-        try
-        {
-            LdapUtil.patchAttributes( existingEntry, obj, ctx, resourceSchema, modReq );
-
-            ModifyResponse modResp = conn.modify( modReq );
-
-            LdapResult result = modResp.getLdapResult();
-            if ( result.getResultCode() != ResultCodeEnum.SUCCESS )
-            {
-                throw new Exception( result.getDiagnosticMessage() );
-            }
-
-            // send attributes if requested
-            if ( ctx.getParamAttributes() != null )
-            {
-                Entry entry = fetchEntryById( resourceId, resourceSchema, ctx );
-
-                ServerResource resource = new ServerResource();
-
-                ctx.setCoreResource( resource );
-
-                _loadCoreResource( ctx, entry, resourceSchema );
-
-                return resource;
-            }
-
-            return null;
-        }
-        catch ( Exception e )
-        {
-            LOG.warn( "Failed to patch the resource with ID {}", resourceId, e );
-            throw e;
-        }
-    }
-
-
-    public void deleteResource( String id, RequestContext ctx ) throws Exception
+    public void deleteResource( String id, RequestContext ctx ) throws EscimoException
     {
         ResourceSchema resourceSchema = getResourceSchema( ctx );
-        deleteResource( id, resourceSchema, ctx );
-    }
-
-
-    private void deleteResource( String id, ResourceSchema schema, RequestContext ctx ) throws LdapException
-    {
-        Entry entry = fetchEntryById( id, schema, ctx );
+        Entry entry = fetchEntryById( id, resourceSchema, ctx );
+        if( entry == null )
+        {
+            LOG.debug( "No resource found with the id {}", id );
+            throw new ResourceNotFoundException( "Resource with id " + id + " not found" );
+        }
+        
         LdapConnection conn = ( ( LdapRequestContext ) ctx ).getConnection();
-        conn.delete( entry.getDn() );
+        try
+        {
+            conn.delete( entry.getDn() );
+        }
+        catch( LdapNoSuchObjectException e )
+        {
+            LOG.debug( "No resource found with the id {}", id );
+            throw new ResourceNotFoundException( "Resource with id " + id + " not found" );
+        }
+        catch( LdapException e )
+        {
+            LOG.warn( "Failed to delete the resource with id {}", id );
+            throw new InternalException( e );
+        }
     }
 
 
-    private void _loadCoreResource( RequestContext ctx, Entry entry, ResourceSchema resourceSchema ) throws Exception
+    private void _loadCoreResource( RequestContext ctx, Entry entry, ResourceSchema resourceSchema ) throws EscimoException
     {
         ServerResource resource = ctx.getCoreResource();
 
-        // first fill in the id, we need this for deriving location
-        SimpleType idType = ( SimpleType ) resourceSchema.getCoreAttribute( "id" );
-        SimpleAttribute idAttribute = getValueForSimpleType( idType, entry, ctx );
-        resource.addAttribute( idType.getUri(), idAttribute );
-
-        resource.setId( ( String ) idAttribute.getValue() );
-
-        _loadAttributes( ctx, entry, resourceSchema.getCoreTypes(), idType );
-        _loadAttributes( ctx, entry, resourceSchema.getExtendedTypes(), idType );
+        if ( entry == null )
+        {
+            return;
+        }
+        
+        try
+        {
+            // first fill in the id, we need this for deriving location
+            SimpleType idType = ( SimpleType ) resourceSchema.getCoreAttribute( "id" );
+            SimpleAttribute idAttribute = getValueForSimpleType( idType, entry, ctx );
+            resource.addAttribute( idType.getUri(), idAttribute );
+            
+            resource.setId( ( String ) idAttribute.getValue() );
+            
+            _loadAttributes( ctx, entry, resourceSchema.getCoreTypes(), idType );
+            _loadAttributes( ctx, entry, resourceSchema.getExtendedTypes(), idType );
+        }
+        catch( Exception e )
+        {
+            throw new InternalException( e );
+        }
     }
 
 
@@ -1342,7 +1450,7 @@ public class LdapResourceProvider implements ResourceProvider
     }
 
 
-    public LdapConnection getConnection( HttpServletRequest httpReq ) throws Exception
+    public LdapConnection getConnection( HttpServletRequest httpReq ) throws EscimoException
     {
 
         if ( allowAuthorizedUsers )

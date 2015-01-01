@@ -120,7 +120,7 @@ public class ResourceService extends AbstractDynamicResource
     
     @POST
     @Produces({MediaType.APPLICATION_JSON})
-    public Response addUser( String jsonData, @Context UriInfo uriInfo )
+    public Response addResource( String jsonData, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = null;
 
