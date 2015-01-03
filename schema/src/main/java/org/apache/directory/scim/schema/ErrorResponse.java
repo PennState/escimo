@@ -44,7 +44,7 @@ public class ErrorResponse
     }
 
 
-    public int getFirstErrorCode()
+    public ErrorCode getFirstErrorCode()
     {
         return Errors.get( 0 ).getCode();
     }
@@ -86,7 +86,9 @@ public class ErrorResponse
     {
         private String description;
         
-        private int code;
+        private ScimType scimType;
+        
+        private ErrorCode code;
 
         // this is an eSCIMo specific field used for 
         // debugging purpose
@@ -94,12 +96,13 @@ public class ErrorResponse
 
         public ScimError( ErrorCode code, String description )
         {
-            this( code.getVal(), description );
+            this( code, null, description );
         }
-        
-        public ScimError( int code, String description )
+
+        public ScimError( ErrorCode code, ScimType scimType, String description )
         {
             this.code = code;
+            this.scimType = scimType;
             this.description = description;
         }
 
@@ -132,9 +135,18 @@ public class ErrorResponse
 
 
         /**
+         * @return the scimType
+         */
+        public ScimType getScimType()
+        {
+            return scimType;
+        }
+        
+
+        /**
          * @return the code
          */
-        public int getCode()
+        public ErrorCode getCode()
         {
             return code;
         }

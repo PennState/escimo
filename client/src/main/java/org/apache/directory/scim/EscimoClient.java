@@ -27,6 +27,7 @@ import java.util.Map;
 
 import org.apache.directory.scim.schema.CoreResource;
 import org.apache.directory.scim.schema.ErrorResponse;
+import org.apache.directory.scim.schema.ErrorResponse.ScimError;
 import org.apache.http.Header;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
@@ -87,6 +88,7 @@ public class EscimoClient
         GsonBuilder gb = new GsonBuilder();
         gb.setExclusionStrategies( new FieldExclusionStrategy() );
         gb.setDateFormat( "yyyy-MM-dd'T'HH:mm:ss'Z'" );
+        gb.registerTypeAdapter( ScimError.class, new ScimErrorDeserializer() );
         serializer = gb.create();
     }
 

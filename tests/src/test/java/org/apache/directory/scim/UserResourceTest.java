@@ -19,9 +19,6 @@
  */
 package org.apache.directory.scim;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertNull;
 import static org.junit.Assert.*;
 
 import java.util.ArrayList;
@@ -38,6 +35,8 @@ import org.apache.directory.scim.User.Email;
 import org.apache.directory.scim.User.Name;
 import org.apache.directory.scim.schema.CoreResource;
 import org.apache.directory.scim.schema.ErrorCode;
+import org.apache.directory.scim.schema.ScimType;
+import org.apache.directory.scim.schema.ErrorResponse.ScimError;
 import org.apache.directory.scim.schema.MetaData;
 import org.apache.directory.server.core.api.CoreSession;
 import org.apache.directory.server.core.api.LdapCoreSessionConnection;
@@ -101,6 +100,12 @@ public class UserResourceTest
         EscimoResult result = client.addUser( user );
         assertTrue( result.isSuccess() );
         
+        EscimoResult errorResult = client.addUser( user );
+        assertFalse( errorResult.isSuccess() );
+        ScimError err = errorResult.getErrorResponse().getErrors().get( 0 );
+        assertEquals( ScimType.UNIQUENESS, err.getScimType() );
+        assertEquals( ErrorCode.CONFLICT, err.getCode() );
+        
         User addedUser = ( User ) result.getResource(); 
         
         assertNotNull( addedUser );
@@ -115,7 +120,7 @@ public class UserResourceTest
         
         result = client.addUser( user );
         assertFalse( result.isSuccess() );
-        assertEquals( ErrorCode.CONFLICT.getVal(), result.getErrorResponse().getFirstErrorCode() );
+        assertEquals( ErrorCode.CONFLICT, result.getErrorResponse().getFirstErrorCode() );
         
         result = client.deleteUser( fetchedUser.getId() );
         assertTrue( result.isSuccess() );

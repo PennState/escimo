@@ -40,6 +40,7 @@ import org.apache.directory.scim.schema.ErrorCode;
 import org.apache.directory.scim.schema.ErrorResponse;
 import org.apache.directory.scim.schema.ErrorResponse.ScimError;
 import org.apache.directory.scim.schema.SchemaUtil;
+import org.apache.directory.scim.schema.ScimType;
 
 /**
  * 
@@ -78,7 +79,8 @@ public class ScimUtil
     {
         // set the default type to server error
         ErrorCode ec = INTERNAL_SERVER_ERROR;
-        String desc = e.getMessage();
+        String detail = e.getMessage();
+        ScimType scimType = null;
         
         if( ( e instanceof AttributeNotFoundException ) || ( e instanceof ResourceNotFoundException ) )
         {
@@ -91,18 +93,19 @@ public class ScimUtil
         else if ( e instanceof ResourceConflictException )
         {
             ec = CONFLICT;
+            scimType = ScimType.UNIQUENESS;
         }
         else if ( e instanceof UnauthorizedException )
         {
             ec = UNAUTHORIZED;
         }
         
-        if ( desc == null )
+        if ( detail == null )
         {
-            desc = ec.getDesc();
+            detail = ec.getDetail();
         }
         
-        ErrorResponse.ScimError error = new ErrorResponse.ScimError( ec.getVal(), desc );
+        ErrorResponse.ScimError error = new ErrorResponse.ScimError( ec, scimType, detail );
         
         error.setStackTrace( exceptionToStr( e ) );
         
@@ -122,9 +125,19 @@ public class ScimUtil
         
         ErrorResponse resp = new ErrorResponse( err );
         String json = ResourceSerializer.serialize( resp );
-        ResponseBuilder rb = Response.status( err.getCode() ).entity( json );
+        ResponseBuilder rb = Response.status( err.getCode().getVal() ).entity( json );
         
         return rb.build();
     }
     
+    public static void main( String[] args )
+    {
+        ErrorResponse.ScimError error = new ErrorResponse.ScimError( ErrorCode.BAD_REQUEST, ScimType.INVALID_FILTER, "detail error" );
+        
+        ErrorResponse erResp = new ErrorResponse( error );
+        
+        String json = ResourceSerializer.serialize( erResp );
+        
+        System.out.println( json );
+    }
 }

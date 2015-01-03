@@ -25,15 +25,19 @@ import java.util.Map;
 
 import org.apache.directory.scim.AbstractAttribute;
 import org.apache.directory.scim.ComplexAttribute;
+import org.apache.directory.scim.FieldExclusionStrategy;
 import org.apache.directory.scim.ListResponse;
 import org.apache.directory.scim.MultiValAttribute;
+import org.apache.directory.scim.ScimErrorDeserializer;
 import org.apache.directory.scim.ScimUtil;
 import org.apache.directory.scim.ServerResource;
 import org.apache.directory.scim.SimpleAttribute;
 import org.apache.directory.scim.SimpleAttributeGroup;
 import org.apache.directory.scim.schema.ErrorResponse;
+import org.apache.directory.scim.schema.ErrorResponse.ScimError;
 
 import com.google.gson.Gson;
+import com.google.gson.GsonBuilder;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonPrimitive;
@@ -48,10 +52,18 @@ public class ResourceSerializer
 {
 
     private static final JsonArray ERROR_RESPONSE_SCHEMAS = new JsonArray();
-    
+
+    private static Gson serializer;
+
     static
     {
         ERROR_RESPONSE_SCHEMAS.add( new JsonPrimitive( ErrorResponse.SCHEMA_ID ) );
+        
+        GsonBuilder gb = new GsonBuilder();
+        gb.setExclusionStrategies( new FieldExclusionStrategy() );
+        gb.setDateFormat( "yyyy-MM-dd'T'HH:mm:ss'Z'" );
+        gb.registerTypeAdapter( ScimError.class, new ScimErrorDeserializer() );
+        serializer = gb.create();
     }
 
     public static String serialize( ServerResource resource )
@@ -156,8 +168,7 @@ public class ResourceSerializer
     
     public static String serialize( ErrorResponse err )
     {
-        Gson gson = new Gson();
-        JsonObject jo = ( JsonObject ) gson.toJsonTree( err );
+        JsonObject jo = ( JsonObject ) serializer.toJsonTree( err );
         
         jo.add( "schemas", ERROR_RESPONSE_SCHEMAS );
         

@@ -119,7 +119,7 @@ public class AuthenticationFilter implements Filter
             
             String json = ResourceSerializer.serialize( erResp );
             
-            httpResp.setStatus( error.getCode() );
+            httpResp.setStatus( error.getCode().getVal() );
             httpResp.getWriter().write( json );
             
             return;

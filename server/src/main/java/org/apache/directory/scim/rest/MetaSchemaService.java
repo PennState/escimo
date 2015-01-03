@@ -136,7 +136,7 @@ public class MetaSchemaService
 
             ErrorResponse resp = new ErrorResponse( err );
             String json = ResourceSerializer.serialize( resp );
-            rb = Response.status( err.getCode() ).entity( json );
+            rb = Response.status( err.getCode().getVal() ).entity( json );
         }
 
         return rb.build();
@@ -185,7 +185,7 @@ public class MetaSchemaService
 
                 ErrorResponse resp = new ErrorResponse( err );
                 String json = ResourceSerializer.serialize( resp );
-                rb = Response.status( err.getCode() ).entity( json );
+                rb = Response.status( err.getCode().getVal() ).entity( json );
             }
         }
 
@@ -223,7 +223,7 @@ public class MetaSchemaService
 
             ErrorResponse resp = new ErrorResponse( err );
             String json = ResourceSerializer.serialize( resp );
-            rb = Response.status( err.getCode() ).entity( json );
+            rb = Response.status( err.getCode().getVal() ).entity( json );
         }
 
         return rb.build();
