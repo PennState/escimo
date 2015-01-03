@@ -110,12 +110,12 @@
         </objectClasses>
     </resourceType>
 
-    <resourceType name="Group" baseDn="ou=system" filter="(objectClass=groupOfNames)">
+    <resourceType name="Group" baseDn="ou=system" filter="(objectClass=groupOfUniqueNames)">
         <schemaRef id="group" />
         <rdnAtRef name="displayName"/>
         <reqUri value="/Groups"/>
         <objectClasses>
-         <objectClass>groupOfNames</objectClass>
+         <objectClass>groupOfUniqueNames</objectClass>
         </objectClasses>
     </resourceType>
 
