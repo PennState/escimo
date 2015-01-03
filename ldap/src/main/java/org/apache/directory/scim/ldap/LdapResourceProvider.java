@@ -191,7 +191,10 @@ public class LdapResourceProvider implements ResourceProvider
                 {
                     String json = SchemaUtil.getSchemaJson( u );
                     JsonSchema schema = JsonSchema.parse( json );
-                    schemas.put( schema.getId(), schema );
+                    if ( schema != null )
+                    {
+                        schemas.put( schema.getId(), schema );
+                    }
                 }
             }
 
