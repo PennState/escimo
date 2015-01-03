@@ -20,11 +20,11 @@
 package org.apache.directory.scim.schema;
 
 /**
- * TODO ErrorCode.
+ * TODO StatusCode.
  *
  * @author <a href="mailto:dev@directory.apache.org">Apache Directory Project</a>
  */
-public enum ErrorCode
+public enum StatusCode
 {
 
     TEMPORARY_REDIRECT(307, " The client is directed to repeat the same HTTP request at the location identified."
@@ -57,16 +57,16 @@ public enum ErrorCode
     
     private String detail;
     
-    private ErrorCode( int val, String detail )
+    private StatusCode( int val, String detail )
     {
         this.val = val;
         this.detail = detail;
     }
 
     
-    public static ErrorCode getByVal( int v )
+    public static StatusCode getByVal( int v )
     {
-        for( ErrorCode ec : values() )
+        for( StatusCode ec : values() )
         {
             if ( ec.val == v )
             {

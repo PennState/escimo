@@ -32,7 +32,7 @@ import javax.ws.rs.core.UriInfo;
 
 import org.apache.directory.scim.ResourceProvider;
 import org.apache.directory.scim.json.ResourceSerializer;
-import org.apache.directory.scim.schema.ErrorCode;
+import org.apache.directory.scim.schema.StatusCode;
 import org.apache.directory.scim.schema.ErrorResponse;
 import org.apache.directory.scim.schema.ErrorResponse.ScimError;
 import org.apache.directory.scim.schema.JsonSchema;

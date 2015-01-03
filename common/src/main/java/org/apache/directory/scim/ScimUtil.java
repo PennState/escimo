@@ -19,11 +19,11 @@
 package org.apache.directory.scim;
 
 
-import static org.apache.directory.scim.schema.ErrorCode.BAD_REQUEST;
-import static org.apache.directory.scim.schema.ErrorCode.CONFLICT;
-import static org.apache.directory.scim.schema.ErrorCode.INTERNAL_SERVER_ERROR;
-import static org.apache.directory.scim.schema.ErrorCode.NOT_FOUND;
-import static org.apache.directory.scim.schema.ErrorCode.UNAUTHORIZED;
+import static org.apache.directory.scim.schema.StatusCode.BAD_REQUEST;
+import static org.apache.directory.scim.schema.StatusCode.CONFLICT;
+import static org.apache.directory.scim.schema.StatusCode.INTERNAL_SERVER_ERROR;
+import static org.apache.directory.scim.schema.StatusCode.NOT_FOUND;
+import static org.apache.directory.scim.schema.StatusCode.UNAUTHORIZED;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -36,7 +36,7 @@ import org.apache.directory.scim.exception.ResourceConflictException;
 import org.apache.directory.scim.exception.ResourceNotFoundException;
 import org.apache.directory.scim.exception.UnauthorizedException;
 import org.apache.directory.scim.json.ResourceSerializer;
-import org.apache.directory.scim.schema.ErrorCode;
+import org.apache.directory.scim.schema.StatusCode;
 import org.apache.directory.scim.schema.ErrorResponse;
 import org.apache.directory.scim.schema.ErrorResponse.ScimError;
 import org.apache.directory.scim.schema.SchemaUtil;
@@ -78,7 +78,7 @@ public class ScimUtil
     public static ResponseBuilder buildError( Exception e )
     {
         // set the default type to server error
-        ErrorCode ec = INTERNAL_SERVER_ERROR;
+        StatusCode ec = INTERNAL_SERVER_ERROR;
         String detail = e.getMessage();
         ScimType scimType = null;
         
@@ -121,7 +121,7 @@ public class ScimUtil
     
     public static Response sendBadRequest( String message )
     {
-        ScimError err = new ScimError( ErrorCode.BAD_REQUEST, message );
+        ScimError err = new ScimError( StatusCode.BAD_REQUEST, message );
         
         ErrorResponse resp = new ErrorResponse( err );
         String json = ResourceSerializer.serialize( resp );
@@ -132,7 +132,7 @@ public class ScimUtil
     
     public static void main( String[] args )
     {
-        ErrorResponse.ScimError error = new ErrorResponse.ScimError( ErrorCode.BAD_REQUEST, ScimType.INVALID_FILTER, "detail error" );
+        ErrorResponse.ScimError error = new ErrorResponse.ScimError( StatusCode.BAD_REQUEST, ScimType.INVALID_FILTER, "detail error" );
         
         ErrorResponse erResp = new ErrorResponse( error );
         

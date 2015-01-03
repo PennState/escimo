@@ -24,7 +24,7 @@ package org.apache.directory.scim;
 import java.lang.reflect.Type;
 
 import org.apache.directory.scim.schema.ErrorResponse.ScimError;
-import org.apache.directory.scim.schema.ErrorCode;
+import org.apache.directory.scim.schema.StatusCode;
 import org.apache.directory.scim.schema.ScimType;
 
 import com.google.gson.JsonDeserializationContext;
@@ -77,11 +77,11 @@ public class ScimErrorDeserializer implements JsonDeserializer<ScimError>, JsonS
         
         JsonPrimitive elStatus = ( JsonPrimitive ) obj.get( "status" );
         
-        ErrorCode status = null;
+        StatusCode status = null;
         
         if ( elStatus != null )
         {
-            status = ErrorCode.getByVal( elStatus.getAsInt() );
+            status = StatusCode.getByVal( elStatus.getAsInt() );
         }
 
         JsonPrimitive elDetail = ( JsonPrimitive ) obj.get( "detail" );

@@ -44,7 +44,7 @@ public class ErrorResponse
     }
 
 
-    public ErrorCode getFirstErrorCode()
+    public StatusCode getFirstErrorCode()
     {
         return Errors.get( 0 ).getCode();
     }
@@ -88,18 +88,18 @@ public class ErrorResponse
         
         private ScimType scimType;
         
-        private ErrorCode code;
+        private StatusCode code;
 
         // this is an eSCIMo specific field used for 
         // debugging purpose
         private String stackTrace;
 
-        public ScimError( ErrorCode code, String description )
+        public ScimError( StatusCode code, String description )
         {
             this( code, null, description );
         }
 
-        public ScimError( ErrorCode code, ScimType scimType, String description )
+        public ScimError( StatusCode code, ScimType scimType, String description )
         {
             this.code = code;
             this.scimType = scimType;
@@ -146,7 +146,7 @@ public class ErrorResponse
         /**
          * @return the code
          */
-        public ErrorCode getCode()
+        public StatusCode getCode()
         {
             return code;
         }

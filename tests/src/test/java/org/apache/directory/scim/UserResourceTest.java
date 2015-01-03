@@ -34,7 +34,7 @@ import org.apache.directory.api.ldap.model.name.Dn;
 import org.apache.directory.scim.User.Email;
 import org.apache.directory.scim.User.Name;
 import org.apache.directory.scim.schema.CoreResource;
-import org.apache.directory.scim.schema.ErrorCode;
+import org.apache.directory.scim.schema.StatusCode;
 import org.apache.directory.scim.schema.ScimType;
 import org.apache.directory.scim.schema.ErrorResponse.ScimError;
 import org.apache.directory.scim.schema.MetaData;
@@ -104,7 +104,7 @@ public class UserResourceTest
         assertFalse( errorResult.isSuccess() );
         ScimError err = errorResult.getErrorResponse().getErrors().get( 0 );
         assertEquals( ScimType.UNIQUENESS, err.getScimType() );
-        assertEquals( ErrorCode.CONFLICT, err.getCode() );
+        assertEquals( StatusCode.CONFLICT, err.getCode() );
         
         User addedUser = ( User ) result.getResource(); 
         
@@ -120,7 +120,7 @@ public class UserResourceTest
         
         result = client.addUser( user );
         assertFalse( result.isSuccess() );
-        assertEquals( ErrorCode.CONFLICT, result.getErrorResponse().getFirstErrorCode() );
+        assertEquals( StatusCode.CONFLICT, result.getErrorResponse().getFirstErrorCode() );
         
         result = client.deleteUser( fetchedUser.getId() );
         assertTrue( result.isSuccess() );

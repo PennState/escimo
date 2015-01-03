@@ -36,7 +36,7 @@ import javax.ws.rs.core.UriInfo;
 
 import org.apache.directory.scim.ResourceProvider;
 import org.apache.directory.scim.json.ResourceSerializer;
-import org.apache.directory.scim.schema.ErrorCode;
+import org.apache.directory.scim.schema.StatusCode;
 import org.apache.directory.scim.schema.ErrorResponse;
 import org.apache.directory.scim.schema.ErrorResponse.ScimError;
 import org.apache.directory.scim.schema.JsonSchema;
@@ -131,7 +131,7 @@ public class MetaSchemaService
         }
         else
         {
-            ScimError err = new ScimError( ErrorCode.NOT_FOUND, "No schema found with the URI "
+            ScimError err = new ScimError( StatusCode.NOT_FOUND, "No schema found with the URI "
                 + SchemaUtil.PROVIDER_SERVICE_SCHEMA_ID );
 
             ErrorResponse resp = new ErrorResponse( err );
@@ -181,7 +181,7 @@ public class MetaSchemaService
             }
             else
             {
-                ScimError err = new ScimError( ErrorCode.NOT_FOUND, "No schema found with the URI " + schemaId );
+                ScimError err = new ScimError( StatusCode.NOT_FOUND, "No schema found with the URI " + schemaId );
 
                 ErrorResponse resp = new ErrorResponse( err );
                 String json = ResourceSerializer.serialize( resp );
@@ -219,7 +219,7 @@ public class MetaSchemaService
         }
         else
         {
-            ScimError err = new ScimError( ErrorCode.NOT_FOUND, "No ResourceType found with the name " + resType );
+            ScimError err = new ScimError( StatusCode.NOT_FOUND, "No ResourceType found with the name " + resType );
 
             ErrorResponse resp = new ErrorResponse( err );
             String json = ResourceSerializer.serialize( resp );

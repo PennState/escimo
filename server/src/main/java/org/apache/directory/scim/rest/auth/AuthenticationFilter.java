@@ -36,7 +36,7 @@ import org.apache.directory.scim.ResourceProvider;
 import org.apache.directory.scim.RequestContext;
 import org.apache.directory.scim.ScimUtil;
 import org.apache.directory.scim.json.ResourceSerializer;
-import org.apache.directory.scim.schema.ErrorCode;
+import org.apache.directory.scim.schema.StatusCode;
 import org.apache.directory.scim.schema.ErrorResponse;
 import org.apache.directory.scim.schema.ErrorResponse.ScimError;
 
@@ -114,7 +114,7 @@ public class AuthenticationFilter implements Filter
                 errorMsg = "Not authenticated";
             }
             
-            ScimError error = new ScimError( ErrorCode.UNAUTHORIZED, errorMsg );
+            ScimError error = new ScimError( StatusCode.UNAUTHORIZED, errorMsg );
             ErrorResponse erResp = new ErrorResponse( error );
             
             String json = ResourceSerializer.serialize( erResp );
