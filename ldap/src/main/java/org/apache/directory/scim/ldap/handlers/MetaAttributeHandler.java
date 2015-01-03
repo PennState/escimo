@@ -101,6 +101,7 @@ public class MetaAttributeHandler extends LdapAttributeHandler
             
             SimpleAttribute location = new SimpleAttribute( "location" );
             String locationVal = ctx.getUriInfo().getBaseUri().toString();
+            locationVal = locationVal.substring( 0, locationVal.length() - 1 );
             locationVal = locationVal + resourceUri + resource.getId();
             
             location.setValue( locationVal );
