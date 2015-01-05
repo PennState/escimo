@@ -111,6 +111,7 @@ public class UserResourceTest
         assertNotNull( addedUser );
         
         assertEquals( user.getUserName(), addedUser.getUserName() );
+        assertNotNull( addedUser.getMeta().getLocation() );
         
         result = client.getUser( addedUser.getId() );
         User fetchedUser = result.getResourceAs( User.class );
