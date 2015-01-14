@@ -74,7 +74,7 @@ public class ResourceService extends AbstractDynamicResource
     @GET
     @Produces({MediaType.APPLICATION_JSON})
     @Path("{id}")
-    public Response getUser( @PathParam("id") String userId, @Context UriInfo uriInfo )
+    public Response getResource( @PathParam("id") String userId, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = null;
         
@@ -99,7 +99,7 @@ public class ResourceService extends AbstractDynamicResource
 
     @DELETE
     @Path("{id}")
-    public Response deleteUser( @PathParam("id") String userId, @Context UriInfo uriInfo )
+    public Response deleteResource( @PathParam("id") String userId, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = Response.ok();
         
@@ -159,7 +159,7 @@ public class ResourceService extends AbstractDynamicResource
     @PUT
     @Path("{id}")
     @Produces({MediaType.APPLICATION_JSON})
-    public Response putUser( @PathParam("id") String userId, String jsonData, @Context UriInfo uriInfo )
+    public Response replaceResource( @PathParam("id") String userId, String jsonData, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = null;
 
@@ -195,7 +195,7 @@ public class ResourceService extends AbstractDynamicResource
     @PATCH
     @Path("{id}")
     @Produces({MediaType.APPLICATION_JSON})
-    public Response patchUser( @PathParam("id") String userId, String jsonData, @Context UriInfo uriInfo )
+    public Response patchResource( @PathParam("id") String userId, String jsonData, @Context UriInfo uriInfo )
     {
         ResponseBuilder rb = null;
 
